@@ -39,6 +39,9 @@ Format: date — decision — reason. Divergences from the original brief are ma
 - 2026-11-18 — **DIVERGENCE:** "recovered" requires a delivered message (step > 0 AND sends > 0) rather than step > 0 alone, and is decided when the order is PAID (not on creation, which also changes the cart behavior of part B). A cancellation by a logged-in person stops the sequence; a timeout cancellation uses the configurable fallback (restore through the existing recovery link, or expire); trashed/deleted orders expire. — Avoids false attribution and messaging customers whose order was cancelled on purpose.
 - 2026-11-18 — Part C needs no migration: `type = order` and `order_id` already exist; `session_key` stays on the converted row so cart capture is skipped while the order row is active, and finished order rows release it. — Reuse of tables.
 
+- 2026-11-18 — Recovery/opt-out tokens are HMACs keyed with `wp_salt('motored_recovery')` (no raw token stored or cached; recovery token reused until expiry; opt-out token stateless). Opt-out requires a POST confirmation. — Review: cache-loss rotation broke sent links; raw tokens sat in cache/transients; link prefetchers could opt people out.
+- 2026-11-18 — Action Scheduler jobs are removed on deactivation and on every uninstall (data only when "delete data" is on). — Review: recurring jobs kept firing with no listener.
+
 ## Roadmap
 | Stage | Scope | Status |
 |-------|-------|--------|
@@ -104,3 +107,28 @@ Environment: `php` 8.5.9 available (project targets 8.1-8.3). Results: phpunit 2
 - Changed behavior of part B: cart rows convert into order rows at creation and are resolved on payment; `Status::derive_row` never marks orders as abandoned; "abandoned" counts and filters are carts only.
 - Reviewer: check first `OrderSync::apply` (lookup/convert/paid), `OrderStepHandler::handle` (re-check before send, fallback email), `RecoveryResultHandler::advance_step` (order timing) and the `CaptureService` session guard.
 - Not executable here: WooCommerce/Mercado Pago behavior, real DB, AS runs, e-mail rendering, admin screens. Pending: VERIFY rows 49-57 on staging with MP sandbox; independent `motored-review`.
+
+### 2026-11-18 — Stage 7 review (motored-review; reviewer = different agent session; no staging findings provided)
+Tools: `composer check` (PHP 8.5.9) green before and after: phpcs clean, phpstan level 6 0 errors, phpunit 247 tests OK. Branch `review/stage-7`,
+first commit is a snapshot of the uncommitted stages 2-6, then one commit per fix.
+
+**Performance proof (public GET page view, read from code):** `motored-core.php` only defines constants, registers the autoloader and 4 hooks.
+`Plugin::boot()` (plugins_loaded@20): `init` -> `load_textdomain` (reads the .mo file, no query); `Options::register_defaults('general')` is memory only;
+modules: `WahaModule::should_load` false (admin/cron/ajax/cli only); `OrderNotificationsModule::should_load` false on GET (true on POST / `wc-api`);
+`RecoveryModule::register()` only adds hooks (`woocommerce_email_classes`, `wp_enqueue_scripts`, `template_redirect`, 3 cart-change hooks,
+2 order-created hooks, `woocommerce_order_status_changed`) plus `Options::register_defaults` (memory). On a page view: `CheckoutScript::enqueue` returns at
+`is_checkout()` (no query) and `RecoveryLinkHandler::handle` returns at `isset()`; the other hooks fire only on cart/order events.
+**Option reads during bootstrap: none.** Option reads happen lazily: checkout page `motored_recovery` (1 query without a persistent cache) + the only asset
+(`checkout-capture.js`, 1.5 KB, defer); `Logger` reads `motored_general` only when logging; admin `admin_init` reads `motored_schema_version` (migrations) and
+two hourly Cache flags. `woocommerce_email_classes` instantiates our two `WC_Email` (their settings options) only when WooCommerce builds its mailer, not on page views.
+No HTTP outside Action Scheduler workers and the 2 WAHA admin test buttons / manual send actions.
+
+Findings and fixes (commit):
+- FIXED (9f306ba) `RecoveryToken`: raw tokens were stored in Cache (=`wp_options` transients without Redis) and a cache miss rotated the token, breaking links already sent; opt-out on plain GET (mail scanners/WhatsApp previews prefetch) — HMAC tokens, hash-only storage, reuse until expiry, stateless opt-out, POST confirmation.
+- FIXED (c170856) `Scanner::run` read-then-clear could enqueue the same row twice on overlapping runs -> atomic `Repository::claim_due()`; `OrderSync::resolve_paid` could log "recovered" twice (IPN + return) -> `Repository::update_if_status()` compare-and-set.
+- FIXED (5dd1ed2) jobs left running after deactivation / uninstall without "delete data" -> `Plugin::deactivate()` + uninstall always unschedules; uninstall deletes our WC e-mail settings.
+- FIXED (60dcc89) i18n: e-mail classes/templates used Spanish msgids missing from .pot/.po (and "\n" inside msgids) -> English source + es_AR; catalog regenerated (295 entries, `msgfmt --check`); `bin/i18n.sh` now scans `templates/`.
+- FIXED (e189116) cart handler marked a cart `recovered` when ANY order (even pending/on-hold) existed in another session -> closes it as `converted`; removed dead code (`CaptureService::convert`, `Repository::mark_converted*`, `*::unschedule`, `Schedule::adjust_to_window`, `EventMap::expected_status`).
+- FIXED (this commit) `MessageLimiter` cache keys were md5(phone) (reversible) -> keyed HMAC (`Suppression::hash`).
+- OK: every admin action checks `manage_woocommerce` + nonce (`RecoveryAdmin::process_request`, `handle_note`, `save_steps`; `WahaAdmin::guard`; `OrderNotificationsAdmin::save_events`); wc-ajax capture has nonce + session/IP rate limit and reads the cart server-side; every `$wpdb` query is prepared (only fixed table names/whitelisted ORDER BY interpolated); logs mask phones and never carry text/body/API key; Cache is never the source of truth (limits, throttles, breaker, summary, notices are best-effort; migrations idempotent); window uses `wp_timezone()` and GMT storage; `bin/build-zip.sh` ships only motored-core.php, uninstall.php, readme.txt, LICENSE, src/, templates/, assets/, languages/ (README.md stripped).
+- PENDING (needs staging/decision): recovery link GET still restores the cart and marks `clicked` when a scanner prefetches it (VERIFY #45); WAHA API key is printed in the password input HTML (prefer the constant); the checkout page reads `motored_recovery` (1 query without Redis) to decide whether to enqueue the script; order meta `_motored_*` is kept on uninstall on purpose; all VERIFY rows remain unconfirmed (risk order at the top of VERIFY.md); PHP 8.1/8.3 runs.

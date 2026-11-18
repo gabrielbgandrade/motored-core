@@ -11,8 +11,8 @@ Read `src/Modules/Recovery/README.md`. Carts (parts A/B) and unpaid orders (part
 - Scanner: AS recurring job (15 min, LIMIT 50); enqueues Sender::enqueue('recovery_step', id, step). No HTTP in scanner.
 - Send: Window (09:00-21:00); skip if order exists after last activity; skip if out of stock; limit 1/24h, 3/week.
 - Fallback: If no WhatsApp/fails permanently, fallback to AbandonedCartEmail (WC_Email loaded in callback).
-- Tokens: random_bytes, SHA-256 in DB, hash_equals, 7-day validity. template_redirect via early isset.
-- Opt-out: ?motored_optout salted SHA-256 hash in motored_suppressions; checked before every send.
+- Tokens: HMAC(wp_salt) of id|expiry, only SHA-256 in DB, hash_equals, reused until expiry; NEVER store/cache raw tokens. template_redirect via early isset.
+- Opt-out: stateless HMAC token; GET only confirms, POST suppresses (salted hash in motored_suppressions); checked before every send.
 - Status: active|converted|expired|opted_out|recovered. "Abandoned" is derived. Events via History::log (no PII).
 - Conversion: the cart row becomes the order row at creation; payment (paid status) resolves it: recovered + recovered_order_id + order meta _motored_recovered_cart_id.
 - Admin: Section Settings > Motored > Recovery + screen Abandoned carts (manual actions with nonce + manage_woocommerce).

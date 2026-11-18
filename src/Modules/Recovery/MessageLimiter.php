@@ -35,7 +35,7 @@ final class MessageLimiter {
 			return true;
 		}
 
-		$hash = md5( $digits );
+		$hash = Suppression::hash( $digits ); // Keyed HMAC: a cache dump does not reveal phone numbers.
 
 		$count_24h = Cache::counter( 'msg_24h:' . $hash, CaptureLimiter::BUCKET );
 		if ( $count_24h >= $max_24h ) {
@@ -61,7 +61,7 @@ final class MessageLimiter {
 			return;
 		}
 
-		$hash = md5( $digits );
+		$hash = Suppression::hash( $digits ); // Keyed HMAC: a cache dump does not reveal phone numbers.
 
 		Cache::incr( 'msg_24h:' . $hash, 1, self::TTL_24H, CaptureLimiter::BUCKET );
 		Cache::incr( 'msg_week:' . $hash, 1, self::TTL_WEEK, CaptureLimiter::BUCKET );

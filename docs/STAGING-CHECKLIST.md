@@ -71,5 +71,10 @@ Tick each item; record failures in `PROJECT.md` (Review log).
 - [ ] WooCommerce > Settings > Emails lists "Pending payment reminder (Motored)"; HTML and plain render with the pay button.
 - [ ] Query Monitor: status events and checkout add <= 2 queries from Motored, no HTTP.
 
+## Review fixes (2026-11-18)
+- [ ] Opt-out link: GET shows "¿Querés dejar de recibir…" with a button; only the POST suppresses. A link preview/scanner opening it changes nothing.
+- [ ] Recovery link from step 1 still works after step 2 is sent and after flushing the object cache.
+- [ ] Deactivate the plugin: no pending `motored_*` actions in Scheduled Actions; reactivate: scan/cleanup are back.
+
 ## VERIFY.md
 - [ ] Work through every `unverified`/`partial` row; update statuses.

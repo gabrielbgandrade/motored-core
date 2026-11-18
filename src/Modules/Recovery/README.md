@@ -9,7 +9,7 @@ scanner, `Waha\Sender`, `Renderer`, sending window, suppression, per-number limi
 ## Public contracts
 - `Repository`: Explicit column queries, prepared SQL, pagination, summary metrics (`recovered_link` vs `recovered_message`).
 - `History::log( $id, $event, $channel, $source, $user_id, $result, $detail )`: Insert-only event timeline.
-- `RecoveryToken`: Generates raw `random_bytes` tokens, SHA-256 stored in DB, `hash_equals` verification, generates `?motored_recover` and `?motored_optout` links.
+- `RecoveryToken`: recovery token = HMAC(`wp_salt('motored_recovery')`, id|expiry); only its SHA-256 is stored, verified with `hash_equals` + expiry, reused until it expires (never cached, so a cache wipe does not break sent links). Opt-out token = stateless HMAC of the id (never expires).
 - `Suppression`: Salted SHA-256 suppression list (`motored_suppressions`) for WhatsApp and email opt-outs.
 - `Schedule`: Pure window logic (default 09:00–21:00 in site timezone).
 - `MessageLimiter`: Soft message rate limiting per phone number in Cache (1/24h, 3/week).
@@ -58,7 +58,7 @@ scanner, `Waha\Sender`, `Renderer`, sending window, suppression, per-number limi
 3. Send Handler: Verifies sending window, recent orders, stock, opt-out suppression, and per-number limits. Sends WhatsApp or triggers `AbandonedCartEmail`.
 4. Result & Fallback: On success, advances step and updates `next_action_gmt`. On failure, triggers email fallback if configured; if sequence finished, status is `expired`.
 5. Recovery Link: `?motored_recover={id}.{token}` restores cart items with `add_to_cart()`, applies coupon, sets nocache headers, redirects to checkout.
-6. Opt-out Link: `?motored_optout={id}.{token}` adds contact hash to `motored_suppressions`, marks row `opted_out`.
+6. Opt-out Link: `?motored_optout={id}.{token}` shows a confirmation form on GET (mail scanners/previews prefetch links); the POST adds the contact hash to `motored_suppressions` and marks the row `opted_out`.
 7. Admin: Settings section in WooCommerce > Settings > Motored > Recovery; Abandoned carts list and detail with "Enviar WhatsApp ahora", "Enviar email ahora", "Abrir en WhatsApp Web", and "Copiar link".
 
 ## How to test
