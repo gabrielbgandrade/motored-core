@@ -18,5 +18,8 @@
     <include>
       <directory>src</directory>
     </include>
+    <exclude>
+      <directory>reference</directory>
+    </exclude>
   </source>
 </phpunit>

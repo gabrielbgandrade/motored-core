@@ -35,5 +35,10 @@ find "$STAGE/$SLUG" \( -name '.gitkeep' -o -name '*.md' -o -name '*.po~' -o -nam
 
 rm -f "$OUT/$SLUG.zip"
 ( cd "$STAGE" && zip -rq "$OUT/$SLUG.zip" "$SLUG" )
+# Guard: third-party reference copies and dev folders must never ship.
+if unzip -l "$OUT/$SLUG.zip" | grep -E "/(reference|tests|docs|vendor|\.claude)/" >/dev/null; then
+  echo "error: dev-only folders found in the zip" >&2
+  exit 1
+fi
 echo "Built $OUT/$SLUG.zip"
 unzip -l "$OUT/$SLUG.zip" 2>/dev/null | tail -n +4 | head -n -2 || true

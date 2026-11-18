@@ -5,6 +5,9 @@
 # Node
 /node_modules/
 
+# Third-party reference copies (read-only, never part of the plugin)
+/reference/
+
 # Build artifacts
 /build/
 *.zip
