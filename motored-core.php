@@ -42,6 +42,7 @@ add_action(
 );
 
 register_activation_hook( __FILE__, array( \Motored\Core\Plugin::class, 'activate' ) );
+register_deactivation_hook( __FILE__, array( \Motored\Core\Plugin::class, 'deactivate' ) );
 
 add_action(
 	'plugins_loaded',

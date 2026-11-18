@@ -33,6 +33,13 @@ final class Plugin {
 	);
 
 	/**
+	 * Action Scheduler hooks owned by the plugin (group motored-core).
+	 *
+	 * @var list<string>
+	 */
+	public const ACTION_HOOKS = array( 'motored_waha_send', 'motored_recovery_cleanup', 'motored_recovery_scan' );
+
+	/**
 	 * Defaults of the built-in "general" settings.
 	 *
 	 * @var array<string,string>
@@ -96,6 +103,16 @@ final class Plugin {
 		( new Migrations( self::migrations() ) )->run();
 		Modules\Recovery\Retention::schedule();
 		Modules\Recovery\Scanner::schedule();
+	}
+
+	/**
+	 * Deactivation callback: removes our Action Scheduler jobs so they do not fail every run while the
+	 * plugin is inactive (activation and admin_init re-create the recurring ones). Data is kept.
+	 */
+	public static function deactivate(): void {
+		foreach ( self::ACTION_HOOKS as $hook ) {
+			Integration\ActionScheduler::unschedule_all( $hook );
+		}
 	}
 
 	/**

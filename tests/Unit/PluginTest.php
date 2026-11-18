@@ -100,4 +100,19 @@ final class PluginTest extends TestCase {
 		Plugin::activate();
 		$this->assertSame( '2026111901', $this->options['motored_schema_version'] );
 	}
+
+	public function test_deactivation_removes_every_scheduled_job_and_keeps_data(): void {
+		$hooks = array();
+		Functions\expect( 'as_unschedule_all_actions' )->times( 3 )->andReturnUsing(
+			function ( $hook, $args, $group ) use ( &$hooks ) {
+				$this->assertSame( 'motored-core', $group );
+				$hooks[] = $hook;
+			}
+		);
+		Functions\expect( 'delete_option' )->never();
+
+		Plugin::deactivate();
+
+		$this->assertSame( Plugin::ACTION_HOOKS, $hooks );
+	}
 }
