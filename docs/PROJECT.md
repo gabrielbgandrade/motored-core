@@ -54,6 +54,8 @@ Format: date — decision — reason. Divergences from the original brief are ma
 
 - 2026-11-18 — PaymentPlans part B: the MP plugin (8.10.2, read in `reference/`) has no preference filter, so `PreferenceFilter` rewrites the outgoing POST to `/v1/asgard/preferences` (`http_request_args` 9999) and blocks through `pre_http_request` (priority 1) when the plan limit cannot be applied (**fail closed**: unreadable body, bad plan meta, total mismatch, unidentifiable order while plans are enabled). Installments = min(plugin, plan max); cash plans merge `credit_card`+`debit_card` exclusions (never `account_money`). New order meta `_motored_plan_type`. Version guard `VALIDATED_VERSION` = 8.10.2 (warning only). `Reconciler` (status change + 120 s Action Scheduler job `motored_plans_reconcile`) compares the plugin's order meta (`Mercado Pago - <id> - installments`; `mp_installments` is NOT written by Checkout Pro) with the plan: divergence = note + on-hold + admin e-mail, never cancel/refund. The module now also loads in cron. — Product request.
 
+- 2026-11-18 — OrderNotifications: the internal admin new-order alert (field "Número de WhatsApp del admin", event `admin_new_order`, listener branch, defaults, texts) was REMOVED; the module sends customer messages only. Old stored `admin_phone` / `admin_new_order` values stay in the option and are ignored (no migration). The PaymentPlans divergence e-mail to the administrator is another flow and stays. — Product request.
+
 ## Roadmap
 | Stage | Scope | Status |
 |-------|-------|--------|

@@ -25,31 +25,26 @@ final class Config {
 	 * @var array<string,mixed>
 	 */
 	public const DEFAULTS = array(
-		'include_manual_orders'   => 'no',
-		'admin_phone'             => '',
-		EventMap::ON_HOLD         => array(
+		'include_manual_orders' => 'no',
+		EventMap::ON_HOLD       => array(
 			'enabled' => 'yes',
 			'text'    => "{¡Hola|¡Buenas} {first_name}! Recibimos tu pedido *#{order_number}* en *{store_name}* por *{order_total}*.\n{order_items}\n\nQuedó *en espera* de confirmación del pago. Podés ver el detalle {acá|en este link}:\n{order_url}",
 		),
-		EventMap::PROCESSING      => array(
+		EventMap::PROCESSING    => array(
 			'enabled' => 'yes',
 			'text'    => "{¡Hola|¡Buenas} {first_name}! Ya confirmamos tu pago y estamos preparando tu pedido *#{order_number}* en *{store_name}* (*{order_total}*).\n{order_items}\n\nSeguí el estado de tu compra {acá|en este link}:\n{order_url}",
 		),
-		EventMap::COMPLETED       => array(
+		EventMap::COMPLETED     => array(
 			'enabled' => 'yes',
 			'text'    => "{¡Hola|¡Buenas} {first_name}! Tu pedido *#{order_number}* en *{store_name}* ya está *completado*.\n{order_items}\n\nPodés consultar el resumen {acá|en este link}:\n{order_url}",
 		),
-		EventMap::REFUNDED        => array(
+		EventMap::REFUNDED      => array(
 			'enabled' => 'yes',
 			'text'    => "{Hola|Buenas} {first_name}, te confirmamos que tu pedido *#{order_number}* en *{store_name}* por *{order_total}* fue *reembolsado*.\n\nPodés revisar el detalle {acá|en este link}:\n{order_url}",
 		),
-		EventMap::CUSTOMER_NOTE   => array(
+		EventMap::CUSTOMER_NOTE => array(
 			'enabled' => 'yes',
 			'text'    => "{Hola|Buenas} {first_name}, tenés una nueva nota sobre tu pedido *#{order_number}* en *{store_name}*:\n\n{customer_note}\n\nMirá tu pedido {acá|en este link}:\n{order_url}",
-		),
-		EventMap::ADMIN_NEW_ORDER => array(
-			'enabled' => 'no',
-			'text'    => "*Nuevo pedido #{order_number}* en *{store_name}*\nCliente: {first_name}\nTotal: *{order_total}*\n{order_items}",
 		),
 	);
 
@@ -119,23 +114,6 @@ final class Config {
 	public static function include_manual_orders_in( array $all ): bool {
 		$value = $all['include_manual_orders'] ?? self::DEFAULTS['include_manual_orders'];
 		return true === $value || 'yes' === $value;
-	}
-
-	/**
-	 * Configured admin phone number for internal new-order alerts.
-	 */
-	public static function admin_phone(): string {
-		return self::admin_phone_in( Options::all( self::OPTION_KEY ) );
-	}
-
-	/**
-	 * Reads admin phone from an already-fetched Options::all() array.
-	 *
-	 * @param array<string,mixed> $all Module options array.
-	 */
-	public static function admin_phone_in( array $all ): string {
-		$value = $all['admin_phone'] ?? '';
-		return is_scalar( $value ) ? trim( (string) $value ) : '';
 	}
 
 	/**

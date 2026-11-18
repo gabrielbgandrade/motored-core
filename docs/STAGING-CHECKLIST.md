@@ -45,7 +45,7 @@ Tick each item; record failures in `PROJECT.md` (Review log).
 - [ ] Public pages / checkout: 0 extra queries, requests, assets with the module active.
 
 ## OrderNotifications (Motored > Messages)
-- [ ] Section "Mensajes" renders all 6 events, manual-order toggle, admin phone, variable lists, and "Restaurar texto predeterminado" buttons; saving persists (`autoload` = `no`).
+- [ ] Section "Mensajes" renders the 5 customer events, manual-order toggle, variable lists, and "Restaurar texto predeterminado" buttons; saving persists (`autoload` = `no`).
 - [ ] Place checkout order -> `on-hold` / `processing` -> WhatsApp arrives with plain total, <=5 items (+ `y N más`), working guest `order_url`; private note `WhatsApp enviado: ...` appears.
 - [ ] Order without valid phone -> single private note, no send; status changed before job runs -> skipped; manual admin order skipped unless enabled.
 - [ ] Customer note added -> WhatsApp arrives with `{customer_note}`; private note does not trigger customer WhatsApp.

@@ -21,27 +21,14 @@ final class EventMapTest extends TestCase {
 		$this->assertTrue( EventMap::matches_status( EventMap::ON_HOLD, 'on-hold' ) );
 		$this->assertFalse( EventMap::matches_status( EventMap::ON_HOLD, 'processing' ) );
 		$this->assertTrue( EventMap::matches_status( EventMap::PROCESSING, 'wc-processing' ) );
-		$this->assertTrue( EventMap::matches_status( EventMap::ADMIN_NEW_ORDER, 'on-hold' ) );
-		$this->assertTrue( EventMap::matches_status( EventMap::ADMIN_NEW_ORDER, 'processing' ) );
-		$this->assertTrue( EventMap::matches_status( EventMap::ADMIN_NEW_ORDER, 'completed' ) );
-		$this->assertFalse( EventMap::matches_status( EventMap::ADMIN_NEW_ORDER, 'cancelled' ) );
 		$this->assertTrue( EventMap::matches_status( EventMap::CUSTOMER_NOTE, 'processing' ) );
 		$this->assertFalse( EventMap::matches_status( EventMap::CUSTOMER_NOTE, 'trash' ) );
 		$this->assertFalse( EventMap::matches_status( 'unknown', 'processing' ) );
 	}
 
-	public function test_triggers_admin_new_order_only_on_initial_active_transitions(): void {
-		$this->assertTrue( EventMap::triggers_admin_new_order( 'pending', 'on-hold' ) );
-		$this->assertTrue( EventMap::triggers_admin_new_order( 'pending', 'processing' ) );
-		$this->assertTrue( EventMap::triggers_admin_new_order( 'checkout-draft', 'completed' ) );
-		$this->assertTrue( EventMap::triggers_admin_new_order( 'failed', 'processing' ) );
-		$this->assertFalse( EventMap::triggers_admin_new_order( 'on-hold', 'processing' ) );
-		$this->assertFalse( EventMap::triggers_admin_new_order( 'processing', 'completed' ) );
-		$this->assertFalse( EventMap::triggers_admin_new_order( 'pending', 'cancelled' ) );
-	}
-
 	public function test_meta_key_uses_prefix(): void {
 		$this->assertSame( '_motored_wa_processing', EventMap::meta_key( EventMap::PROCESSING ) );
-		$this->assertSame( '_motored_wa_admin_new_order', EventMap::meta_key( EventMap::ADMIN_NEW_ORDER ) );
+		$this->assertFalse( EventMap::is_valid( 'admin_new_order' ), 'the admin alert no longer exists' );
+		$this->assertNotContains( 'admin_new_order', EventMap::all() );
 	}
 }

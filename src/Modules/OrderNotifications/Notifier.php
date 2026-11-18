@@ -100,24 +100,14 @@ final class Notifier {
 	 * @param mixed  $order       Optional WC_Order instance passed by WooCommerce.
 	 */
 	public function on_status_changed( int $order_id, string $from_status, string $to_status, $order = null ): void {
-		$customer_event = EventMap::from_status( $to_status );
-		$triggers_admin = EventMap::triggers_admin_new_order( $from_status, $to_status );
-
-		if ( null === $customer_event && ! $triggers_admin ) {
+		unset( $from_status );
+		$event = EventMap::from_status( $to_status );
+		if ( null === $event ) {
 			return;
 		}
 
-		$all    = Options::all( Config::OPTION_KEY );
-		$events = array();
-
-		if ( null !== $customer_event && Config::is_event_enabled_in( $all, $customer_event ) ) {
-			$events[] = $customer_event;
-		}
-		if ( $triggers_admin && Config::is_event_enabled_in( $all, EventMap::ADMIN_NEW_ORDER ) && '' !== Config::admin_phone_in( $all ) ) {
-			$events[] = EventMap::ADMIN_NEW_ORDER;
-		}
-
-		if ( array() === $events ) {
+		$all = Options::all( Config::OPTION_KEY );
+		if ( ! Config::is_event_enabled_in( $all, $event ) ) {
 			return;
 		}
 
@@ -130,25 +120,18 @@ final class Notifier {
 			return;
 		}
 
-		// Orders paused by a payment plan mismatch get no customer notice (the internal admin alert is unaffected).
+		// Orders paused by a payment plan mismatch get no customer notice.
 		if ( OrderHooks::has_plan_mismatch( $order ) ) {
-			$events = array_values( array_filter( $events, static fn( string $event ): bool => EventMap::ADMIN_NEW_ORDER === $event ) );
+			return;
 		}
 
-		$dirty = false;
-		foreach ( $events as $event ) {
-			$meta_key = EventMap::meta_key( $event );
-			$existing = $order->get_meta( $meta_key, true );
-			if ( is_scalar( $existing ) && '' !== (string) $existing ) {
-				continue;
-			}
-			if ( ( $this->enqueuer )( EventMap::KIND, (int) $order->get_id(), $event ) ) {
-				$order->update_meta_data( $meta_key, '1' );
-				$dirty = true;
-			}
+		$meta_key = EventMap::meta_key( $event );
+		$existing = $order->get_meta( $meta_key, true );
+		if ( is_scalar( $existing ) && '' !== (string) $existing ) {
+			return;
 		}
-
-		if ( $dirty ) {
+		if ( ( $this->enqueuer )( EventMap::KIND, (int) $order->get_id(), $event ) ) {
+			$order->update_meta_data( $meta_key, '1' );
 			$order->save_meta_data();
 		}
 	}
@@ -223,12 +206,12 @@ final class Notifier {
 		if ( ! EventMap::matches_status( $step, (string) $order->get_status() ) ) {
 			return null;
 		}
-		// Already queued jobs also stop (customer events only; the admin alert is internal).
-		if ( EventMap::ADMIN_NEW_ORDER !== $step && OrderHooks::has_plan_mismatch( $order ) ) {
+		// Already queued jobs also stop.
+		if ( OrderHooks::has_plan_mismatch( $order ) ) {
 			return null;
 		}
 
-		$phone = $this->resolve_phone( $order, $step );
+		$phone = $this->resolve_phone( $order );
 		if ( null === $phone ) {
 			return null;
 		}
@@ -350,24 +333,11 @@ final class Notifier {
 	}
 
 	/**
-	 * Resolves E.164 candidate phone for the event, recording a single private note on invalid customer phone.
+	 * Resolves the E.164 billing phone, recording a single private note on invalid customer phone.
 	 *
 	 * @param \WC_Order $order Order.
-	 * @param string    $step  Event slug.
 	 */
-	private function resolve_phone( \WC_Order $order, string $step ): ?string {
-		if ( EventMap::ADMIN_NEW_ORDER === $step ) {
-			$raw = Config::admin_phone();
-			if ( '' === $raw ) {
-				return null;
-			}
-			$normalized = Phone::normalize( $raw, WahaConfig::country_code() );
-			if ( null === $normalized ) {
-				Logger::warning( 'Admin new-order phone number is invalid.', array( 'order_id' => (int) $order->get_id() ) );
-			}
-			return $normalized;
-		}
-
+	private function resolve_phone( \WC_Order $order ): ?string {
 		$raw          = trim( (string) $order->get_billing_phone() );
 		$calling_code = ( $this->calling_code_loader )( (string) $order->get_billing_country() );
 		if ( '' === $calling_code ) {

@@ -29,12 +29,12 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
 
 ## Avisos de pedido (OrderNotifications)
 - **O que faz:** WhatsApp ao cliente quando o pedido vai para *em espera*, *processando*, *concluído*, *reembolsado*, quando você
-  adiciona uma *nota ao cliente* e (opcional) um aviso ao administrador por pedido novo.
+  adiciona uma *nota ao cliente*. Só há avisos ao cliente: o aviso ao administrador foi removido (opções antigas salvas são ignoradas).
 - **Onde:** Motored > Mensajes. Ligar/desligar e editar o texto de cada evento. Variáveis: `{first_name}`, `{order_number}`,
   `{order_total}`, `{order_items}`, `{order_url}`, `{store_name}`, `{customer_note}`; variações `{Hola|Buenas}`.
 - **Fluxo:** mudança de status → um job na fila por evento (uma vez por pedido e evento) → o texto é montado no envio (se o status
   mudou de novo, não envia) → nota privada no pedido ("WhatsApp sent / failed").
-- **Padrões:** todos os eventos ligados, menos o do administrador; pedidos criados à mão não avisam.
+- **Padrões:** todos os eventos ligados; pedidos criados à mão não avisam.
 - **Limites:** sem consentimento nem descadastro próprio (são avisos transacionais); uma nota ao cliente com o mesmo texto não se repete.
 
 ## Recuperação (carrinhos e pedidos sem pagar)

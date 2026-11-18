@@ -73,16 +73,6 @@ final class OrderNotificationsAdmin {
 				'default'  => Config::DEFAULTS['include_manual_orders'],
 				'autoload' => false,
 			),
-			array(
-				'title'             => __( 'Admin WhatsApp number', 'motored-core' ),
-				'desc'              => __( 'Phone number that receives the internal new-order alert (when enabled below).', 'motored-core' ),
-				'desc_tip'          => true,
-				'id'                => 'motored_order_notifications[admin_phone]',
-				'type'              => 'text',
-				'default'           => Config::DEFAULTS['admin_phone'],
-				'custom_attributes' => array( 'placeholder' => '011 5555-1234' ),
-				'autoload'          => false,
-			),
 		);
 
 		$labels = $this->event_definitions();
@@ -237,35 +227,30 @@ final class OrderNotificationsAdmin {
 		);
 
 		return array(
-			EventMap::ON_HOLD         => array(
+			EventMap::ON_HOLD       => array(
 				'title'        => __( 'Order on hold', 'motored-core' ),
 				'desc'         => __( 'Sent when an order enters "on-hold" status (e.g. bank transfer or offline Mercado Pago ticket).', 'motored-core' ),
 				'placeholders' => $common,
 			),
-			EventMap::PROCESSING      => array(
+			EventMap::PROCESSING    => array(
 				'title'        => __( 'Order processing', 'motored-core' ),
 				'desc'         => __( 'Sent when payment is confirmed and the order enters "processing" status.', 'motored-core' ),
 				'placeholders' => $common,
 			),
-			EventMap::COMPLETED       => array(
+			EventMap::COMPLETED     => array(
 				'title'        => __( 'Order completed', 'motored-core' ),
 				'desc'         => __( 'Sent when the order is marked as "completed".', 'motored-core' ),
 				'placeholders' => $common,
 			),
-			EventMap::REFUNDED        => array(
+			EventMap::REFUNDED      => array(
 				'title'        => __( 'Order refunded', 'motored-core' ),
 				'desc'         => __( 'Sent when the order is marked as "refunded".', 'motored-core' ),
 				'placeholders' => $common,
 			),
-			EventMap::CUSTOMER_NOTE   => array(
+			EventMap::CUSTOMER_NOTE => array(
 				'title'        => __( 'Customer note', 'motored-core' ),
 				'desc'         => __( 'Sent when a public customer note is added to the order.', 'motored-core' ),
 				'placeholders' => array_merge( $common, array( '{customer_note}' ) ),
-			),
-			EventMap::ADMIN_NEW_ORDER => array(
-				'title'        => __( 'Admin: new order alert', 'motored-core' ),
-				'desc'         => __( 'Optional internal WhatsApp alert sent to the Admin WhatsApp number above when a new order arrives.', 'motored-core' ),
-				'placeholders' => $common,
 			),
 		);
 	}

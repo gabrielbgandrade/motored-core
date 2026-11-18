@@ -167,29 +167,18 @@ final class NotifierTest extends TestCase {
 		$this->assertCount( 1, $this->enqueued );
 	}
 
-	public function test_admin_new_order_off_by_default_and_enqueues_when_configured(): void {
-		$order    = $this->make_order();
-		$notifier = $this->make_notifier( $order );
-
-		$notifier->on_status_changed( 42, 'pending', 'processing', $order );
+	public function test_stored_admin_alert_options_are_ignored(): void {
+		$order = $this->make_order();
+		$this->options['motored_order_notifications'] = array(
+			'admin_phone'     => '011 5555-9999',
+			'admin_new_order' => array( 'enabled' => 'yes', 'text' => 'Nuevo #{order_number}' ),
+		);
+		$this->make_notifier( $order )->on_status_changed( 42, 'pending', 'processing', $order );
 		$this->assertCount( 1, $this->enqueued );
 		$this->assertSame( 'processing', $this->enqueued[0]['step'] );
-
-		$this->meta     = array();
-		$this->enqueued = array();
-		Options::reset();
-		Options::register_defaults( Config::OPTION_KEY, Config::DEFAULTS );
-		$this->options['motored_order_notifications'] = array(
-			'admin_phone'             => '011 5555-9999',
-			EventMap::ADMIN_NEW_ORDER => array(
-				'enabled' => 'yes',
-				'text'    => 'Nuevo #{order_number}',
-			),
-		);
-
-		$notifier->on_status_changed( 42, 'pending', 'processing', $order );
-		$this->assertCount( 2, $this->enqueued );
-		$this->assertSame( 'admin_new_order', $this->enqueued[1]['step'] );
+		$this->assertArrayNotHasKey( 'admin_phone', Config::DEFAULTS );
+		$this->assertArrayNotHasKey( 'admin_new_order', Config::DEFAULTS );
+		$this->assertNull( $this->make_notifier( $order )->build_message( 42, 'admin_new_order' ) );
 	}
 
 	public function test_customer_note_idempotency_deduplicates_same_note_and_allows_new_one(): void {

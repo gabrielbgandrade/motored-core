@@ -6,7 +6,7 @@ description: Rules for the OrderNotifications module (WhatsApp order status and 
 # Module OrderNotifications
 Read `src/Modules/OrderNotifications/README.md` first (flows, option shape, MP mapping).
 
-- Uses `Waha\Sender` (`kind = 'order_event'`, `step = event slug`); no tables, no media, no consent checkbox.
+- Uses `Waha\Sender` (`kind = 'order_event'`, `step = event slug`); customer messages ONLY (the admin alert was removed; stored `admin_*` options are ignored); no tables, no media, no consent checkbox.
 - All WooCommerce hooks and internals live ONLY in `src/Integration/WooCommerce/OrderHooks.php` (VERIFY #29-#34).
 - Never load on public GET pages (`should_load` allows admin/ajax/rest/cron/cli and `wc-api`/POST only).
 - Request listener: max 1 `Options::all` read + 1 `get_meta` check per active event + `Sender::enqueue`; exit early if disabled or `created_via = 'admin'` (unless `include_manual_orders`).

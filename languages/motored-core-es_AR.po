@@ -221,16 +221,6 @@ msgstr ""
 "Enviá notificaciones también para pedidos cargados manualmente desde wp-"
 "admin."
 
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:77
-msgid "Admin WhatsApp number"
-msgstr "Número de WhatsApp del admin"
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:78
-msgid ""
-"Phone number that receives the internal new-order alert (when enabled below)."
-msgstr ""
-"Número que recibe el aviso interno de nuevo pedido (si lo activás abajo)."
-
 #: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:155
 msgid "Enable this message"
 msgstr "Activar este mensaje"
@@ -287,18 +277,6 @@ msgstr "Nota al cliente"
 #: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:262
 msgid "Sent when a public customer note is added to the order."
 msgstr "Se envía cuando agregás una nota visible para el cliente en el pedido."
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:266
-msgid "Admin: new order alert"
-msgstr "Admin: aviso de nuevo pedido"
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:267
-msgid ""
-"Optional internal WhatsApp alert sent to the Admin WhatsApp number above "
-"when a new order arrives."
-msgstr ""
-"Aviso interno opcional enviado al número de WhatsApp del admin cuando entra "
-"un pedido nuevo."
 
 #. translators: %d: number of products not listed.
 #: src/Modules/OrderNotifications/Renderer.php:130

@@ -14,15 +14,14 @@ defined( 'ABSPATH' ) || exit;
  */
 final class EventMap {
 
-	public const KIND            = 'order_event';
-	public const ON_HOLD         = 'on_hold';
-	public const PROCESSING      = 'processing';
-	public const COMPLETED       = 'completed';
-	public const REFUNDED        = 'refunded';
-	public const CUSTOMER_NOTE   = 'customer_note';
-	public const ADMIN_NEW_ORDER = 'admin_new_order';
-	public const META_PREFIX     = '_motored_wa_';
-	public const NO_PHONE_META   = '_motored_wa_no_phone_noted';
+	public const KIND          = 'order_event';
+	public const ON_HOLD       = 'on_hold';
+	public const PROCESSING    = 'processing';
+	public const COMPLETED     = 'completed';
+	public const REFUNDED      = 'refunded';
+	public const CUSTOMER_NOTE = 'customer_note';
+	public const META_PREFIX   = '_motored_wa_';
+	public const NO_PHONE_META = '_motored_wa_no_phone_noted';
 
 	/**
 	 * WooCommerce status slug (without "wc-") to customer notification event.
@@ -49,20 +48,6 @@ final class EventMap {
 	);
 
 	/**
-	 * Target statuses that represent a newly placed / paid order for admin alerts.
-	 *
-	 * @var list<string>
-	 */
-	private const ADMIN_NEW_ORDER_TARGETS = array( 'on-hold', 'processing', 'completed' );
-
-	/**
-	 * Previous statuses from which entering an active status counts as a new order.
-	 *
-	 * @var list<string>
-	 */
-	private const NEW_ORDER_SOURCES = array( '', 'pending', 'failed', 'cancelled', 'checkout-draft', 'auto-draft', 'new' );
-
-	/**
 	 * All supported event slugs in settings display order.
 	 *
 	 * @return list<string>
@@ -74,7 +59,6 @@ final class EventMap {
 			self::COMPLETED,
 			self::REFUNDED,
 			self::CUSTOMER_NOTE,
-			self::ADMIN_NEW_ORDER,
 		);
 	}
 
@@ -108,26 +92,10 @@ final class EventMap {
 		if ( isset( self::EVENT_TO_STATUS[ $event ] ) ) {
 			return self::EVENT_TO_STATUS[ $event ] === $normalized;
 		}
-		if ( self::ADMIN_NEW_ORDER === $event ) {
-			return in_array( $normalized, self::ADMIN_NEW_ORDER_TARGETS, true );
-		}
 		if ( self::CUSTOMER_NOTE === $event ) {
 			return '' !== $normalized && 'trash' !== $normalized;
 		}
 		return false;
-	}
-
-	/**
-	 * Whether a status transition qualifies as a new order for the optional admin alert.
-	 *
-	 * @param string $from_status Previous status.
-	 * @param string $to_status   New status.
-	 */
-	public static function triggers_admin_new_order( string $from_status, string $to_status ): bool {
-		$from = self::normalize_status( $from_status );
-		$to   = self::normalize_status( $to_status );
-		return in_array( $to, self::ADMIN_NEW_ORDER_TARGETS, true )
-			&& in_array( $from, self::NEW_ORDER_SOURCES, true );
 	}
 
 	/**
