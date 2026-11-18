@@ -59,7 +59,7 @@ final class OrderScannerTest extends TestCase {
 		Scanner::run();
 
 		$this->assertSame( 'motored_waha_send', $args[0] );
-		$this->assertSame( array( 'recovery_step', 7, '1', 1 ), $args[1], 'IDs and step number only.' );
+		$this->assertSame( array( 'recovery_step', 7, '1', 1, 'low' ), $args[1], 'IDs, step number and priority only.' );
 		$this->assertSame( array( 'next_action_gmt' => null ), $this->updates[0], 'In-flight rows are not enqueued twice.' );
 	}
 
@@ -80,7 +80,7 @@ final class OrderScannerTest extends TestCase {
 
 		Scanner::run();
 
-		$this->assertSame( array( array( 'recovery_step', 8, '2', 1 ) ), $steps );
+		$this->assertSame( array( array( 'recovery_step', 8, '2', 1, 'low' ) ), $steps );
 		$this->assertContains( 'expired', array_column( $this->updates, 'status' ), 'Row 9 finished its two steps.' );
 	}
 

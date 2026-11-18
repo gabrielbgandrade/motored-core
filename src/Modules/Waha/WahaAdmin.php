@@ -99,6 +99,18 @@ final class WahaAdmin {
 		$fields[] = $this->number_field( 'rate_per_hour', __( 'Messages per hour', 'motored-core' ), __( 'Over this limit, messages wait for the next hour.', 'motored-core' ) );
 		$fields[] = $this->number_field( 'breaker_threshold', __( 'Failures to pause sending', 'motored-core' ), __( 'Consecutive failures that pause all sending.', 'motored-core' ) );
 		$fields[] = $this->number_field( 'breaker_minutes', __( 'Pause length (minutes)', 'motored-core' ), __( 'How long sending stays paused after too many failures.', 'motored-core' ) );
+		$fields[] = $this->number_field( 'interval_min', __( 'Minimum gap between messages (seconds)', 'motored-core' ), __( 'Shortest random wait between any two messages.', 'motored-core' ), 'number', '0' );
+		$fields[] = $this->number_field( 'interval_max', __( 'Maximum gap between messages (seconds)', 'motored-core' ), __( 'Longest random wait between any two messages.', 'motored-core' ) );
+		$fields[] = $this->number_field( 'daily_cap', __( 'Daily message limit', 'motored-core' ), __( 'Over this limit, messages wait for the next day.', 'motored-core' ) );
+		$fields[] = $this->number_field( 'low_percent', __( 'Share of the daily limit for low priority (%)', 'motored-core' ), __( 'Recovery messages only use this share; the rest is kept for order notices.', 'motored-core' ) );
+		$fields[] = array(
+			'title'    => __( 'Typing simulation', 'motored-core' ),
+			'desc'     => __( 'Show "typing..." for a moment before each message (up to 3 seconds).', 'motored-core' ),
+			'id'       => 'motored_waha[typing]',
+			'type'     => 'checkbox',
+			'default'  => Config::DEFAULTS['typing'],
+			'autoload' => false,
+		);
 
 		$description = '';
 		if ( array() !== $locked ) {
@@ -236,6 +248,8 @@ final class WahaAdmin {
 			? sprintf( __( 'Paused by circuit breaker until %s', 'motored-core' ), (string) wp_date( 'H:i', $until ) )
 			: __( 'Active', 'motored-core' );
 		$rows[ __( 'Consecutive WhatsApp failures', 'motored-core' ) ] = (string) CircuitBreaker::failures();
+		/* translators: 1: messages sent today, 2: daily limit. */
+		$rows[ __( 'WhatsApp messages sent today', 'motored-core' ) ] = sprintf( __( '%1$d of %2$d', 'motored-core' ), RateLimiter::daily_count( time() ), Config::daily_cap() );
 		return $rows;
 	}
 
@@ -282,9 +296,10 @@ final class WahaAdmin {
 	 * @param string $title Label.
 	 * @param string $desc  Help text.
 	 * @param string $type  Field type.
+	 * @param string $min   Minimum value for number fields.
 	 * @return array<string,mixed>
 	 */
-	private function number_field( string $key, string $title, string $desc, string $type = 'number' ): array {
+	private function number_field( string $key, string $title, string $desc, string $type = 'number', string $min = '1' ): array {
 		return array(
 			'title'             => $title,
 			'desc'              => $desc,
@@ -293,7 +308,7 @@ final class WahaAdmin {
 			'type'              => $type,
 			'default'           => Config::DEFAULTS[ $key ],
 			'custom_attributes' => 'number' === $type ? array(
-				'min'  => '1',
+				'min'  => $min,
 				'step' => '1',
 			) : array(),
 			'autoload'          => false,

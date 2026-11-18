@@ -76,5 +76,34 @@ Tick each item; record failures in `PROJECT.md` (Review log).
 - [ ] Recovery link from step 1 still works after step 2 is sent and after flushing the object cache.
 - [ ] Deactivate the plugin: no pending `motored_*` actions in Scheduled Actions; reactivate: scan/cleanup are back.
 
+## Review photos
+- [ ] WooCommerce > Settings > Motored > Reseñas: enable, limits saved (`motored_review_photos`, autoload no).
+- [ ] Product page: one deferred script (< 2 KB) and the field "Agregar fotos (opcional)"; other pages: none (Network + Query Monitor).
+- [ ] Review with 3 photos as guest and logged in; 4th photo / over 5 MB / SVG / GIF are blocked in the browser and ignored by the server.
+- [ ] Stored photos: <= 1600 px, no EXIF/GPS, random names, attached to the product; spam-marked review gets none.
+- [ ] Approved review shows thumbnails (new tab); pending review does not; layout OK in every theme of the matrix.
+- [ ] Delete the review: photos removed from the Media Library; privacy eraser removes them by e-mail.
+
+## Review requests
+- [ ] Settings > Motored > Reseñas: enable, status, days, store URL, max products saved (`motored_review_requests`, autoload no); ReviewPhotos fields still there.
+- [ ] Complete an order: one Scheduled Action (`motored_waha_send`, kind `review_request`, low); order meta `_motored_review_req` set; complete again: no second action.
+- [ ] Delay 1 day on staging: message arrives inside the window, lists only unreviewed products, links open the reviews section, opt-out works.
+- [ ] Refunded/cancelled/trashed before the send, suppressed number, all products reviewed: skipped, no message.
+- [ ] Order > "Review request" box: "Send now" queues a message; private notes carry no phone or text.
+
 ## VERIFY.md
 - [ ] Work through every `unverified`/`partial` row; update statuses.
+
+## Theme matrix (the plugin must not depend on the theme)
+Repeat the rows below on each theme; the result must be identical. Storefront = classic (shortcode checkout, PHP
+templates); Twenty Twenty-Five = block theme (Blocks checkout, block comments); Flatsome = third-party theme with
+its own templates.
+
+| Check | Storefront (classic) | Twenty Twenty-Five (blocks) | Flatsome |
+|---|---|---|---|
+| Checkout capture: e-mail/phone/name typed, autofilled and prefilled (logged in) produce one capture POST ~1.5 s later; row appears in Abandoned carts; no console errors | [ ] | [ ] (Blocks checkout) | [ ] |
+| Review photos: exactly one field in the review form; 3 photos upload; thumbnails once per approved review; nothing on other pages | [ ] | [ ] | [ ] |
+| Opt-out and recovery pages: neutral standalone page, POST confirms, invalid link 400; recovery link redirects to checkout with the cart restored | [ ] | [ ] | [ ] |
+| E-mails: abandoned-cart and pending-payment HTML + plain render with WooCommerce header/footer; override in `theme/woocommerce/emails/motored-*.php` is picked up | [ ] | [ ] | [ ] |
+| Network: public pages load no Motored asset except the checkout script and the product-page review script | [ ] | [ ] | [ ] |
+

@@ -17,6 +17,8 @@ final class Endpoints {
 
 	public const SEND_TEXT    = '/api/sendText';
 	public const CHECK_EXISTS = '/api/contacts/check-exists';
+	public const START_TYPING = '/api/startTyping';
+	public const STOP_TYPING  = '/api/stopTyping';
 
 	/**
 	 * Path of a session resource.
@@ -40,6 +42,20 @@ final class Endpoints {
 			'session' => $session,
 			'chatId'  => $chat_id,
 			'text'    => $text,
+		);
+	}
+
+	/**
+	 * JSON body of startTyping / stopTyping.
+	 *
+	 * @param string $session Session.
+	 * @param string $chat_id Chat id.
+	 * @return array<string,string>
+	 */
+	public static function typing_body( string $session, string $chat_id ): array {
+		return array(
+			'session' => $session,
+			'chatId'  => $chat_id,
 		);
 	}
 

@@ -1,15 +1,30 @@
 (function () {
 	'use strict';
-	var c = window.motoredCapture, form = document.querySelector('form.checkout'), t, last = '', sent = 0;
-	if (!c || !form) { return; }
+	// Theme-agnostic: only WooCommerce core markup (classic form.checkout, Blocks checkout) and standard
+	// input type/autocomplete attributes; no layout ids or theme classes.
+	var c = window.motoredCapture, t, last = '', sent = 0;
+	var ROOT = 'form.checkout, form.wc-block-checkout__form, .wp-block-woocommerce-checkout';
+	if (!c) { return; }
 
-	function field(id) {
-		var el = document.getElementById(id);
-		return el ? el.value.trim() : '';
+	function root() { return document.querySelector(ROOT); }
+
+	function val(r, sel) {
+		var n = r.querySelectorAll(sel), i, v;
+		for (i = 0; i < n.length; i++) {
+			v = n[i].value.trim();
+			if (v) { return v; }
+		}
+		return '';
 	}
 
 	function send(exit) {
-		var d = { email: field('billing_email'), phone: field('billing_phone'), name: field('billing_first_name') };
+		var r = root();
+		if (!r) { return; }
+		var d = {
+			email: val(r, 'input[type="email"], input[autocomplete~="email"]'),
+			phone: val(r, 'input[type="tel"], input[autocomplete~="tel"]'),
+			name: val(r, 'input[autocomplete~="given-name"]')
+		};
 		var hasEmail = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(d.email);
 		var hasPhone = d.phone.replace(/\D/g, '').length >= 8;
 		if (!hasEmail && !hasPhone) { return; }
@@ -31,12 +46,14 @@
 		t = setTimeout(function () { send(false); }, 1500);
 	}
 
-	form.addEventListener('input', queue);
-	form.addEventListener('change', queue);
-	// updated_checkout is a jQuery event: observe the form instead (no jQuery dependency).
-	if (window.MutationObserver) {
-		new MutationObserver(queue).observe(form, { childList: true, subtree: true });
+	function onEdit(e) {
+		var r = root();
+		if (r && e.target && r.contains(e.target)) { queue(); }
 	}
+
+	// Blocks renders the checkout after this script runs: listen on the document, resolve the form lazily.
+	document.addEventListener('input', onEdit);
+	document.addEventListener('change', onEdit);
 	window.addEventListener('pagehide', function () { send(true); });
 	queue();
 }());

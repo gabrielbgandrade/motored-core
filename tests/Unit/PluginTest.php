@@ -73,6 +73,8 @@ final class PluginTest extends TestCase {
 				\Motored\Core\Modules\Waha\WahaModule::class,
 				\Motored\Core\Modules\OrderNotifications\OrderNotificationsModule::class,
 				\Motored\Core\Modules\Recovery\RecoveryModule::class,
+				\Motored\Core\Modules\ReviewPhotos\ReviewPhotosModule::class,
+				\Motored\Core\Modules\ReviewRequests\ReviewRequestsModule::class,
 			),
 			Plugin::MODULES
 		);

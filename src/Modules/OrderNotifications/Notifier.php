@@ -84,7 +84,7 @@ final class Notifier {
 		?\Closure $store_name_loader = null
 	) {
 		$this->order_loader        = $order_loader ?? static fn( int $id ) => function_exists( 'wc_get_order' ) ? wc_get_order( $id ) : false;
-		$this->enqueuer            = $enqueuer ?? static fn( string $kind, int $ref_id, ?string $step ): bool => Sender::enqueue( $kind, $ref_id, $step );
+		$this->enqueuer            = $enqueuer ?? static fn( string $kind, int $ref_id, ?string $step ): bool => Sender::enqueue( $kind, $ref_id, $step, 0, Sender::HIGH );
 		$this->note_loader         = $note_loader ?? static fn( int $id ): string => OrderHooks::latest_customer_note( $id );
 		$this->calling_code_loader = $calling_code_loader ?? static fn( string $cc ): string => OrderHooks::country_calling_code( $cc );
 		$this->price_formatter     = $price_formatter ?? static fn( string $total, string $currency ): string => OrderHooks::format_price_html( $total, $currency );
@@ -305,6 +305,10 @@ final class Notifier {
 				return __( 'WAHA server error.', 'motored-core' );
 			case 'invalid_response':
 				return __( 'invalid WAHA response.', 'motored-core' );
+			case 'session_down':
+				return __( 'WAHA session is not working.', 'motored-core' );
+			case 'http_error':
+				return __( 'WAHA returned an error.', 'motored-core' );
 			case 'schedule_failed':
 				return __( 'could not reschedule job.', 'motored-core' );
 			case 'handler_error':

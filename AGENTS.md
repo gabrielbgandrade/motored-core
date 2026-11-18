@@ -6,7 +6,7 @@ translation (voseo). Details live in `docs/`; this file is the short version.
 ## Purpose
 Base WordPress/WooCommerce plugin for **Motored Neumáticos** (Argentina). Future modules (WAHA/WhatsApp,
 Notifications, Recovery) plug into it. Stage 1 (current): infrastructure only — no modules, tables or
-external calls. Must NOT depend on the theme (Flatsome fork, classic shortcode cart/checkout).
+external calls. Must NOT depend on the theme (any classic or block theme; classic and Blocks cart/checkout).
 Infra: own VPS, Redis object cache, WAHA, Mercado Pago Checkout Pro. `Requires PHP 8.1`; stay 8.3-compatible.
 
 ## Decisions (see docs/PROJECT.md)
@@ -27,6 +27,8 @@ frontend always `es_AR`; abandoned-cart AND pending/failed-order recovery are ON
 7. **No schema checks, scheduling or migrations on frontend requests** (activation + `admin_init` only).
 8. **Never invent APIs:** verify in `vendor/php-stubs/*`; otherwise isolate in `src/Integration/` and
    add a row to `docs/VERIFY.md`.
+9. **Theme-agnostic:** no theme-specific code, selector, CSS class or hook (Flatsome, Storefront, block themes
+   alike); only WordPress and WooCommerce core. No `get_header`/`get_footer`; own pages are standalone.
 
 ## Conventions
 Namespace `Motored\Core\`, PSR-4, one class per file; `motored`/`MOTORED` prefix for globals;

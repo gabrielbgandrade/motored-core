@@ -1,6 +1,7 @@
 <?php
 namespace Motored\Core\Tests\Unit\Modules\OrderNotifications;
 
+use Brain\Monkey\Functions;
 use Motored\Core\Modules\OrderNotifications\Renderer;
 use Motored\Core\Tests\Unit\TestCase;
 
@@ -51,6 +52,7 @@ final class RendererTest extends TestCase {
 			);
 		}
 
+		Functions\when( '__' )->returnArg();
 		$formatted = Renderer::format_items( $items );
 		$expected  = "- 1x Producto 1\n- 2x Producto 2\n- 3x Producto 3\n- 4x Producto 4\n- 5x Producto 5";
 		$this->assertSame( $expected, $formatted );
@@ -65,8 +67,9 @@ final class RendererTest extends TestCase {
 			);
 		}
 
+		Functions\when( '__' )->returnArg();
 		$formatted = Renderer::format_items( $items );
-		$expected  = "- 1x Item 1\n- 1x Item 2\n- 1x Item 3\n- 1x Item 4\n- 1x Item 5\ny 3 más";
+		$expected  = "- 1x Item 1\n- 1x Item 2\n- 1x Item 3\n- 1x Item 4\n- 1x Item 5\nand 3 more";
 		$this->assertSame( $expected, $formatted );
 	}
 
@@ -78,5 +81,24 @@ final class RendererTest extends TestCase {
 		$html = '<span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">&#36;</span>&nbsp;128.500,50</bdi></span>';
 		$this->assertSame( '$ 128.500,50', Renderer::format_price( $html ) );
 		$this->assertSame( 'ARS 1.200', Renderer::format_price( 'ARS&nbsp;&nbsp;1.200' ) );
+	}
+
+	public function test_spin_picks_one_option_and_keeps_placeholders(): void {
+		$last = static fn( int $count ): int => $count - 1;
+		$first = static fn( int $count ): int => 0;
+		$tpl  = '{Hola|Buenas} {first_name}, {pasá por acá|mirá {order_url}}!';
+		$this->assertSame( 'Hola Ana, pasá por acá!', Renderer::render( $tpl, array( 'first_name' => 'Ana', 'order_url' => 'U' ), $first ) );
+		$this->assertSame( 'Buenas Ana, mirá U!', Renderer::render( $tpl, array( 'first_name' => 'Ana', 'order_url' => 'U' ), $last ) );
+	}
+
+	public function test_spin_ignores_braces_without_pipe_and_customer_text(): void {
+		$first = static fn( int $count ): int => 0;
+		$this->assertSame( 'Nota: {a|b} {unknown}', Renderer::render( 'Nota: {customer_note} {unknown}', array( 'customer_note' => '{a|b}' ), $first ) );
+	}
+
+	public function test_spin_random_default_stays_within_options(): void {
+		for ( $i = 0; $i < 20; $i++ ) {
+			$this->assertContains( Renderer::render( '{a|b|c}', array() ), array( 'a', 'b', 'c' ) );
+		}
 	}
 }

@@ -32,6 +32,6 @@ the real by-reference `$found` signature (Brain Monkey cannot propagate by-ref a
 ## NOT covered (needs a real WordPress — see `STAGING-CHECKLIST.md`)
 - `Admin\SettingsTab` rendering/saving inside WooCommerce (extends `WC_Settings_Page`).
 - Query counts, HTTP requests and assets on public pages.
-- Real Redis behavior (atomicity, eviction, outage), HPOS on/off, Flatsome classic checkout.
+- Real Redis behavior (atomicity, eviction, outage), HPOS on/off, the theme matrix (Storefront, Twenty Twenty-Five, Flatsome) in STAGING-CHECKLIST.
 - `uninstall.php`, translations loading in the admin, `.mo` rendering.
 - Anything in `docs/VERIFY.md` marked `unverified`/`partial`.

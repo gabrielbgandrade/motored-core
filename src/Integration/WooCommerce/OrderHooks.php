@@ -185,6 +185,59 @@ final class OrderHooks {
 	}
 
 	/**
+	 * Facts needed to decide and build a review request (order object only, no extra queries).
+	 *
+	 * @param \WC_Order $order Order.
+	 * @return array{order_id:int,order_number:string,status:string,refunded:bool,phone:string,calling_code:string,first_name:string,email:string,user_id:int,lines:list<array{id:int,name:string}>}
+	 */
+	public static function review_facts( \WC_Order $order ): array {
+		$lines = array();
+		foreach ( $order->get_items() as $item ) {
+			if ( $item instanceof \WC_Order_Item_Product && $item->get_product_id() > 0 ) {
+				$lines[] = array(
+					'id'   => (int) $item->get_product_id(),
+					'name' => (string) $item->get_name(),
+				);
+			}
+		}
+		$total = (float) $order->get_total();
+		return array(
+			'order_id'     => (int) $order->get_id(),
+			'order_number' => (string) $order->get_order_number(),
+			'status'       => (string) $order->get_status(),
+			'refunded'     => $total > 0 && (float) $order->get_total_refunded() >= $total,
+			'phone'        => trim( (string) $order->get_billing_phone() ),
+			'calling_code' => self::country_calling_code( (string) $order->get_billing_country() ),
+			'first_name'   => (string) $order->get_billing_first_name(),
+			'email'        => (string) $order->get_billing_email(),
+			'user_id'      => (int) $order->get_customer_id(),
+			'lines'        => $lines,
+		);
+	}
+
+	/**
+	 * Screen id of the order edit page (HPOS or legacy) for meta boxes.
+	 */
+	public static function order_screen_id(): string {
+		return function_exists( 'wc_get_page_screen_id' ) ? (string) wc_get_page_screen_id( 'shop-order' ) : 'shop_order';
+	}
+
+	/**
+	 * Writes one order meta value (HPOS-safe CRUD).
+	 *
+	 * @param int    $order_id Order ID.
+	 * @param string $key      Meta key.
+	 * @param string $value    Value.
+	 */
+	public static function set_meta( int $order_id, string $key, string $value ): void {
+		$order = self::load_order( $order_id );
+		if ( null !== $order ) {
+			$order->update_meta_data( $key, $value );
+			$order->save_meta_data();
+		}
+	}
+
+	/**
 	 * Adds a PRIVATE order note (never visible to the customer).
 	 *
 	 * @param int    $order_id Order ID.

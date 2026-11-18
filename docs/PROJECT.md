@@ -42,6 +42,12 @@ Format: date — decision — reason. Divergences from the original brief are ma
 - 2026-11-18 — Recovery/opt-out tokens are HMACs keyed with `wp_salt('motored_recovery')` (no raw token stored or cached; recovery token reused until expiry; opt-out token stateless). Opt-out requires a POST confirmation. — Review: cache-loss rotation broke sent links; raw tokens sat in cache/transients; link prefetchers could opt people out.
 - 2026-11-18 — Action Scheduler jobs are removed on deactivation and on every uninstall (data only when "delete data" is on). — Review: recurring jobs kept firing with no listener.
 
+- 2026-11-18 — Waha anti-block hardening (low expected volume, so soft guarantees only): job priority (`high` OrderNotifications, `normal`, `low` Recovery; 5th AS arg, old 4-arg jobs run as normal); global random spacing 20-60 s via a Cache slot (empty cache = scheduling jitter only); daily cap 150 per site-timezone day in Cache, `low` limited to 60% of it, over-cap = reschedule to local midnight; typing simulation (startTyping, 0.5-3 s pause in the worker, stopTyping; on by default, failures ignored); session health cached 60 s (down = reschedule + breaker failure); `{a|b}` text variation in `Renderer` with 1-2 variations in the es_AR default texts (stored custom texts unchanged). New settings in WhatsApp section, "sent today" in Status. Endpoints unverified (VERIFY #59). — Reduce WhatsApp ban risk.
+
+- 2026-11-18 — ReviewPhotos module: photos on the native WooCommerce review form; Media Library attachments + comment meta (`_motored_review_photos`), no tables; disabled by default. Upload only on `comment_post` (never loses the comment); JPEG/PNG/WebP validated by `wp_check_filetype_and_ext` + `getimagesize`; re-encoded with the GD editor only (1600 px, q82, drops EXIF/GPS; rejects the photo on failure); per-IP limit 5 photos/hour in Cache; photos deleted with the comment and by the privacy eraser. A top-level `comment` on a product is also treated as a review (WooCommerce versions differ, VERIFY #62). Uninstall keeps the Media Library files. — Customer photos on reviews with minimal surface.
+
+- 2026-11-18 — ReviewRequests module: ONE WhatsApp review request per order, scheduled with `Sender::enqueue` (priority LOW, delay = days moved to the Recovery window start) from the existing status listener; no own AS hook and no tables; idempotency by order meta `_motored_review_req`; everything is re-checked at send time (status, full refund, phone, suppression, window, per-number limit, already reviewed). Reuses Recovery's suppression, per-number limiter and window settings; own stateless per-order opt-out link (Recovery's link needs a recovery row). Manual "Send now" uses priority NORMAL and skips trigger/window/limit only. Settings share the "Reseñas" section with ReviewPhotos through the `motored_reviews_section_fields` filter (`Admin\ReviewsSection`). `Renderer` gained `{review_links}` and `{store_review_url}`. Disabled by default. — Reviews without new infrastructure.
+
 ## Roadmap
 | Stage | Scope | Status |
 |-------|-------|--------|
@@ -52,6 +58,8 @@ Format: date — decision — reason. Divergences from the original brief are ma
 | 5 | Recovery part B: sending flows for abandoned carts (WhatsApp via `Sender`), recovery link/token, coupons, Mercado Pago return handling | **implemented** (see review log) |
 | 6 | Recovery part C: pending/failed/on-hold orders (`type = order`) | **implemented** (see review log; reporting deferred) |
 | 7 | Hardening: load/perf validation on staging, docs/skills final pass, release | planned |
+| 8 | ReviewPhotos: photos on native product reviews | **implemented** (see decisions; VERIFY #60-#65 pending staging) |
+| 9 | ReviewRequests: one review request per order after N days | **implemented** (VERIFY #66-#70 pending staging) |
 
 Each module stage delivers: module README, module skill (`motored-module-<name>`), VERIFY.md rows, tests, es_AR strings.
 
@@ -132,3 +140,24 @@ Findings and fixes (commit):
 - FIXED (this commit) `MessageLimiter` cache keys were md5(phone) (reversible) -> keyed HMAC (`Suppression::hash`).
 - OK: every admin action checks `manage_woocommerce` + nonce (`RecoveryAdmin::process_request`, `handle_note`, `save_steps`; `WahaAdmin::guard`; `OrderNotificationsAdmin::save_events`); wc-ajax capture has nonce + session/IP rate limit and reads the cart server-side; every `$wpdb` query is prepared (only fixed table names/whitelisted ORDER BY interpolated); logs mask phones and never carry text/body/API key; Cache is never the source of truth (limits, throttles, breaker, summary, notices are best-effort; migrations idempotent); window uses `wp_timezone()` and GMT storage; `bin/build-zip.sh` ships only motored-core.php, uninstall.php, readme.txt, LICENSE, src/, templates/, assets/, languages/ (README.md stripped).
 - PENDING (needs staging/decision): recovery link GET still restores the cart and marks `clicked` when a scanner prefetches it (VERIFY #45); WAHA API key is printed in the password input HTML (prefer the constant); the checkout page reads `motored_recovery` (1 query without Redis) to decide whether to enqueue the script; order meta `_motored_*` is kept on uninstall on purpose; all VERIFY rows remain unconfirmed (risk order at the top of VERIFY.md); PHP 8.1/8.3 runs.
+
+### 2026-11-18 — Theme-agnostic audit (all modules)
+New rule 9 in AGENTS.md and a checklist item in `motored-review`. Audit by grep (theme names, `get_header`/`get_footer`, layout ids): no PHP
+referenced a theme; findings and fixes:
+- FIXED `assets/js/checkout-capture.js` used the layout ids `billing_email/billing_phone/billing_first_name` and `form.checkout` only (broke on Blocks) -> detects by `type` and `autocomplete`, resolves the classic/Blocks root lazily, listens on `document` (no MutationObserver, no jQuery); 2.0 KB.
+- FIXED ReviewPhotos depended on the WC review template hooks -> fallbacks: core `comment_form_field_comment` (field), core `comment_text` (thumbnails, only if the template does not fire `woocommerce_review_before_comment_text`), and a JS injection into `#reviews #commentform` as last resort. Never duplicated (per-request flag / per-review map; wrapper class renamed `motored-rp-field`). The JS acts only if the form exists.
+- OK: opt-out/recovery pages use `wp_die` (standalone core page, no theme) and redirects; e-mails use `wc_get_template_html` with templates under `templates/emails/` (theme-overridable) and inline CSS only; own assets are the 2 scripts, no stylesheet; no jQuery.
+- Unit tests added for ReviewForm/ReviewDisplay fallbacks. New VERIFY rows 68-70; theme matrix in STAGING-CHECKLIST. PENDING: staging on the three themes. No new strings (.pot/.po/.mo unchanged).
+
+### 2026-11-18 — End-to-end flow review (theory, by code reading + scenario tests)
+Flows traced: order status -> OrderNotifications -> Sender -> handler -> order note; cart capture -> scanner -> step 1 WhatsApp -> step 2 e-mail -> expiry
+and the paid path; pending/failed/on-hold sequence; recovery/opt-out links; ReviewRequests scheduling/skip rules; ReviewPhotos rules; activation/deactivation/uninstall.
+Scenario tests: `tests/Unit/Scenarios/FlowsTest.php` (chain + consistency: hooks vs uninstall, kinds vs handlers, default placeholders vs Renderer).
+Bugs fixed (one commit each):
+- FIXED `WahaModule` registered the `motored_waha_send` callback with 4 accepted args but every job carries 5 (`priority`) -> priority was always lost (`normal`), so the low-priority share of the daily cap never applied to recovery/review messages and retries lost their priority. Constant `Sender::HOOK_ARGS`; regression tests.
+- FIXED `RecoveryResultHandler`: the scanner clears `next_action_gmt` when it claims a row; a skipped WhatsApp step (no stock, suppressed/invalid phone without e-mail fallback, limiter, empty text) left the row `active` with no next action forever -> now moved past the step (`release_skipped`); sending-window reschedules and closed rows are untouched.
+- FIXED `Renderer::format_items` appended a hard-coded Spanish "y N más" (outside i18n) -> translated `and %d more` (es_AR `y %d más`).
+- FIXED `Notifier::short_reason` showed "unexpected error" for `session_down`/`http_error` order notes -> own messages (es_AR added).
+- OK (no change): hook/kind/option names agree across modules (3 jobs, 3 kinds, each with one handler and result listener); all default-text placeholders are resolved by the Renderer; migrations 2026111801/2026111901 cover the 3 tables dropped by uninstall; modules that handle jobs register handlers in admin/ajax/cron/cli.
+- PENDING / known: a claimed row stays without next action if `Sender::enqueue` fails right after the claim (Action Scheduler missing) — needs staging; Recovery is `enabled=yes` by default (acts as soon as Waha is configured); VERIFY #71 added. `docs/FEATURES.md` (pt-BR) describes the owner-facing behaviour.
+

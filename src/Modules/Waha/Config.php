@@ -26,6 +26,11 @@ final class Config {
 		'rate_per_hour'     => '100',
 		'breaker_threshold' => '5',
 		'breaker_minutes'   => '15',
+		'interval_min'      => '20',
+		'interval_max'      => '60',
+		'daily_cap'         => '150',
+		'low_percent'       => '60',
+		'typing'            => 'yes',
 	);
 
 	private const CONSTANTS = array(
@@ -110,6 +115,42 @@ final class Config {
 	 */
 	public static function breaker_minutes(): int {
 		return self::positive_int( 'breaker_minutes' );
+	}
+
+	/**
+	 * Minimum seconds between two messages (0 allowed).
+	 */
+	public static function interval_min(): int {
+		$value = (int) self::text( 'interval_min' );
+		return $value >= 0 ? $value : (int) self::DEFAULTS['interval_min'];
+	}
+
+	/**
+	 * Maximum seconds between two messages (never below the minimum).
+	 */
+	public static function interval_max(): int {
+		return max( self::interval_min(), self::positive_int( 'interval_max' ) );
+	}
+
+	/**
+	 * Messages allowed per day (site timezone).
+	 */
+	public static function daily_cap(): int {
+		return self::positive_int( 'daily_cap' );
+	}
+
+	/**
+	 * Share (1-100) of the daily cap that low priority messages may use.
+	 */
+	public static function low_percent(): int {
+		return min( 100, self::positive_int( 'low_percent' ) );
+	}
+
+	/**
+	 * Whether to simulate typing before sending.
+	 */
+	public static function typing(): bool {
+		return 'no' !== self::text( 'typing' );
 	}
 
 	/**

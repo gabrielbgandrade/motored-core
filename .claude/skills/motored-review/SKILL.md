@@ -21,5 +21,7 @@ You are the reviewer, not the author. Verify; do not trust claims. Rules are in 
 7. **i18n:** every string in `motored-core` domain and present in `.pot` and es_AR `.po/.mo` (voseo).
 8. **Docs:** each unverified assumption has a `docs/VERIFY.md` row; modules have README + skill;
    `docs/PROJECT.md` and `docs/TESTING.md` accurate.
-9. **Record:** append to the Review log in `docs/PROJECT.md` (date, scope, findings with file:line,
+9. **Theme-agnostic:** grep for theme names, `get_header`/`get_footer`, layout ids/classes in JS/CSS/PHP; only
+   WP/WC core hooks and markup; public pages standalone; e-mails via `wc_get_template*` only; own classes `motored-`.
+10. **Record:** append to the Review log in `docs/PROJECT.md` (date, scope, findings with file:line,
    fixed/pending). Fix what you can, re-run `composer check`.

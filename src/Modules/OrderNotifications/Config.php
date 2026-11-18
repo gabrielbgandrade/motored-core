@@ -29,23 +29,23 @@ final class Config {
 		'admin_phone'             => '',
 		EventMap::ON_HOLD         => array(
 			'enabled' => 'yes',
-			'text'    => "¡Hola {first_name}! Recibimos tu pedido *#{order_number}* en *{store_name}* por *{order_total}*.\n{order_items}\n\nQuedó *en espera* de confirmación del pago. Podés ver el detalle acá:\n{order_url}",
+			'text'    => "{¡Hola|¡Buenas} {first_name}! Recibimos tu pedido *#{order_number}* en *{store_name}* por *{order_total}*.\n{order_items}\n\nQuedó *en espera* de confirmación del pago. Podés ver el detalle {acá|en este link}:\n{order_url}",
 		),
 		EventMap::PROCESSING      => array(
 			'enabled' => 'yes',
-			'text'    => "¡Hola {first_name}! Ya confirmamos tu pago y estamos preparando tu pedido *#{order_number}* en *{store_name}* (*{order_total}*).\n{order_items}\n\nSeguí el estado de tu compra acá:\n{order_url}",
+			'text'    => "{¡Hola|¡Buenas} {first_name}! Ya confirmamos tu pago y estamos preparando tu pedido *#{order_number}* en *{store_name}* (*{order_total}*).\n{order_items}\n\nSeguí el estado de tu compra {acá|en este link}:\n{order_url}",
 		),
 		EventMap::COMPLETED       => array(
 			'enabled' => 'yes',
-			'text'    => "¡Hola {first_name}! Tu pedido *#{order_number}* en *{store_name}* ya está *completado*.\n{order_items}\n\nPodés consultar el resumen acá:\n{order_url}",
+			'text'    => "{¡Hola|¡Buenas} {first_name}! Tu pedido *#{order_number}* en *{store_name}* ya está *completado*.\n{order_items}\n\nPodés consultar el resumen {acá|en este link}:\n{order_url}",
 		),
 		EventMap::REFUNDED        => array(
 			'enabled' => 'yes',
-			'text'    => "Hola {first_name}, te confirmamos que tu pedido *#{order_number}* en *{store_name}* por *{order_total}* fue *reembolsado*.\n\nPodés revisar el detalle acá:\n{order_url}",
+			'text'    => "{Hola|Buenas} {first_name}, te confirmamos que tu pedido *#{order_number}* en *{store_name}* por *{order_total}* fue *reembolsado*.\n\nPodés revisar el detalle {acá|en este link}:\n{order_url}",
 		),
 		EventMap::CUSTOMER_NOTE   => array(
 			'enabled' => 'yes',
-			'text'    => "Hola {first_name}, tenés una nueva nota sobre tu pedido *#{order_number}* en *{store_name}*:\n\n{customer_note}\n\nMirá tu pedido acá:\n{order_url}",
+			'text'    => "{Hola|Buenas} {first_name}, tenés una nueva nota sobre tu pedido *#{order_number}* en *{store_name}*:\n\n{customer_note}\n\nMirá tu pedido {acá|en este link}:\n{order_url}",
 		),
 		EventMap::ADMIN_NEW_ORDER => array(
 			'enabled' => 'no',

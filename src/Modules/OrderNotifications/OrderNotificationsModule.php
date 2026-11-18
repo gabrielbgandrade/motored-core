@@ -65,7 +65,7 @@ final class OrderNotificationsModule implements Module {
 	/**
 	 * Detects WooCommerce wc-api endpoints (e.g. payment gateway IPN) and POST checkouts.
 	 */
-	private static function is_wc_api_or_post(): bool {
+	public static function is_wc_api_or_post(): bool {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Presence check only.
 		if ( isset( $_GET['wc-api'] ) ) {
 			return true;

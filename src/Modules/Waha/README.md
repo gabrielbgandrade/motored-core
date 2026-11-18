@@ -5,7 +5,7 @@ WhatsApp **transport** through WAHA: HTTP client, phone normalization/confirmati
 (Action Scheduler) other modules use. No business messages, inbound webhooks, media or tables.
 
 ## Public contracts
-- `Sender::enqueue( string $kind, int $ref_id, ?string $step = null, int $delay = 0 ): bool` — schedules a job (IDs only).
+- `Sender::enqueue( string $kind, int $ref_id, ?string $step = null, int $delay = 0, string $priority = Sender::NORMAL ): bool` — schedules a job (IDs only + priority). `Sender::HIGH` = order notices, `NORMAL`, `LOW` = recovery / review requests.
 - `Sender::register_handler( string $kind, callable $h )` — `$h( int $ref_id, ?string $step ): ?Message` runs AT SEND
   TIME; returns `new Message( $phone, $text )` or `null` to skip. Register in every job context (admin/cron/ajax/cli).
 - Action `motored_waha_result( string $kind, int $ref_id, ?string $step, Result $result )` — job finished (sent, skipped
@@ -26,19 +26,22 @@ WhatsApp **transport** through WAHA: HTTP client, phone normalization/confirmati
 
 ## Data model
 Option `motored_waha` (autoload=false). Cache bucket `waha`: `chat:{md5}` (chat id 30 d / negative 24 h),
-`rate:m:*` / `rate:h:*` counters, `breaker:until`, `breaker:fails`, `notice:{user}` (120 s). No tables.
+`rate:m:*` / `rate:h:*` counters, `next_slot` (global spacing), `day:{Ymd}` (daily counter, site timezone), `session:health` (60 s), `breaker:until`, `breaker:fails`, `notice:{user}` (120 s). No tables.
 
 ## Configuration keys
 `url`, `session`, `api_key` (secret), `country_code` (54), `rate_per_minute` (6), `rate_per_hour` (100),
-`breaker_threshold` (5), `breaker_minutes` (15). Constants `MOTORED_WAHA_URL`, `MOTORED_WAHA_API_KEY`,
+`breaker_threshold` (5), `breaker_minutes` (15), `interval_min` (20 s), `interval_max` (60 s), `daily_cap` (150), `low_percent` (60), `typing` (yes). Constants `MOTORED_WAHA_URL`, `MOTORED_WAHA_API_KEY`,
 `MOTORED_WAHA_SESSION` override the option; those fields become read-only. Edited in WooCommerce > Settings > Motored > WhatsApp.
 
 ## Main flows
-1. `enqueue` -> AS single action (group `motored-core`, args `[kind, ref_id, step, attempt]`) at now+delay+jitter(3-15 s).
-2. Worker `Sender::run`: breaker open? -> reschedule. Rate limit hit? -> reschedule to next window. Handler -> `Message|null`.
-3. `ChatResolver`: `Phone::normalize` candidate -> cache -> `check-exists` -> chat id; then `sendText`.
+1. `enqueue` -> AS single action (group `motored-core`, args `[kind, ref_id, step, attempt, priority]`) at now+delay+jitter(3-15 s).
+2. Worker `Sender::run`: breaker open? rate limit hit? global spacing slot not reached? daily cap reached (low priority: only `low_percent` % of it)? -> reschedule (cap: start of the next day in the site timezone). Then handler -> `Message|null`.
+3. Session health (`sessionStatus`, cached 60 s): not `WORKING` -> reschedule 60 s and count a breaker failure. Then `ChatResolver` (`Phone::normalize` candidate -> cache -> `check-exists` -> chat id), typing simulation (`startTyping`, wait 0.5-3 s, `stopTyping`; failures ignored; worker only) and `sendText`. After sending, the next slot is reserved (random `interval_min`-`interval_max`).
 4. Retryable failure: retry with backoff 60 s / 300 s, max 3 attempts; consecutive service failures open the breaker.
 5. Final outcome -> `motored_waha_result`. Never `sleep()`.
+
+## Text variation
+`OrderNotifications\Renderer` accepts `{option a|option b}` in templates (one random option per message; placeholders have no `|`, so they are untouched; values such as the customer note are never expanded). Default es_AR texts of Recovery and OrderNotifications use 1-2 variations.
 
 ## Performance and security notes
 Loads only in admin, cron, ajax, cli (not public pages, not REST). Sync HTTP only on the two admin buttons
@@ -48,12 +51,13 @@ is still in the page HTML for administrators; prefer the constant.
 
 ## How to test
 `vendor/bin/phpunit tests/Unit/Modules/Waha tests/Unit/Integration/Waha`: client (success, 401, timeout, bad JSON,
-http), phone (Argentine cases), sender (rate limit, backoff, breaker, null handler), module contexts.
+http), phone (Argentine cases), sender (priority, daily cap, spacing, typing, session health, rate limit, backoff, breaker, null handler), module contexts.
 Staging: see the WAHA section of `docs/STAGING-CHECKLIST.md`.
 
 ## Known limitations
-Argentine normalization is heuristic (confirmed by check-exists). Rate/breaker counters are best-effort when
-Redis is down. Test buttons use saved settings. Endpoints unverified until checked against the instance Swagger.
+Argentine normalization is heuristic (confirmed by check-exists). Rate/breaker/daily/spacing counters are best-effort when
+Redis is down (the cap and the spacing then simply do not apply; jitter still does). Test buttons use saved settings. Endpoints unverified until checked against the instance Swagger.
 
 ## Changelog
 - 0.2.0 — 2026-11-17 — initial transport implementation.
+- 0.3.0 — 2026-11-18 — anti-block hardening: priority, global spacing, daily cap, typing simulation, session health, text variation.

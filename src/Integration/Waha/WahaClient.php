@@ -40,6 +40,24 @@ class WahaClient {
 	}
 
 	/**
+	 * Shows "typing..." in the chat (best effort; callers ignore failures).
+	 *
+	 * @param string $chat_id Chat id.
+	 */
+	public function startTyping( string $chat_id ): Result { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid
+		return $this->log( 'startTyping', $this->request( 'POST', Endpoints::START_TYPING, array(), Endpoints::typing_body( Config::session(), $chat_id ) ) );
+	}
+
+	/**
+	 * Clears "typing..." in the chat (best effort).
+	 *
+	 * @param string $chat_id Chat id.
+	 */
+	public function stopTyping( string $chat_id ): Result { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid
+		return $this->log( 'stopTyping', $this->request( 'POST', Endpoints::STOP_TYPING, array(), Endpoints::typing_body( Config::session(), $chat_id ) ) );
+	}
+
+	/**
 	 * Checks whether a number has WhatsApp. On success `data` has `exists` (bool) and `chat_id`.
 	 *
 	 * @param string $phone Digits only (E.164 without "+").

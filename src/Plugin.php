@@ -30,6 +30,8 @@ final class Plugin {
 		Modules\Waha\WahaModule::class,
 		Modules\OrderNotifications\OrderNotificationsModule::class,
 		Modules\Recovery\RecoveryModule::class,
+		Modules\ReviewPhotos\ReviewPhotosModule::class,
+		Modules\ReviewRequests\ReviewRequestsModule::class,
 	);
 
 	/**

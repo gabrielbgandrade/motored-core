@@ -34,6 +34,8 @@ final class Renderer {
 		'{recovery_url}',
 		'{optout_url}',
 		'{pay_url}',
+		'{review_links}',
+		'{store_review_url}',
 	);
 
 	/**
@@ -41,25 +43,30 @@ final class Renderer {
 	 *
 	 * @param string              $template Template string.
 	 * @param array<string,mixed> $vars     Keyed without braces (e.g. 'order_number' => '1001').
+	 * @param \Closure|null       $pick     fn( int $count ): int index of the chosen variation (tests).
 	 */
-	public static function render( string $template, array $vars ): string {
+	public static function render( string $template, array $vars, ?\Closure $pick = null ): string {
 		if ( '' === trim( $template ) ) {
 			return '';
 		}
+		// Variations come from the template only (before substituting values, so customer text is never expanded).
+		$template = self::spin( $template, $pick );
 
 		$replacements = array(
-			'{order_number}'  => self::strip_html( self::string_var( $vars, 'order_number' ) ),
-			'{first_name}'    => self::strip_html( self::string_var( $vars, 'first_name' ) ),
-			'{order_total}'   => self::format_price( self::string_var( $vars, 'order_total' ) ),
-			'{order_items}'   => self::strip_html( self::string_var( $vars, 'order_items' ) ),
-			'{order_url}'     => self::clean_url( self::string_var( $vars, 'order_url' ) ),
-			'{store_name}'    => self::strip_html( self::string_var( $vars, 'store_name' ) ),
-			'{customer_note}' => self::strip_html( self::string_var( $vars, 'customer_note' ) ),
-			'{cart_items}'    => self::strip_html( self::string_var( $vars, 'cart_items' ) ),
-			'{cart_total}'    => self::format_price( self::string_var( $vars, 'cart_total' ) ),
-			'{recovery_url}'  => self::clean_url( self::string_var( $vars, 'recovery_url' ) ),
-			'{optout_url}'    => self::clean_url( self::string_var( $vars, 'optout_url' ) ),
-			'{pay_url}'       => self::clean_url( self::string_var( $vars, 'pay_url' ) ),
+			'{order_number}'     => self::strip_html( self::string_var( $vars, 'order_number' ) ),
+			'{first_name}'       => self::strip_html( self::string_var( $vars, 'first_name' ) ),
+			'{order_total}'      => self::format_price( self::string_var( $vars, 'order_total' ) ),
+			'{order_items}'      => self::strip_html( self::string_var( $vars, 'order_items' ) ),
+			'{order_url}'        => self::clean_url( self::string_var( $vars, 'order_url' ) ),
+			'{store_name}'       => self::strip_html( self::string_var( $vars, 'store_name' ) ),
+			'{customer_note}'    => self::strip_html( self::string_var( $vars, 'customer_note' ) ),
+			'{cart_items}'       => self::strip_html( self::string_var( $vars, 'cart_items' ) ),
+			'{cart_total}'       => self::format_price( self::string_var( $vars, 'cart_total' ) ),
+			'{recovery_url}'     => self::clean_url( self::string_var( $vars, 'recovery_url' ) ),
+			'{optout_url}'       => self::clean_url( self::string_var( $vars, 'optout_url' ) ),
+			'{pay_url}'          => self::clean_url( self::string_var( $vars, 'pay_url' ) ),
+			'{review_links}'     => self::strip_html( self::string_var( $vars, 'review_links' ) ),
+			'{store_review_url}' => self::clean_url( self::string_var( $vars, 'store_review_url' ) ),
 		);
 
 		$rendered = strtr( $template, $replacements );
@@ -72,7 +79,28 @@ final class Renderer {
 	}
 
 	/**
-	 * Formats line items into up to $limit lines plus "y N más" when truncated.
+	 * Resolves {option a|option b} groups to one random option per message. Placeholders have no "|",
+	 * so {first_name} is untouched; a placeholder may be used inside an option.
+	 *
+	 * @param string        $template Template.
+	 * @param \Closure|null $pick     fn( int $count ): int.
+	 */
+	public static function spin( string $template, ?\Closure $pick = null ): string {
+		$part   = '(?:[^{}|]|\{[a-z_]+\})*';
+		$result = preg_replace_callback(
+			'/\{(' . $part . '(?:\|' . $part . ')+)\}/u',
+			static function ( array $found ) use ( $pick ): string {
+				$options = explode( '|', $found[1] );
+				$index   = null !== $pick ? $pick( count( $options ) ) : random_int( 0, count( $options ) - 1 );
+				return $options[ max( 0, min( count( $options ) - 1, $index ) ) ];
+			},
+			$template
+		);
+		return is_string( $result ) ? $result : $template;
+	}
+
+	/**
+	 * Formats line items into up to $limit lines plus "and N more" (translated) when truncated.
 	 *
 	 * @param list<array{name:string,qty:int}> $items Items list.
 	 * @param int                              $limit Maximum items shown before summarizing.
@@ -98,7 +126,8 @@ final class Renderer {
 		$lines = array_slice( $clean, 0, $limit );
 		if ( $total > $limit ) {
 			$remaining = $total - $limit;
-			$lines[]   = 'y ' . $remaining . ' más';
+			/* translators: %d: number of products not listed. */
+			$lines[] = sprintf( __( 'and %d more', 'motored-core' ), $remaining );
 		}
 
 		return implode( "\n", $lines );

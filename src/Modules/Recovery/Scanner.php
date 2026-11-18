@@ -78,7 +78,7 @@ final class Scanner {
 
 			// Atomic claim: an overlapping scanner run (or a status change meanwhile) cannot enqueue the same row twice.
 			if ( Repository::claim_due( $id, (string) $row['next_action_gmt'] ) ) {
-				Sender::enqueue( 'recovery_step', $id, (string) $next_step );
+				Sender::enqueue( 'recovery_step', $id, (string) $next_step, 0, Sender::LOW );
 			}
 		}
 	}

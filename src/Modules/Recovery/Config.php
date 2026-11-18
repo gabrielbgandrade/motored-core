@@ -31,51 +31,51 @@ final class Config {
 		'limit_week'               => '3',
 		'order_enabled'            => 'yes',
 		'order_cancelled_fallback' => 'restore',
-		'order_cancelled_text'     => "Hola {first_name}, tu pedido *#{order_number}* en *{store_name}* se canceló porque no se completó el pago. Guardamos tus productos para que puedas retomar la compra:\n{order_items}\n\nRecuperá tu carrito acá:\n{recovery_url}\n\nPara no recibir más avisos: {optout_url}",
+		'order_cancelled_text'     => "{Hola|Buenas} {first_name}, tu pedido *#{order_number}* en *{store_name}* se canceló porque no se completó el pago. Guardamos tus productos para que puedas retomar la compra:\n{order_items}\n\nRecuperá tu carrito acá:\n{recovery_url}\n\n{Para no recibir más avisos|Si no querés más avisos}: {optout_url}",
 		'order_pending_step_1'     => array(
 			'channel' => 'whatsapp',
 			'delay'   => '30',
-			'text'    => "¡Hola {first_name}! Vimos que no completaste el pago de tu pedido *#{order_number}* en *{store_name}* por *{order_total}*:\n{order_items}\n\nPodés terminarlo ahora desde acá:\n{pay_url}\n\nSi ya pagaste, ignorá este mensaje. Para no recibir más avisos: {optout_url}",
+			'text'    => "{¡Hola|¡Buenas} {first_name}! Vimos que no completaste el pago de tu pedido *#{order_number}* en *{store_name}* por *{order_total}*:\n{order_items}\n\nPodés terminarlo ahora desde acá:\n{pay_url}\n\nSi ya pagaste, ignorá este mensaje. {Para no recibir más avisos|Si no querés más avisos}: {optout_url}",
 		),
 		'order_pending_step_2'     => array(
 			'channel' => 'email',
 			'delay'   => '1440',
-			'text'    => "Hola {first_name}, tu pedido *#{order_number}* en *{store_name}* sigue sin pagarse. Todavía podés completarlo acá:\n{pay_url}\n\nPara cancelar avisos: {optout_url}",
+			'text'    => "{Hola|Buenas} {first_name}, tu pedido *#{order_number}* en *{store_name}* sigue sin pagarse. Todavía podés completarlo acá:\n{pay_url}\n\nPara cancelar avisos: {optout_url}",
 		),
 		'order_failed_step_1'      => array(
 			'channel' => 'whatsapp',
 			'delay'   => '30',
-			'text'    => "Hola {first_name}, no se pudo procesar tu pago del pedido *#{order_number}* en *{store_name}* por *{order_total}*:\n{order_items}\n\nPodés reintentarlo con otro medio de pago desde acá:\n{pay_url}\n\nSi ya lo resolviste, ignorá este mensaje. Para no recibir más avisos: {optout_url}",
+			'text'    => "{Hola|Buenas} {first_name}, no se pudo procesar tu pago del pedido *#{order_number}* en *{store_name}* por *{order_total}*:\n{order_items}\n\nPodés reintentarlo con otro medio de pago desde acá:\n{pay_url}\n\nSi ya lo resolviste, ignorá este mensaje. {Para no recibir más avisos|Si no querés más avisos}: {optout_url}",
 		),
 		'order_failed_step_2'      => array(
 			'channel' => 'email',
 			'delay'   => '1440',
-			'text'    => "Hola {first_name}, el pago de tu pedido *#{order_number}* en *{store_name}* sigue sin completarse. Podés volver a intentarlo acá:\n{pay_url}\n\nPara cancelar avisos: {optout_url}",
+			'text'    => "{Hola|Buenas} {first_name}, el pago de tu pedido *#{order_number}* en *{store_name}* sigue sin completarse. Podés volver a intentarlo acá:\n{pay_url}\n\nPara cancelar avisos: {optout_url}",
 		),
 		'order_on_hold_step_1'     => array(
 			'channel' => 'whatsapp',
 			'delay'   => '1440',
-			'text'    => "Hola {first_name}, seguimos esperando el pago de tu pedido *#{order_number}* en *{store_name}* por *{order_total}*. Apenas se acredite, lo preparamos.\n\nPodés ver cómo completar el pago acá:\n{pay_url}\n\nSi ya pagaste, ignorá este mensaje. Para no recibir más avisos: {optout_url}",
+			'text'    => "{Hola|Buenas} {first_name}, seguimos esperando el pago de tu pedido *#{order_number}* en *{store_name}* por *{order_total}*. Apenas se acredite, lo preparamos.\n\nPodés ver cómo completar el pago acá:\n{pay_url}\n\nSi ya pagaste, ignorá este mensaje. {Para no recibir más avisos|Si no querés más avisos}: {optout_url}",
 		),
 		'order_on_hold_step_2'     => array(
 			'channel' => 'off',
 			'delay'   => '2880',
-			'text'    => "Hola {first_name}, ¿pudiste completar el pago de tu pedido *#{order_number}* en *{store_name}*? Mirá cómo hacerlo acá:\n{pay_url}\n\nPara cancelar avisos: {optout_url}",
+			'text'    => "{Hola|Buenas} {first_name}, ¿pudiste completar el pago de tu pedido *#{order_number}* en *{store_name}*? Mirá cómo hacerlo acá:\n{pay_url}\n\nPara cancelar avisos: {optout_url}",
 		),
 		'step_1'                   => array(
 			'channel' => 'whatsapp',
 			'delay'   => '60',
-			'text'    => "¡Hola {first_name}! Notamos que dejaste productos en tu carrito en *{store_name}* ({cart_total}):\n{cart_items}\n\nPodés recuperarlo y finalizar tu compra acá:\n{recovery_url}\n\nSi no querés recibir más estos avisos: {optout_url}",
+			'text'    => "{¡Hola|¡Buenas} {first_name}! Notamos que dejaste productos en tu carrito en *{store_name}* ({cart_total}):\n{cart_items}\n\nPodés recuperarlo y finalizar tu compra acá:\n{recovery_url}\n\nSi no querés recibir más estos avisos: {optout_url}",
 		),
 		'step_2'                   => array(
 			'channel' => 'email',
 			'delay'   => '1440',
-			'text'    => "Hola {first_name}, ¿todavía estás pensando en tu compra en *{store_name}*? Tu carrito por *{cart_total}* te está esperando:\n{cart_items}\n\nCompletá tu pedido acá:\n{recovery_url}\n\nPara cancelar avisos: {optout_url}",
+			'text'    => "{Hola|Buenas} {first_name}, ¿todavía estás pensando en tu compra en *{store_name}*? Tu carrito por *{cart_total}* te está esperando:\n{cart_items}\n\nCompletá tu pedido acá:\n{recovery_url}\n\nPara cancelar avisos: {optout_url}",
 		),
 		'step_3'                   => array(
 			'channel' => 'off',
 			'delay'   => '4320',
-			'text'    => "Hola {first_name}, es tu última oportunidad para recuperar tu carrito en *{store_name}* por *{cart_total}*:\n{cart_items}\n\nAccedé a tu compra acá:\n{recovery_url}\n\nCancelar avisos: {optout_url}",
+			'text'    => "{Hola|Buenas} {first_name}, es tu última oportunidad para recuperar tu carrito en *{store_name}* por *{cart_total}*:\n{cart_items}\n\nAccedé a tu compra acá:\n{recovery_url}\n\nCancelar avisos: {optout_url}",
 		),
 	);
 
