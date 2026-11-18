@@ -124,6 +124,7 @@ its own templates.
 Prerequisites: MP plugin 8.10.2, sandbox credentials, Checkout Pro enabled, plugin discount/commission = 0, installments >= 12; in the MP account confirm "cuotas sin interés" up to 12 is active; "Cuotas sin Tarjeta" (`consumer_credits`) is off in the account/plugin.
 - [ ] Motored > Status: "Integración con Mercado Pago: OK (plugin 8.10.2)".
 - [ ] Cash plan: Checkout Pro offers no credit/debit card (account money, transfer, cash only); the order total in MP = order total.
+- [ ] "Cuotas sin Tarjeta" is not offered in any plan (VERIFY #86: real id, MP accepts the exclusion?).
 - [ ] Plan 3: account money and 1, 2 or 3 installments; NEVER 6 or more.
 - [ ] Plan 9: account money and installments up to 9 (1, 2, 3, 6, 9 as MP offers).
 - [ ] Preference value: sum of items = order total (coupon + tax + shipping + plan fee); the preference shows no extra discount/commission.

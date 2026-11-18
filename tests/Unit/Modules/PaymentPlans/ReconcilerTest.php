@@ -113,24 +113,36 @@ final class ReconcilerTest extends TestCase {
 		$payments = CheckoutPro::payments( $this->order() );
 		$this->assertSame(
 			array(
-				array( 'id' => '555', 'type' => 'credit_card', 'amount' => 1000.0, 'paid' => 1000.0, 'installments' => 3 ),
-				array( 'id' => '556', 'type' => 'account_money', 'amount' => 100.5, 'paid' => 100.5, 'installments' => null ),
+				array( 'id' => '555', 'type' => 'credit_card', 'method' => 'visa', 'amount' => 1000.0, 'paid' => 1000.0, 'installments' => 3 ),
+				array( 'id' => '556', 'type' => 'account_money', 'method' => 'visa', 'amount' => 100.5, 'paid' => 100.5, 'installments' => null ),
 			),
 			$payments
 		);
 	}
 
 	public function test_evaluate_rules(): void {
-		$card = static fn( int $n, float $amount = 10.0, float $paid = 10.0 ) => array( array( 'id' => '1', 'type' => 'credit_card', 'amount' => $amount, 'paid' => $paid, 'installments' => $n ) );
+		$card = static fn( int $n, float $amount = 10.0, float $paid = 10.0 ) => array( array( 'id' => '1', 'type' => 'credit_card', 'method' => 'visa', 'amount' => $amount, 'paid' => $paid, 'installments' => $n ) );
 
 		$this->assertSame( array(), Reconciler::evaluate( 3, 'card', 1000, $card( 3 ) ), 'within the limit' );
 		$this->assertCount( 1, Reconciler::evaluate( 3, 'card', 1000, $card( 6 ) ), 'too many installments' );
 		$this->assertCount( 1, Reconciler::evaluate( 1, 'cash', 1000, $card( 1 ) ), 'card on a cash plan' );
-		$this->assertSame( array(), Reconciler::evaluate( 1, 'cash', 1000, array( array( 'id' => '1', 'type' => 'account_money', 'amount' => 10.0, 'paid' => 10.0, 'installments' => null ) ) ) );
+		$this->assertSame( array(), Reconciler::evaluate( 1, 'cash', 1000, array( array( 'id' => '1', 'type' => 'account_money', 'method' => 'account_money', 'amount' => 10.0, 'paid' => 10.0, 'installments' => null ) ) ) );
 		$this->assertSame( array(), Reconciler::evaluate( 9, 'card', 1000, $card( 9, 10.005, 10.0 ) ), 'one cent of tolerance' );
 		$this->assertCount( 1, Reconciler::evaluate( 3, 'card', 1000, $card( 3, 12.0, 10.0 ) ), 'amount differs' );
 		$this->assertCount( 1, Reconciler::evaluate( 3, 'card', 1000, $card( 3, 10.0, 11.5 ) ), 'customer paid interest' );
 		$this->assertCount( 4, Reconciler::evaluate( 1, 'cash', 1000, $card( 6, 12.0, 14.0 ) ) );
+	}
+
+	public function test_mp_credit_counts_as_divergence_below_12_installments(): void {
+		$credit = array( array( 'id' => '9', 'type' => 'digital_credit', 'method' => 'consumer_credits', 'amount' => 10.0, 'paid' => 10.0, 'installments' => null ) );
+		$this->assertCount( 1, Reconciler::evaluate( 3, 'card', 1000, $credit ) );
+		$this->assertCount( 1, Reconciler::evaluate( 9, 'card', 1000, $credit ) );
+		$this->assertSame( array(), Reconciler::evaluate( 12, 'card', 1000, $credit ), 'the 12-installment plan allows it' );
+		$by_type = array( array( 'id' => '9', 'type' => 'consumer_credits', 'method' => '', 'amount' => 10.0, 'paid' => 10.0, 'installments' => null ) );
+		$this->assertCount( 1, Reconciler::evaluate( 6, 'card', 1000, $by_type ) );
+		$this->assertTrue( Reconciler::is_mp_credit( '', 'consumer_credits' ) );
+		$this->assertFalse( Reconciler::is_mp_credit( 'credit_card', 'visa' ) );
+		$this->assertFalse( Reconciler::is_mp_credit( 'account_money', 'account_money' ) );
 	}
 
 	public function test_consistent_card_payment_is_verified_once_and_not_rescheduled(): void {

@@ -46,6 +46,24 @@ final class PreferenceRewriterTest extends TestCase {
 		$this->assertSame( 3, $out->payment_methods->default_installments );
 	}
 
+	public function test_consumer_credits_is_excluded_by_every_plan_merging_without_duplicates(): void {
+		[ $out ] = $this->apply( $this->body( array( 'installments' => 24, 'excluded_payment_methods' => array( array( 'id' => 'amex' ) ) ) ), 9, 'card' );
+		$this->assertSame( array( 'amex', 'consumer_credits' ), array_map( static fn( $m ) => $m->id, $out->payment_methods->excluded_payment_methods ) );
+
+		[ $again ] = $this->apply( $this->body( array( 'excluded_payment_methods' => array( array( 'id' => 'consumer_credits' ) ) ) ), 3, 'card' );
+		$this->assertCount( 1, $again->payment_methods->excluded_payment_methods );
+
+		[ $cash ] = $this->apply( $this->body(), 1, 'cash' );
+		$this->assertSame( '[{"id":"consumer_credits"}]', json_encode( $cash->payment_methods->excluded_payment_methods ) );
+	}
+
+	public function test_malformed_excluded_methods_fail_closed(): void {
+		$json = '{"items":[{"unit_price":10,"quantity":1}],"payment_methods":{"excluded_payment_methods":"amex"}}';
+		[ $out, $error ] = $this->apply( $json, 3, 'card', 1000 );
+		$this->assertNull( $out );
+		$this->assertSame( PreferenceRewriter::ERR_FORMAT, $error );
+	}
+
 	public function test_cash_plan_merges_card_exclusions_with_the_existing_ones(): void {
 		$methods = array(
 			'installments'             => 24,

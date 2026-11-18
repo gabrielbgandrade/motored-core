@@ -47,13 +47,13 @@ WC session key `motored_plan` (plan id). No tables, no cache keys.
 ## Mercado Pago limit (part B)
 - `Integration\MercadoPago\PreferenceFilter` acts ONLY on POST `https://api.mercadopago.com/v1/asgard/preferences`: decodes the JSON, resolves the order from `external_reference`
   (`<store id><order id>`), reads `_motored_plan_*`. No plan on the order: body untouched. With a plan, `PreferenceRewriter` sets `payment_methods.installments = min(plugin value, plan max)`,
-  clamps `default_installments`, and for cash plans MERGES `credit_card` and `debit_card` into `excluded_payment_types` (never `account_money`); every other key is kept (objects decoded as objects, so `{}` stays `{}`).
+  clamps `default_installments`, and for cash plans MERGES `credit_card` and `debit_card` into `excluded_payment_types` (never `account_money`); ALL plans add `consumer_credits` to `excluded_payment_methods` (merge, no duplicates; VERIFY #86); every other key is kept (objects decoded as objects, so `{}` stays `{}`).
 - Before sending it checks that the sum of `unit_price * quantity` equals the order total (1 cent).
 - FAIL CLOSED: plan present but body unreadable/unchangeable, bad plan meta, total mismatch -> the args get a flag and `pre_http_request` returns a `WP_Error` (es_AR message); log without PII + private order note.
   Order not identifiable: blocked while plans are enabled (a saved plan is enforced even if the module is disabled later).
 - Version guard: `CheckoutPro::VALIDATED_VERSION` (8.10.2); another active version only warns (Status row + section notice).
 - `Reconciler`: on processing/completed and 120 s later, reads plain order meta (`Mercado Pago - <id> - installments`, `Mercado Pago - Payment <id>`): installments <= plan max, no card on cash plans,
-  amount and paid ~ order total. Divergence: meta `_motored_plan_mismatch` (set first), private note, `on-hold`, e-mail to the admin, state meta `_motored_plan_recon`; never cancels or refunds. The flag pauses customer notices (OrderNotifications) and the Recovery sequence of that order. No data at the second look: note only.
+  no Mercado Pago credit payment (`consumer_credits`) on plans with max < 12, amount and paid ~ order total. Divergence: meta `_motored_plan_mismatch` (set first), private note, `on-hold`, e-mail to the admin, state meta `_motored_plan_recon`; never cancels or refunds. The flag pauses customer notices (OrderNotifications) and the Recovery sequence of that order. No data at the second look: note only.
 
 ## Performance and security notes
 Loads on frontend, ajax and admin only. `register()` reads no options. Public pages read the option only when a product price/cart is processed

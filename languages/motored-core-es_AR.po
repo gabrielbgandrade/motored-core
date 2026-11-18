@@ -1937,3 +1937,7 @@ msgstr "El plugin de Mercado Pago %1$s está activo pero el límite de cuotas se
 #: src/Modules/Recovery/OrderSync.php:75
 msgid "Recovery paused for payment plan review."
 msgstr "Recuperación pausada por revisión de plan."
+
+#: src/Modules/PaymentPlans/Reconciler.php:70
+msgid "paid with Mercado Pago credit (Cuotas sin Tarjeta) but the plan allows fewer than 12 installments"
+msgstr "se pagó con crédito de Mercado Pago (Cuotas sin Tarjeta) pero el plan permite menos de 12 cuotas"

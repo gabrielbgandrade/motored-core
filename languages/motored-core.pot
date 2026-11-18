@@ -1862,3 +1862,7 @@ msgstr ""
 #: src/Modules/Recovery/OrderSync.php:75
 msgid "Recovery paused for payment plan review."
 msgstr ""
+
+#: src/Modules/PaymentPlans/Reconciler.php:70
+msgid "paid with Mercado Pago credit (Cuotas sin Tarjeta) but the plan allows fewer than 12 installments"
+msgstr ""

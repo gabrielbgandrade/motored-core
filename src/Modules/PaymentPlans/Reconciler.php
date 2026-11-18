@@ -30,12 +30,28 @@ final class Reconciler {
 	public const STATE_UNVERIFIED = 'unverified';
 
 	/**
+	 * Plans with a lower maximum cannot be paid with Mercado Pago credit.
+	 */
+	public const CREDIT_MIN_INSTALLMENTS = 12;
+
+	/**
+	 * Whether a payment used Mercado Pago's own credit ("Cuotas sin Tarjeta"). The real type/method ids are
+	 * unverified (VERIFY.md #86): the method `consumer_credits` or any non-card type containing "credit".
+	 *
+	 * @param string $type   Payment type id recorded by the plugin.
+	 * @param string $method Payment method id recorded by the plugin.
+	 */
+	public static function is_mp_credit( string $type, string $method ): bool {
+		return 'consumer_credits' === $method || ( str_contains( $type, 'credit' ) && 'credit_card' !== $type );
+	}
+
+	/**
 	 * Pure rules. Returns the (translated) divergences; empty = consistent.
 	 *
-	 * @param int                                                                            $max         Plan maximum installments.
-	 * @param string                                                                         $type        Plan type.
-	 * @param int                                                                            $total_cents Order total in cents.
-	 * @param list<array{id:string,type:string,amount:?float,paid:?float,installments:?int}> $payments    Payments recorded by the plugin.
+	 * @param int                                                                                          $max         Plan maximum installments.
+	 * @param string                                                                                       $type        Plan type.
+	 * @param int                                                                                          $total_cents Order total in cents.
+	 * @param list<array{id:string,type:string,method:string,amount:?float,paid:?float,installments:?int}> $payments    Payments recorded by the plugin.
 	 * @return list<string>
 	 */
 	public static function evaluate( int $max, string $type, int $total_cents, array $payments ): array {
@@ -54,6 +70,9 @@ final class Reconciler {
 					$payment['installments'],
 					$max
 				);
+			}
+			if ( $max < self::CREDIT_MIN_INSTALLMENTS && self::is_mp_credit( $payment['type'], $payment['method'] ) ) {
+				$reasons[] = __( 'paid with Mercado Pago credit (Cuotas sin Tarjeta) but the plan allows fewer than 12 installments', 'motored-core' );
 			}
 			if ( $card && Plan::TYPE_CASH === $type ) {
 				$reasons[] = __( 'paid with a card but the plan is cash/transfer', 'motored-core' );

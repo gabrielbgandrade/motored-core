@@ -105,7 +105,7 @@ final class CheckoutPro {
 	 * and, for card payments only, `Mercado Pago - <id> - installments`.
 	 *
 	 * @param \WC_Order $order Order.
-	 * @return list<array{id:string,type:string,amount:?float,paid:?float,installments:?int}>
+	 * @return list<array{id:string,type:string,method:string,amount:?float,paid:?float,installments:?int}>
 	 */
 	public static function payments( \WC_Order $order ): array {
 		$found = array();
@@ -131,6 +131,7 @@ final class CheckoutPro {
 			$payments[] = array(
 				'id'           => (string) $id,
 				'type'         => (string) ( $field( 'Payment Type' ) ?? '' ),
+				'method'       => (string) ( $field( 'Payment Method' ) ?? '' ),
 				'amount'       => null !== $amount && is_numeric( $amount ) ? (float) $amount : null,
 				'paid'         => null !== $paid && is_numeric( $paid ) ? (float) $paid : null,
 				'installments' => $info['installments'] ?? null,
