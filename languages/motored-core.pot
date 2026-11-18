@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Motored Core 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 14:17-0300\n"
+"POT-Creation-Date: 2026-11-18 14:25-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -70,11 +70,11 @@ msgstr ""
 msgid "Debug (verbose)"
 msgstr ""
 
-#: src/Admin/SettingsTab.php:133 src/Modules/Waha/WahaAdmin.php:245
+#: src/Admin/SettingsTab.php:133 src/Modules/Waha/WahaAdmin.php:274
 msgid "Yes"
 msgstr ""
 
-#: src/Admin/SettingsTab.php:134 src/Modules/Waha/WahaAdmin.php:245
+#: src/Admin/SettingsTab.php:134 src/Modules/Waha/WahaAdmin.php:274
 msgid "No"
 msgstr ""
 
@@ -115,80 +115,80 @@ msgid "Locale is es_AR"
 msgstr ""
 
 #. translators: %s: order notification event slug (e.g. processing).
-#: src/Modules/OrderNotifications/Notifier.php:267
+#: src/Modules/OrderNotifications/Notifier.php:272
 #, php-format
 msgid "WhatsApp sent: %s"
 msgstr ""
 
 #. translators: %s: short failure reason.
-#: src/Modules/OrderNotifications/Notifier.php:273
+#: src/Modules/OrderNotifications/Notifier.php:278
 #, php-format
 msgid "WhatsApp failed: %s"
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:289
+#: src/Modules/OrderNotifications/Notifier.php:294
 msgid "WAHA is not configured."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:291
+#: src/Modules/OrderNotifications/Notifier.php:296
 msgid "invalid phone number."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:293
+#: src/Modules/OrderNotifications/Notifier.php:298
 msgid "number is not on WhatsApp."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:295
+#: src/Modules/OrderNotifications/Notifier.php:300
 msgid "server timed out."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:297
+#: src/Modules/OrderNotifications/Notifier.php:302
 msgid "could not reach WAHA."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:299
+#: src/Modules/OrderNotifications/Notifier.php:304
 msgid "API key rejected."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:301
+#: src/Modules/OrderNotifications/Notifier.php:306
 msgid "WAHA session not found."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:303
+#: src/Modules/OrderNotifications/Notifier.php:308
 msgid "rate limit reached."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:305
-#: src/Modules/Waha/WahaAdmin.php:280
+#: src/Modules/OrderNotifications/Notifier.php:310
+#: src/Modules/Waha/WahaAdmin.php:340
 msgid "WAHA server error."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:307
+#: src/Modules/OrderNotifications/Notifier.php:312
 msgid "invalid WAHA response."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:309
+#: src/Modules/OrderNotifications/Notifier.php:314
 msgid "WAHA session is not working."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:311
+#: src/Modules/OrderNotifications/Notifier.php:316
 msgid "WAHA returned an error."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:313
+#: src/Modules/OrderNotifications/Notifier.php:318
 msgid "could not reschedule job."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:315
+#: src/Modules/OrderNotifications/Notifier.php:320
 msgid "message build failed."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:317
-#: src/Modules/Waha/WahaAdmin.php:288
+#: src/Modules/OrderNotifications/Notifier.php:322
+#: src/Modules/Waha/WahaAdmin.php:348
 msgid "unexpected error."
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:367
+#: src/Modules/OrderNotifications/Notifier.php:372
 msgid "WhatsApp not sent: missing or invalid billing phone."
 msgstr ""
 
@@ -430,12 +430,12 @@ msgid "Expired"
 msgstr ""
 
 #: src/Modules/Recovery/History.php:143 src/Modules/Recovery/OrderNote.php:45
-#: src/Modules/ReviewRequests/RequestResult.php:45
+#: src/Modules/ReviewRequests/RequestResult.php:51
 msgid "manual"
 msgstr ""
 
 #: src/Modules/Recovery/History.php:145 src/Modules/Recovery/OrderNote.php:45
-#: src/Modules/ReviewRequests/RequestResult.php:45
+#: src/Modules/ReviewRequests/RequestResult.php:51
 msgid "automatic"
 msgstr ""
 
@@ -960,7 +960,7 @@ msgstr ""
 
 #: src/Modules/Recovery/RecoveryAdmin.php:1172
 #: src/Modules/ReviewRequests/ReviewRequestsAdmin.php:175
-#: src/Modules/Waha/WahaAdmin.php:323
+#: src/Modules/Waha/WahaAdmin.php:383
 msgid "You are not allowed to do this."
 msgstr ""
 
@@ -1066,7 +1066,7 @@ msgstr ""
 msgid "%s ago"
 msgstr ""
 
-#: src/Modules/Recovery/Status.php:86 src/Modules/Waha/WahaAdmin.php:249
+#: src/Modules/Recovery/Status.php:86 src/Modules/Waha/WahaAdmin.php:278
 msgid "Active"
 msgstr ""
 
@@ -1145,13 +1145,13 @@ msgid "The photos are deleted together with the comment."
 msgstr ""
 
 #. translators: %s: automatic or manual.
-#: src/Modules/ReviewRequests/RequestResult.php:48
+#: src/Modules/ReviewRequests/RequestResult.php:54
 #, php-format
 msgid "Motored: review request sent by WhatsApp (%s)."
 msgstr ""
 
 #. translators: %s: automatic or manual.
-#: src/Modules/ReviewRequests/RequestResult.php:50
+#: src/Modules/ReviewRequests/RequestResult.php:56
 #, php-format
 msgid "Motored: review request by WhatsApp could not be sent (%s)."
 msgstr ""
@@ -1244,234 +1244,304 @@ msgstr ""
 msgid "Motored: review request queued manually."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:61
-msgid "WAHA URL"
+#: src/Modules/Waha/Sender.php:463
+msgid "Motored: WhatsApp message discarded, sending is turned off."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:62
-msgid "Base URL of your WAHA instance. It must use https."
+#: src/Modules/Waha/Sender.php:466
+msgid ""
+"Motored: WhatsApp message discarded, test mode (number not in the allowed "
+"list)."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:59
+msgid "Send messages"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:60
+msgid ""
+"Master switch. Off: no WhatsApp message leaves the store; queued messages "
+"are discarded."
 msgstr ""
 
 #: src/Modules/Waha/WahaAdmin.php:67
-msgid "Session"
+msgid "Test mode"
 msgstr ""
 
 #: src/Modules/Waha/WahaAdmin.php:68
+msgid ""
+"Only send to the numbers listed below. Turn it off to message real customers."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:75
+msgid "Allowed numbers (test mode)"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:76
+msgid "One number per line, with or without country code."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:88
+msgid "WAHA URL"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:89
+msgid "Base URL of your WAHA instance. It must use https."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:94
+msgid "Session"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:95
 msgid "Name of the WAHA session that sends the messages."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:73
+#: src/Modules/Waha/WahaAdmin.php:100
 msgid "API key"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:74
+#: src/Modules/Waha/WahaAdmin.php:101
 msgid "Sent in the X-Api-Key header. Prefer defining it in wp-config.php."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:97
+#: src/Modules/Waha/WahaAdmin.php:124
 msgid "Calling code used for numbers without one (54 = Argentina)."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:97
+#: src/Modules/Waha/WahaAdmin.php:124
 msgid "Default country code"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:98
+#: src/Modules/Waha/WahaAdmin.php:125
 msgid "Messages per minute"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:98
+#: src/Modules/Waha/WahaAdmin.php:125
 msgid "Over this limit, messages wait for the next minute."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:99
+#: src/Modules/Waha/WahaAdmin.php:126
 msgid "Messages per hour"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:99
+#: src/Modules/Waha/WahaAdmin.php:126
 msgid "Over this limit, messages wait for the next hour."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:100
+#: src/Modules/Waha/WahaAdmin.php:127
 msgid "Consecutive failures that pause all sending."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:100
+#: src/Modules/Waha/WahaAdmin.php:127
 msgid "Failures to pause sending"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:101
+#: src/Modules/Waha/WahaAdmin.php:128
 msgid "How long sending stays paused after too many failures."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:101
+#: src/Modules/Waha/WahaAdmin.php:128
 msgid "Pause length (minutes)"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:102
+#: src/Modules/Waha/WahaAdmin.php:129
 msgid "Minimum gap between messages (seconds)"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:102
+#: src/Modules/Waha/WahaAdmin.php:129
 msgid "Shortest random wait between any two messages."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:103
+#: src/Modules/Waha/WahaAdmin.php:130
 msgid "Longest random wait between any two messages."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:103
+#: src/Modules/Waha/WahaAdmin.php:130
 msgid "Maximum gap between messages (seconds)"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:104
+#: src/Modules/Waha/WahaAdmin.php:131
 msgid "Daily message limit"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:104
+#: src/Modules/Waha/WahaAdmin.php:131
 msgid "Over this limit, messages wait for the next day."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:105
+#: src/Modules/Waha/WahaAdmin.php:132
 msgid ""
 "Recovery messages only use this share; the rest is kept for order notices."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:105
+#: src/Modules/Waha/WahaAdmin.php:132
 msgid "Share of the daily limit for low priority (%)"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:107
+#: src/Modules/Waha/WahaAdmin.php:134
 msgid "Typing simulation"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:108
+#: src/Modules/Waha/WahaAdmin.php:135
 msgid "Show \"typing...\" for a moment before each message (up to 3 seconds)."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:121
+#: src/Modules/Waha/WahaAdmin.php:149
 msgid "Read-only, defined in wp-config.php:"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:127
+#: src/Modules/Waha/WahaAdmin.php:155
 msgid "WhatsApp (WAHA)"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:150
+#: src/Modules/Waha/WahaAdmin.php:178
 msgid "Tests"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:158
+#: src/Modules/Waha/WahaAdmin.php:186
 msgid "Tests use the saved settings: save before testing."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:165
+#: src/Modules/Waha/WahaAdmin.php:193
 msgid "Test connection"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:173
+#: src/Modules/Waha/WahaAdmin.php:201
 msgid "Send test message"
 msgstr ""
 
 #. translators: %s: WAHA session state, e.g. WORKING.
-#: src/Modules/Waha/WahaAdmin.php:189
+#: src/Modules/Waha/WahaAdmin.php:217
 #, php-format
 msgid "Connection OK. Session status: %s."
 msgstr ""
 
 #. translators: %s: reason of the failure.
-#: src/Modules/Waha/WahaAdmin.php:197
+#: src/Modules/Waha/WahaAdmin.php:225
 #, php-format
 msgid "Connection failed: %s"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:209
+#: src/Modules/Waha/WahaAdmin.php:237
 msgid "Type a phone number first."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:215
+#: src/Modules/Waha/WahaAdmin.php:243
 msgid "Test message from Motored Core."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:226
+#: src/Modules/Waha/WahaAdmin.php:254
 msgid "Test message sent."
 msgstr ""
 
 #. translators: %s: reason of the failure.
-#: src/Modules/Waha/WahaAdmin.php:231
+#: src/Modules/Waha/WahaAdmin.php:259
 #, php-format
 msgid "The message was not sent: %s"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:245
+#: src/Modules/Waha/WahaAdmin.php:273
+msgid "WhatsApp delivery mode"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:274
 msgid "WAHA configured"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:246
+#: src/Modules/Waha/WahaAdmin.php:275
 msgid "WhatsApp sending"
 msgstr ""
 
 #. translators: %s: time when sending resumes.
-#: src/Modules/Waha/WahaAdmin.php:248
+#: src/Modules/Waha/WahaAdmin.php:277
 #, php-format
 msgid "Paused by circuit breaker until %s"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:250
+#: src/Modules/Waha/WahaAdmin.php:279
 msgid "Consecutive WhatsApp failures"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:252
+#: src/Modules/Waha/WahaAdmin.php:281
 #, php-format
 msgid "%1$d of %2$d"
 msgstr ""
 
 #. translators: 1: messages sent today, 2: daily limit.
-#: src/Modules/Waha/WahaAdmin.php:252
+#: src/Modules/Waha/WahaAdmin.php:281
 msgid "WhatsApp messages sent today"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:264
+#: src/Modules/Waha/WahaAdmin.php:292
+msgid "Live (real customers)"
+msgstr ""
+
+#. translators: %d: number of allowed numbers.
+#: src/Modules/Waha/WahaAdmin.php:296
+#, php-format
+msgid "Test mode (%d allowed numbers)"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:298
+msgid "Off (nothing is sent)"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:308
+msgid "LIVE: messages are sent to real customers."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:311
+msgid ""
+"TEST MODE: messages only go to the allowed numbers; all others are discarded."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:313
+msgid ""
+"OFF: no WhatsApp message is sent. Turn on \"Send messages\" to start (test "
+"mode first)."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php:324
 msgid "URL or API key missing."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:266
+#: src/Modules/Waha/WahaAdmin.php:326
 msgid "the URL is not valid."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:268
+#: src/Modules/Waha/WahaAdmin.php:328
 msgid "the URL must use https."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:270
+#: src/Modules/Waha/WahaAdmin.php:330
 msgid "the server did not answer in time."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:272
+#: src/Modules/Waha/WahaAdmin.php:332
 msgid "could not connect to the server."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:274
+#: src/Modules/Waha/WahaAdmin.php:334
 msgid "the API key was rejected."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:276
+#: src/Modules/Waha/WahaAdmin.php:336
 msgid "session or endpoint not found."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:278
+#: src/Modules/Waha/WahaAdmin.php:338
 msgid "too many requests."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:282
+#: src/Modules/Waha/WahaAdmin.php:342
 msgid "unexpected response from WAHA."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:284
+#: src/Modules/Waha/WahaAdmin.php:344
 msgid "the phone number is not valid."
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:286
+#: src/Modules/Waha/WahaAdmin.php:346
 msgid "that number is not on WhatsApp."
 msgstr ""
 

@@ -20,7 +20,12 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
 - **Padrões:** 6 por minuto, 100 por hora, 20–60 s entre mensagens, 150 por dia (as de baixa prioridade usam até 60 %),
   disjuntor após 5 falhas seguidas por 15 min, país 54, simula "digitando" (máx. 3 s).
 - **Prioridades:** avisos de pedido = alta; recuperação e pedidos de avaliação = baixa.
-- **Limites:** só texto; não recebe respostas; botões de teste só no admin.
+- **Interruptor geral "Enviar mensajes" (desligado por padrão):** desligado, nenhuma mensagem sai; os jobs são descartados
+  e o pedido/linha recebe a nota "envío desactivado".
+- **Modo de prueba (ligado por padrão):** ao ligar o interruptor pela primeira vez, só recebem os números da lista permitida
+  (um por linha); os demais são descartados com a nota "modo de prueba". Para escrever a clientes reais, desligue o modo de prueba.
+  O estado (desligado / prueba / real) aparece em Estado e como aviso no topo da seção WhatsApp.
+- **Limites:** só texto; não recebe respostas; o botão de teste vai direto ao WAHA (funciona com o interruptor desligado).
 
 ## Avisos de pedido (OrderNotifications)
 - **O que faz:** WhatsApp ao cliente quando o pedido vai para *em espera*, *processando*, *concluído*, *reembolsado*, quando você
@@ -45,7 +50,7 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
   pula se não há estoque ou se já comprou, e-mail de reserva se o WhatsApp falhar (ligado).
 - **Links:** o link de recuperação (7 dias) restaura o carrinho e abre o checkout. O link de descadastro mostra uma tela com botão;
   só ao confirmar (POST) suprime número/e-mail e para a sequência.
-- **Padrões:** módulo **ligado** (atenção: assim que o Waha for configurado ele passa a agir); dados por 30 dias; cupom vazio.
+- **Padrões:** módulo **desligado** (ligue quando o WhatsApp estiver em modo real ou de teste); dados por 30 dias; cupom vazio.
 - **Limites:** o link de recuperação aberto por um scanner de e-mail conta como "clique"; carrinhos sem pagamento não têm atribuição.
 
 ## Fotos nas avaliações (ReviewPhotos)
@@ -69,6 +74,7 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
 | Base: módulos por contexto, opções, migrações, ativar/desativar/desinstalar | implementado + coberto por testes |
 | Tela de ajustes Motored (WooCommerce) | implementado, depende de staging |
 | WhatsApp: fila, limites, disjuntor, tentativas, prioridade | implementado + coberto por testes |
+| WhatsApp: interruptor geral, modo de prueba e lista permitida | implementado + coberto por testes |
 | WhatsApp: conexão real com o WAHA (envio, "digitando", checagem do número) | implementado, depende de staging |
 | Avisos de pedido (fila → texto → nota no pedido) | implementado + coberto por testes |
 | Avisos de pedido com gateway real (Mercado Pago) | implementado, depende de staging |

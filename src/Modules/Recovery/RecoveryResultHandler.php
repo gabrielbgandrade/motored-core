@@ -8,6 +8,8 @@
 namespace Motored\Core\Modules\Recovery;
 
 use Motored\Core\Integration\Waha\Result;
+use Motored\Core\Integration\WooCommerce\OrderHooks;
+use Motored\Core\Modules\Waha\Sender;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -43,6 +45,18 @@ final class RecoveryResultHandler {
 			History::log( $ref_id, 'sent', 'whatsapp', 'auto', 0, 'ok', 'step=' . $step_num );
 			OrderNote::record( $ref_id, 'whatsapp', 'auto', true );
 			self::advance_step( $ref_id, $step_num, 'whatsapp', true );
+			return;
+		}
+
+		// Discarded on purpose (sending off / test mode): no fallback e-mail, the step just ends.
+		$discard = Sender::discard_note( $result->code );
+		if ( null !== $discard ) {
+			History::log( $ref_id, 'failed', 'whatsapp', 'auto', 0, 'failed', 'step=' . $step_num . ' ' . $result->code );
+			$row = Repository::get( $ref_id );
+			if ( null !== $row && 'order' === (string) $row['type'] && (int) $row['order_id'] > 0 ) {
+				OrderHooks::add_private_note( (int) $row['order_id'], $discard );
+			}
+			self::advance_step( $ref_id, $step_num, 'whatsapp', false );
 			return;
 		}
 

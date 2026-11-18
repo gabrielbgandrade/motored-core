@@ -19,7 +19,7 @@ final class Config {
 	public const OPTION_KEY = 'recovery';
 
 	public const DEFAULTS = array(
-		'enabled'                  => 'yes',
+		'enabled'                  => 'no',
 		'abandon_minutes'          => '60',
 		'retention_days'           => '30',
 		'window_start'             => '09:00',

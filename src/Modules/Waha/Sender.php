@@ -43,6 +43,12 @@ final class Sender {
 	 */
 	public const HOOK_ARGS = 5;
 
+	/**
+	 * Result codes of messages discarded on purpose (sending off / test mode); modules must not retry or fall back.
+	 */
+	public const CODE_DISABLED  = 'sending_disabled';
+	public const CODE_TEST_MODE = 'test_mode';
+
 	public const JITTER_MIN = 3;
 	public const JITTER_MAX = 15;
 
@@ -216,6 +222,12 @@ final class Sender {
 			return;
 		}
 
+		if ( Config::MODE_OFF === Config::mode() ) {
+			Logger::info( 'Message discarded: sending is turned off.', array( 'kind' => $kind ) );
+			$this->finish( $kind, $ref_id, $step_arg, Result::failure( self::CODE_DISABLED, 'WhatsApp sending is turned off.' ) );
+			return;
+		}
+
 		$paused_until = CircuitBreaker::until();
 		if ( $paused_until > $now ) {
 			$this->reschedule( $kind, $ref_id, $step, $attempt, $paused_until - $now, $priority );
@@ -255,6 +267,18 @@ final class Sender {
 		}
 		if ( ! $message instanceof Message ) {
 			$this->finish( $kind, $ref_id, $step_arg, Result::failure( 'skipped', 'Handler returned no message.' ) );
+			return;
+		}
+
+		if ( ! Config::may_send_to( $message->phone ) ) {
+			Logger::info(
+				'Message discarded: test mode (number not in the allowed list).',
+				array(
+					'kind' => $kind,
+					'to'   => Logger::mask_phone( $message->phone ),
+				)
+			);
+			$this->finish( $kind, $ref_id, $step_arg, Result::failure( self::CODE_TEST_MODE, 'Test mode: number not in the allowed list.' ) );
 			return;
 		}
 
@@ -427,6 +451,21 @@ final class Sender {
 	 */
 	private function finish( string $kind, int $ref_id, ?string $step, Result $result ): void {
 		do_action( self::RESULT_HOOK, $kind, $ref_id, $step, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Constant value starts with motored_.
+	}
+
+	/**
+	 * Translated note for a discarded message, null when the code is not a discard code.
+	 *
+	 * @param string $code Result code.
+	 */
+	public static function discard_note( string $code ): ?string {
+		if ( self::CODE_DISABLED === $code ) {
+			return __( 'Motored: WhatsApp message discarded, sending is turned off.', 'motored-core' );
+		}
+		if ( self::CODE_TEST_MODE === $code ) {
+			return __( 'Motored: WhatsApp message discarded, test mode (number not in the allowed list).', 'motored-core' );
+		}
+		return null;
 	}
 
 	/**

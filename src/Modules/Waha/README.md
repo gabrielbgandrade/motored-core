@@ -61,3 +61,12 @@ Redis is down (the cap and the spacing then simply do not apply; jitter still do
 ## Changelog
 - 0.2.0 — 2026-11-17 — initial transport implementation.
 - 0.3.0 — 2026-11-18 — anti-block hardening: priority, global spacing, daily cap, typing simulation, session health, text variation.
+
+## Launch safety: master switch and test mode
+- `enabled` (default **no**, "Enviar mensajes"): off = `Sender::handle` discards every job before anything else (log without PII,
+  result code `sending_disabled`). Modules add a note/event "envío desactivado" and never retry or fall back to e-mail.
+- `test_mode` (default **yes**) + `test_numbers` (one per line, normalized with `Phone::normalize`): with the switch on, only listed
+  numbers are sent; any other is discarded (`test_mode` code, note "modo de prueba"). Real customers need the admin to turn
+  test mode off explicitly. `Config::mode()` = off | test | live; `Config::may_send_to()` is the single check.
+- State shown in Status ("WhatsApp delivery mode") and as a warning at the top of the WhatsApp section.
+- The admin "Send test message" button goes straight to WAHA (not through the queue), so it works while the switch is off.

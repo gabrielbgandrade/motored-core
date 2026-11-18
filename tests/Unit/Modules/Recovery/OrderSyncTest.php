@@ -22,6 +22,7 @@ final class OrderSyncTest extends TestCase {
 		parent::setUp();
 		$this->fake_storage();
 		$this->fake_logger();
+		$this->options['motored_recovery'] = array( 'enabled' => 'yes' );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'wp_strip_all_tags' )->alias( fn( $text ) => strip_tags( (string) $text ) );
 
@@ -199,7 +200,7 @@ final class OrderSyncTest extends TestCase {
 	}
 
 	public function test_disabled_order_recovery_creates_nothing(): void {
-		$this->options['motored_recovery'] = array( 'order_enabled' => 'no' );
+		$this->options['motored_recovery'] = array( 'enabled' => 'yes', 'order_enabled' => 'no' );
 		OrderSync::apply( $this->order( 'pending' ), array( 'processing' ), '', self::NOW, 0 );
 		$this->assertSame( array(), $this->inserts );
 	}

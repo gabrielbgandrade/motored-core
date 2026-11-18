@@ -31,7 +31,14 @@ final class Config {
 		'daily_cap'         => '150',
 		'low_percent'       => '60',
 		'typing'            => 'yes',
+		'enabled'           => 'no',
+		'test_mode'         => 'yes',
+		'test_numbers'      => '',
 	);
+
+	public const MODE_OFF  = 'off';
+	public const MODE_TEST = 'test';
+	public const MODE_LIVE = 'live';
 
 	private const CONSTANTS = array(
 		'url'     => 'MOTORED_WAHA_URL',
@@ -151,6 +158,64 @@ final class Config {
 	 */
 	public static function typing(): bool {
 		return 'no' !== self::text( 'typing' );
+	}
+
+	/**
+	 * Master switch "Send messages" (off by default: nothing leaves the store).
+	 */
+	public static function sending_enabled(): bool {
+		return 'yes' === self::text( 'enabled' );
+	}
+
+	/**
+	 * Test mode: only numbers of the allowed list receive messages. On unless the admin turns it off explicitly.
+	 */
+	public static function test_mode(): bool {
+		return 'no' !== self::text( 'test_mode' );
+	}
+
+	/**
+	 * Delivery state: off (nothing is sent), test (allowed list only) or live (real customers).
+	 */
+	public static function mode(): string {
+		if ( ! self::sending_enabled() ) {
+			return self::MODE_OFF;
+		}
+		return self::test_mode() ? self::MODE_TEST : self::MODE_LIVE;
+	}
+
+	/**
+	 * Allowed numbers of the test mode, normalized to "+<digits>" (one per line or separated by , ;).
+	 *
+	 * @return list<string>
+	 */
+	public static function test_numbers(): array {
+		$parts   = preg_split( '/[\r\n,;]+/', self::text( 'test_numbers' ) );
+		$numbers = array();
+		foreach ( false === $parts ? array() : $parts as $part ) {
+			$phone = Phone::normalize( $part, self::country_code() );
+			if ( null !== $phone ) {
+				$numbers[ $phone ] = $phone;
+			}
+		}
+		return array_values( $numbers );
+	}
+
+	/**
+	 * Whether a message to this number may leave in the current mode (off: never; test: allowed list; live: always).
+	 *
+	 * @param string $phone Recipient in any common format.
+	 */
+	public static function may_send_to( string $phone ): bool {
+		switch ( self::mode() ) {
+			case self::MODE_LIVE:
+				return true;
+			case self::MODE_TEST:
+				$normalized = Phone::normalize( $phone, self::country_code() );
+				return null !== $normalized && in_array( $normalized, self::test_numbers(), true );
+			default:
+				return false;
+		}
 	}
 
 	/**

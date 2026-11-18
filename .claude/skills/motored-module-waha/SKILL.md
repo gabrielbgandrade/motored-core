@@ -20,3 +20,6 @@ Read `src/Modules/Waha/README.md` first (contracts, flows, keys).
 - Loads in admin/cron/ajax/cli only (`WahaModule::should_load`). Keep it off public pages and REST.
 - New strings: `.pot` + es_AR `.po` (voseo) + `.mo`. Tests in `tests/Unit/Modules/Waha`, `tests/Unit/Integration/Waha`.
 - After changes: `composer check`, then `motored-review`; update VERIFY.md and PROJECT.md.
+
+Launch safety: sending is OFF by default and test mode is ON by default (`Config::mode()`: off|test|live). Never bypass `Config::may_send_to()`/the
+mode check in `Sender::handle`; discarded jobs end with `Sender::CODE_DISABLED` / `CODE_TEST_MODE` and modules must not retry or fall back (see `Sender::discard_note`).

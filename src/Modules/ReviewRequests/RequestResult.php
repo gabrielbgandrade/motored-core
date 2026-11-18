@@ -9,6 +9,7 @@ namespace Motored\Core\Modules\ReviewRequests;
 
 use Motored\Core\Integration\Waha\Result;
 use Motored\Core\Integration\WooCommerce\OrderHooks;
+use Motored\Core\Modules\Waha\Sender;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -27,6 +28,11 @@ final class RequestResult {
 	 */
 	public static function on_result( string $kind, int $ref_id, ?string $step, Result $result ): void {
 		if ( Scheduler::KIND !== $kind || $ref_id <= 0 || ( ! $result->ok && 'skipped' === $result->code ) ) {
+			return;
+		}
+		$discard = $result->ok ? null : Sender::discard_note( $result->code );
+		if ( null !== $discard ) {
+			OrderHooks::add_private_note( $ref_id, $discard );
 			return;
 		}
 		OrderHooks::add_private_note( $ref_id, self::note( $result->ok, RequestHandler::MANUAL === $step ) );

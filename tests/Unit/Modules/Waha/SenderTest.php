@@ -31,6 +31,8 @@ final class SenderTest extends TestCase {
 		$this->fake_storage();
 		$this->fake_logger();
 		$this->options['motored_waha'] = array(
+			'enabled'           => 'yes',
+			'test_mode'         => 'no',
 			'rate_per_minute'   => '2',
 			'rate_per_hour'     => '100',
 			'breaker_threshold' => '2',

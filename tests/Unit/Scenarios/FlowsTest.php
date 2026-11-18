@@ -53,7 +53,7 @@ final class FlowsTest extends TestCase {
 		$this->notes     = array();
 		$this->updates   = array();
 		$this->row       = null;
-		$this->options['motored_waha'] = array( 'typing' => 'no' );
+		$this->options['motored_waha'] = array( 'typing' => 'no', 'enabled' => 'yes', 'test_mode' => 'no' );
 	}
 
 	protected function tearDown(): void {

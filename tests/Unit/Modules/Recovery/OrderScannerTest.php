@@ -17,6 +17,7 @@ final class OrderScannerTest extends TestCase {
 		Sender::reset();
 		$this->fake_storage();
 		$this->fake_logger();
+		$this->options['motored_recovery'] = array( 'enabled' => 'yes' );
 		Functions\when( 'wp_strip_all_tags' )->alias( fn( $text ) => strip_tags( (string) $text ) );
 
 		$wpdb         = \Mockery::mock( 'wpdb_fake' );

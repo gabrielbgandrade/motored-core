@@ -261,6 +261,11 @@ final class Notifier {
 			return;
 		}
 
+		$discard = $result->ok ? null : Sender::discard_note( $result->code );
+		if ( null !== $discard ) {
+			$order->add_order_note( $discard, 0 );
+			return;
+		}
 		if ( $result->ok ) {
 			$note = sprintf(
 				/* translators: %s: order notification event slug (e.g. processing). */

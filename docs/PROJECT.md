@@ -161,3 +161,10 @@ Bugs fixed (one commit each):
 - OK (no change): hook/kind/option names agree across modules (3 jobs, 3 kinds, each with one handler and result listener); all default-text placeholders are resolved by the Renderer; migrations 2026111801/2026111901 cover the 3 tables dropped by uninstall; modules that handle jobs register handlers in admin/ajax/cron/cli.
 - PENDING / known: a claimed row stays without next action if `Sender::enqueue` fails right after the claim (Action Scheduler missing) — needs staging; Recovery is `enabled=yes` by default (acts as soon as Waha is configured); VERIFY #71 added. `docs/FEATURES.md` (pt-BR) describes the owner-facing behaviour.
 
+### 2026-11-18 — Launch safety: master switch and test mode
+Decision: WhatsApp sending is OFF by default (`motored_waha[enabled]=no`); with it on, test mode (default yes) only sends to `test_numbers`
+(normalized, one per line); the admin must turn test mode off to reach real customers. Enforced once, in `Sender::handle` (switch before the circuit breaker,
+allowed list after the handler built the message, before any WAHA call); discarded jobs finish with `sending_disabled` / `test_mode` (no retry, no e-mail fallback),
+logged without PII and noted by OrderNotifications, ReviewRequests and Recovery (order notes / history). Recovery now defaults to disabled; OrderNotifications,
+ReviewPhotos and ReviewRequests keep their defaults. Status row + warning notice show the state. Tests: `DeliveryModeTest`; VERIFY #72. PENDING: staging check of the settings fields.
+

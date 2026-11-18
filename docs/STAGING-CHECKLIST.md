@@ -107,3 +107,8 @@ its own templates.
 | E-mails: abandoned-cart and pending-payment HTML + plain render with WooCommerce header/footer; override in `theme/woocommerce/emails/motored-*.php` is picked up | [ ] | [ ] | [ ] |
 | Network: public pages load no Motored asset except the checkout script and the product-page review script | [ ] | [ ] | [ ] |
 
+## Launch safety (WhatsApp switch)
+- [ ] Fresh install: Status shows "Off"; a status change sends nothing and leaves the note "envío desactivado".
+- [ ] Switch on: Status "Test mode (N)"; only a listed number receives messages; others get the note "modo de prueba".
+- [ ] Test mode off: real customers receive; Status shows "Real". Recovery is off until enabled.
+

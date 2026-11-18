@@ -54,7 +54,34 @@ final class WahaAdmin {
 	 */
 	public function settings(): array {
 		$locked = array();
-		$fields = array();
+		$fields = array(
+			array(
+				'title'    => __( 'Send messages', 'motored-core' ),
+				'desc'     => __( 'Master switch. Off: no WhatsApp message leaves the store; queued messages are discarded.', 'motored-core' ),
+				'id'       => 'motored_waha[enabled]',
+				'type'     => 'checkbox',
+				'default'  => Config::DEFAULTS['enabled'],
+				'autoload' => false,
+			),
+			array(
+				'title'    => __( 'Test mode', 'motored-core' ),
+				'desc'     => __( 'Only send to the numbers listed below. Turn it off to message real customers.', 'motored-core' ),
+				'id'       => 'motored_waha[test_mode]',
+				'type'     => 'checkbox',
+				'default'  => Config::DEFAULTS['test_mode'],
+				'autoload' => false,
+			),
+			array(
+				'title'    => __( 'Allowed numbers (test mode)', 'motored-core' ),
+				'desc'     => __( 'One number per line, with or without country code.', 'motored-core' ),
+				'desc_tip' => true,
+				'id'       => 'motored_waha[test_numbers]',
+				'type'     => 'textarea',
+				'css'      => 'min-width:300px;height:80px;',
+				'default'  => Config::DEFAULTS['test_numbers'],
+				'autoload' => false,
+			),
+		);
 
 		$definitions = array(
 			'url'     => array(
@@ -112,13 +139,14 @@ final class WahaAdmin {
 			'autoload' => false,
 		);
 
-		$description = '';
+		$description = '<strong>' . esc_html( self::mode_notice( Config::mode() ) ) . '</strong>';
 		if ( array() !== $locked ) {
-			$items = array();
+			$description .= '<br />';
+			$items        = array();
 			foreach ( $locked as $key => $label ) {
 				$items[] = esc_html( $label ) . ' (<code>' . esc_html( Config::constant_name( $key ) ) . '</code>)';
 			}
-			$description = esc_html__( 'Read-only, defined in wp-config.php:', 'motored-core' ) . ' ' . implode( ', ', $items ) . '.';
+			$description .= esc_html__( 'Read-only, defined in wp-config.php:', 'motored-core' ) . ' ' . implode( ', ', $items ) . '.';
 		}
 
 		return array_merge(
@@ -242,8 +270,9 @@ final class WahaAdmin {
 		$rows  = is_array( $rows ) ? $rows : array();
 		$until = CircuitBreaker::until();
 
-		$rows[ __( 'WAHA configured', 'motored-core' ) ]  = Config::is_configured() ? __( 'Yes', 'motored-core' ) : __( 'No', 'motored-core' );
-		$rows[ __( 'WhatsApp sending', 'motored-core' ) ] = $until > time()
+		$rows[ __( 'WhatsApp delivery mode', 'motored-core' ) ] = self::mode_label( Config::mode() );
+		$rows[ __( 'WAHA configured', 'motored-core' ) ]        = Config::is_configured() ? __( 'Yes', 'motored-core' ) : __( 'No', 'motored-core' );
+		$rows[ __( 'WhatsApp sending', 'motored-core' ) ]       = $until > time()
 			/* translators: %s: time when sending resumes. */
 			? sprintf( __( 'Paused by circuit breaker until %s', 'motored-core' ), (string) wp_date( 'H:i', $until ) )
 			: __( 'Active', 'motored-core' );
@@ -251,6 +280,37 @@ final class WahaAdmin {
 		/* translators: 1: messages sent today, 2: daily limit. */
 		$rows[ __( 'WhatsApp messages sent today', 'motored-core' ) ] = sprintf( __( '%1$d of %2$d', 'motored-core' ), RateLimiter::daily_count( time() ), Config::daily_cap() );
 		return $rows;
+	}
+
+	/**
+	 * Short state label (Status section).
+	 *
+	 * @param string $mode Config::MODE_*.
+	 */
+	public static function mode_label( string $mode ): string {
+		if ( Config::MODE_LIVE === $mode ) {
+			return __( 'Live (real customers)', 'motored-core' );
+		}
+		if ( Config::MODE_TEST === $mode ) {
+			/* translators: %d: number of allowed numbers. */
+			return sprintf( __( 'Test mode (%d allowed numbers)', 'motored-core' ), count( Config::test_numbers() ) );
+		}
+		return __( 'Off (nothing is sent)', 'motored-core' );
+	}
+
+	/**
+	 * Visible warning at the top of the WhatsApp section.
+	 *
+	 * @param string $mode Config::MODE_*.
+	 */
+	public static function mode_notice( string $mode ): string {
+		if ( Config::MODE_LIVE === $mode ) {
+			return __( 'LIVE: messages are sent to real customers.', 'motored-core' );
+		}
+		if ( Config::MODE_TEST === $mode ) {
+			return __( 'TEST MODE: messages only go to the allowed numbers; all others are discarded.', 'motored-core' );
+		}
+		return __( 'OFF: no WhatsApp message is sent. Turn on "Send messages" to start (test mode first).', 'motored-core' );
 	}
 
 	/**
