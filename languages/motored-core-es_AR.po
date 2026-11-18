@@ -1923,3 +1923,7 @@ msgstr "se pagó con crédito de Mercado Pago (Cuotas sin Tarjeta) pero el plan 
 #: src/Modules/PaymentPlans/PaymentPlansAdmin.php:150
 msgid "Exclude Cuotas sin Tarjeta (consumer_credits)"
 msgstr "Excluir Cuotas sin Tarjeta (consumer_credits)"
+
+#: src/Admin/SettingsTab.php
+msgid "You do not have permission to view or change the Advanced settings."
+msgstr "No tenés permiso para ver ni modificar los ajustes avanzados."

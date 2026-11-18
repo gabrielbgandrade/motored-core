@@ -17,7 +17,8 @@ defined( 'ABSPATH' ) || exit;
  */
 final class SettingsTab extends \WC_Settings_Page {
 
-	public const ADVANCED = 'advanced';
+	public const ADVANCED            = 'advanced';
+	public const ADVANCED_CAPABILITY = 'manage_options';
 
 	/**
 	 * Constructor.
@@ -39,7 +40,8 @@ final class SettingsTab extends \WC_Settings_Page {
 			static fn(): string => __( 'Advanced', 'motored-core' ),
 			array( $this, 'advanced_settings' ),
 			null,
-			2000
+			2000,
+			self::ADVANCED_CAPABILITY
 		);
 
 		parent::__construct();
@@ -52,7 +54,7 @@ final class SettingsTab extends \WC_Settings_Page {
 	 */
 	protected function get_own_sections() {
 		$sections = array();
-		foreach ( SectionRegistry::all() as $id => $definition ) {
+		foreach ( SectionRegistry::visible() as $id => $definition ) {
 			// The first section is the tab's default one (no "section" in the URL).
 			$sections[ array() === $sections ? '' : (string) $id ] = (string) ( $definition['label'] )();
 		}
@@ -66,7 +68,8 @@ final class SettingsTab extends \WC_Settings_Page {
 	 * @return array<int,array<string,mixed>>
 	 */
 	protected function get_settings_for_section_core( $section_id ) {
-		$definition = SectionRegistry::get( $this->canonical( (string) $section_id ) );
+		$section    = $this->canonical( (string) $section_id );
+		$definition = SectionRegistry::allowed( $section ) ? SectionRegistry::get( $section ) : null;
 		if ( null === $definition || null === $definition['settings'] ) {
 			return array();
 		}
@@ -84,7 +87,11 @@ final class SettingsTab extends \WC_Settings_Page {
 
 		// Scope for assets/css/motored-admin.css (every rule starts with .motored-admin).
 		echo '<div class="motored-admin motored-section-' . esc_attr( sanitize_html_class( $section ) ) . '">';
-		if ( null !== $definition && null !== $definition['render'] ) {
+		if ( null !== $definition && ! SectionRegistry::allowed( $section ) ) {
+			// Direct URL without the capability: nothing is rendered or read.
+			$GLOBALS['hide_save_button'] = true; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+			echo '<div class="notice notice-error inline"><p>' . esc_html( self::denied_message() ) . '</p></div>';
+		} elseif ( null !== $definition && null !== $definition['render'] ) {
 			// WooCommerce's own global flag, read by its settings view.
 			$GLOBALS['hide_save_button'] = true; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 			( $definition['render'] )();
@@ -92,6 +99,28 @@ final class SettingsTab extends \WC_Settings_Page {
 			parent::output();
 		}
 		echo '</div>';
+	}
+
+	/**
+	 * Saves the section; a section whose capability the user lacks is ignored with a notice (nonce + capability).
+	 */
+	public function save(): void {
+		global $current_section;
+		check_admin_referer( 'woocommerce-settings' );
+
+		$section = $this->canonical( is_string( $current_section ) ? $current_section : '' );
+		if ( null !== SectionRegistry::get( $section ) && ! SectionRegistry::allowed( $section ) ) {
+			\WC_Admin_Settings::add_error( self::denied_message() );
+			return;
+		}
+		parent::save();
+	}
+
+	/**
+	 * Message shown when the user lacks the capability of a section.
+	 */
+	public static function denied_message(): string {
+		return __( 'You do not have permission to view or change the Advanced settings.', 'motored-core' );
 	}
 
 	/**
@@ -103,7 +132,7 @@ final class SettingsTab extends \WC_Settings_Page {
 		if ( '' !== $section ) {
 			return $section;
 		}
-		$ids = array_keys( SectionRegistry::all() );
+		$ids = array_keys( SectionRegistry::visible() );
 		return array() === $ids ? '' : (string) $ids[0];
 	}
 
@@ -113,6 +142,9 @@ final class SettingsTab extends \WC_Settings_Page {
 	 * @return array<int,array<string,mixed>>
 	 */
 	public function advanced_settings(): array {
+		if ( ! current_user_can( self::ADVANCED_CAPABILITY ) ) {
+			return array();
+		}
 		return array(
 			array(
 				'title' => __( 'Advanced', 'motored-core' ),

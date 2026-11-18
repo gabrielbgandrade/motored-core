@@ -25,6 +25,7 @@ Tick each item; record failures in `PROJECT.md` (Review log).
 
 ## Settings
 - [ ] WC > Settings > Motored: sections in order (… Estado, Avanzado last); the default section is the first one.
+- [ ] Avanzado as shop manager: hidden in the menu, direct URL shows the error notice, no save; as administrator it works (VERIFY #87).
 - [ ] Avanzado: toggle "Delete data on uninstall", change "Log level", save, reload: values persist; `autoload` = `no`.
 - [ ] Status: values correct; no Save button.
 - [ ] Non-admin (shop manager vs customer) access follows `manage_woocommerce`.

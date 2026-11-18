@@ -14,6 +14,11 @@ if ( function_exists( 'as_unschedule_all_actions' ) ) {
 	}
 }
 
+// Deleting plugins already needs `delete_plugins` (administrators); stay defensive when a user is logged in (WP-CLI has none).
+if ( function_exists( 'is_user_logged_in' ) && is_user_logged_in() && ! current_user_can( 'delete_plugins' ) ) {
+	return;
+}
+
 $motored_general = get_option( 'motored_general', array() );
 
 if ( ! is_array( $motored_general ) || ! isset( $motored_general['delete_data_on_uninstall'] ) || 'yes' !== $motored_general['delete_data_on_uninstall'] ) {

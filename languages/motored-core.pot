@@ -1851,3 +1851,7 @@ msgstr ""
 #: src/Modules/PaymentPlans/PaymentPlansAdmin.php:150
 msgid "Exclude Cuotas sin Tarjeta (consumer_credits)"
 msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "You do not have permission to view or change the Advanced settings."
+msgstr ""

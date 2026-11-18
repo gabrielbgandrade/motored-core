@@ -60,6 +60,8 @@ Format: date — decision — reason. Divergences from the original brief are ma
 
 - 2026-11-18 — Settings menu: the "General" section was renamed "Avanzado" (id `advanced`, option `motored_general` unchanged) and is always the LAST section (priority 2000, after "Estado"). The tab's default section ('' in the URL) is now the first registered section instead of General. — Product request.
 
+- 2026-11-18 — "Avanzado" needs `manage_options`: `SectionRegistry::add(..., $capability)` + `allowed()/visible()`; shop managers (`manage_woocommerce`) do not see it in the menu, get an error notice on the direct URL (nothing is read or rendered), and `SettingsTab::save()` (nonce `woocommerce-settings` + capability) ignores the POST with a notice; `advanced_settings()` returns no fields without the capability; `uninstall.php` also requires `delete_plugins` when a user is logged in. Reading the option `motored_general` by code (log level) is unchanged. — Product request.
+
 ## Roadmap
 | Stage | Scope | Status |
 |-------|-------|--------|

@@ -25,7 +25,7 @@ final class SectionRegistry {
 	/**
 	 * Registered sections keyed by id ('' = default section).
 	 *
-	 * @var array<string,array{label:callable,settings:?callable,render:?callable,priority:int}>
+	 * @var array<string,array{label:callable,settings:?callable,render:?callable,priority:int,capability:?string}>
 	 */
 	private static array $sections = array();
 
@@ -37,17 +37,19 @@ final class SectionRegistry {
 	 * @param callable|null $settings Returns WooCommerce settings fields.
 	 * @param callable|null $render   Prints read-only content instead of fields.
 	 * @param int           $priority Sort order (lower first).
+	 * @param string|null   $capability Extra capability to see, open and save the section (null = the tab's own).
 	 * @throws \InvalidArgumentException On an invalid id.
 	 */
-	public static function add( string $id, callable $label, ?callable $settings = null, ?callable $render = null, int $priority = 10 ): void {
+	public static function add( string $id, callable $label, ?callable $settings = null, ?callable $render = null, int $priority = 10, ?string $capability = null ): void {
 		if ( '' !== $id && 1 !== preg_match( '/^[a-z0-9_-]+$/', $id ) ) {
 			throw new \InvalidArgumentException( 'Invalid section id.' );
 		}
 		self::$sections[ $id ] = array(
-			'label'    => $label,
-			'settings' => $settings,
-			'render'   => $render,
-			'priority' => $priority,
+			'label'      => $label,
+			'settings'   => $settings,
+			'render'     => $render,
+			'priority'   => $priority,
+			'capability' => $capability,
 		);
 	}
 
@@ -55,7 +57,7 @@ final class SectionRegistry {
 	 * A single section, or null.
 	 *
 	 * @param string $id Section id.
-	 * @return array{label:callable,settings:?callable,render:?callable,priority:int}|null
+	 * @return array{label:callable,settings:?callable,render:?callable,priority:int,capability:?string}|null
 	 */
 	public static function get( string $id ): ?array {
 		return self::$sections[ $id ] ?? null;
@@ -64,7 +66,7 @@ final class SectionRegistry {
 	/**
 	 * All sections sorted by priority (stable for equal priorities).
 	 *
-	 * @return array<string,array{label:callable,settings:?callable,render:?callable,priority:int}>
+	 * @return array<string,array{label:callable,settings:?callable,render:?callable,priority:int,capability:?string}>
 	 */
 	public static function all(): array {
 		$sections = self::$sections;
@@ -77,6 +79,32 @@ final class SectionRegistry {
 			}
 		);
 		return $sections;
+	}
+
+	/**
+	 * Whether the current user may see, open and save a section (unknown sections: no).
+	 *
+	 * @param string $id Section id.
+	 */
+	public static function allowed( string $id ): bool {
+		$definition = self::$sections[ $id ] ?? null;
+		if ( null === $definition ) {
+			return false;
+		}
+		return null === $definition['capability'] || current_user_can( $definition['capability'] );
+	}
+
+	/**
+	 * Sections the current user may use, sorted like all().
+	 *
+	 * @return array<string,array{label:callable,settings:?callable,render:?callable,priority:int,capability:?string}>
+	 */
+	public static function visible(): array {
+		return array_filter(
+			self::all(),
+			static fn( $definition, $id ): bool => self::allowed( (string) $id ),
+			ARRAY_FILTER_USE_BOTH
+		);
 	}
 
 	/**
