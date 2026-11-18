@@ -66,21 +66,21 @@ class AbandonedCartEmail extends \WC_Email {
 	 * Default email subject.
 	 */
 	public function get_default_subject() {
-		return __( '¿Olvidaste algo en tu carrito de {site_title}?', 'motored-core' );
+		return __( 'Did you forget something in your cart at {site_title}?', 'motored-core' );
 	}
 
 	/**
 	 * Default email heading.
 	 */
 	public function get_default_heading() {
-		return __( 'Tu carrito te está esperando', 'motored-core' );
+		return __( 'Your cart is waiting for you', 'motored-core' );
 	}
 
 	/**
 	 * Default additional content.
 	 */
 	public function get_default_additional_content() {
-		return __( 'Si tenés alguna consulta sobre tus productos o necesitás ayuda para finalizar tu compra, respondenos este correo.', 'motored-core' );
+		return __( 'If you have any questions about your products or need help finishing your purchase, reply to this e-mail.', 'motored-core' );
 	}
 
 	/**

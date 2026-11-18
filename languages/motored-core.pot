@@ -1,9 +1,5 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Motored Core package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
-#, fuzzy
+# Motored Core translation template.
+# This file is distributed under the same license as the Motored Core plugin.
 msgid ""
 msgstr ""
 "Project-Id-Version: Motored Core 0.1.0\n"
@@ -17,1120 +13,399 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/Admin/SettingsTab.php:25
-msgid "Motored"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:29 src/Admin/SettingsTab.php:96
-msgid "General"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:36 src/Admin/SettingsTab.php:155
-#: src/Modules/Recovery/Privacy.php:71
-#: src/Modules/Recovery/RecoveryAdmin.php:659
-#: src/Modules/Recovery/RecoveryListTable.php:47
-msgid "Status"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:101
-msgid "Delete data on uninstall"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:102
-msgid "Remove all Motored options and cached data when the plugin is deleted."
-msgstr ""
-
-#: src/Admin/SettingsTab.php:109
-msgid "Log level"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:110
-msgid ""
-"Minimum severity written to WooCommerce > Status > Logs (source: motored-"
-"core)."
-msgstr ""
-
-#: src/Admin/SettingsTab.php:115
-msgid "Errors only"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:116
-msgid "Warnings and errors"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:117
-msgid "Information"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:118
-msgid "Debug (verbose)"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:133 src/Modules/Waha/WahaAdmin.php:233
-msgid "Yes"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:134 src/Modules/Waha/WahaAdmin.php:233
-msgid "No"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:141
-msgid "Plugin version"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:142
-msgid "PHP version"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:143
-msgid "WordPress version"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:144
-msgid "WooCommerce version"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:145
-msgid "Persistent object cache"
-msgstr ""
-
-#: src/Admin/SettingsTab.php:146
+#: src/Admin/SettingsTab.php
 msgid "Action Scheduler available"
 msgstr ""
 
-#: src/Admin/SettingsTab.php:147
-msgid "Store timezone"
+#: src/Admin/SettingsTab.php
+msgid "Debug (verbose)"
 msgstr ""
 
-#: src/Admin/SettingsTab.php:148
-msgid "Site locale"
+#: src/Admin/SettingsTab.php
+msgid "Delete data on uninstall"
 msgstr ""
 
-#: src/Admin/SettingsTab.php:149
+#: src/Admin/SettingsTab.php
+msgid "Errors only"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "General"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Information"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
 msgid "Locale is es_AR"
 msgstr ""
 
-#. translators: %s: order notification event slug (e.g. processing).
-#: src/Modules/OrderNotifications/Notifier.php:267
-#, php-format
-msgid "WhatsApp sent: %s"
+#: src/Admin/SettingsTab.php
+msgid "Log level"
 msgstr ""
 
-#. translators: %s: short failure reason.
-#: src/Modules/OrderNotifications/Notifier.php:273
+#: src/Admin/SettingsTab.php
+msgid "Minimum severity written to WooCommerce > Status > Logs (source: motored-core)."
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Motored"
+msgstr ""
+
+#: src/Admin/SettingsTab.php src/Modules/Waha/WahaAdmin.php
+msgid "No"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "PHP version"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Persistent object cache"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Plugin version"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Remove all Motored options and cached data when the plugin is deleted."
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Site locale"
+msgstr ""
+
+#: src/Admin/SettingsTab.php src/Modules/Recovery/Privacy.php src/Modules/Recovery/RecoveryAdmin.php src/Modules/Recovery/RecoveryListTable.php
+msgid "Status"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Store timezone"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Warnings and errors"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "WooCommerce version"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "WordPress version"
+msgstr ""
+
+#: src/Admin/SettingsTab.php src/Modules/Waha/WahaAdmin.php
+msgid "Yes"
+msgstr ""
+
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "API key rejected."
+msgstr ""
+
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "WAHA is not configured."
+msgstr ""
+
+#: src/Modules/OrderNotifications/Notifier.php src/Modules/Waha/WahaAdmin.php
+msgid "WAHA server error."
+msgstr ""
+
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "WAHA session not found."
+msgstr ""
+
+#: src/Modules/OrderNotifications/Notifier.php
 #, php-format
 msgid "WhatsApp failed: %s"
 msgstr ""
 
-#: src/Modules/OrderNotifications/Notifier.php:289
-msgid "WAHA is not configured."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:291
-msgid "invalid phone number."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:293
-msgid "number is not on WhatsApp."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:295
-msgid "server timed out."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:297
-msgid "could not reach WAHA."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:299
-msgid "API key rejected."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:301
-msgid "WAHA session not found."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:303
-msgid "rate limit reached."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:305
-#: src/Modules/Waha/WahaAdmin.php:266
-msgid "WAHA server error."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:307
-msgid "invalid WAHA response."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:309
-msgid "could not reschedule job."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:311
-msgid "message build failed."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:313
-#: src/Modules/Waha/WahaAdmin.php:274
-msgid "unexpected error."
-msgstr ""
-
-#: src/Modules/OrderNotifications/Notifier.php:363
+#: src/Modules/OrderNotifications/Notifier.php
 msgid "WhatsApp not sent: missing or invalid billing phone."
 msgstr ""
 
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:45
-msgid "Messages"
+#: src/Modules/OrderNotifications/Notifier.php
+#, php-format
+msgid "WhatsApp sent: %s"
 msgstr ""
 
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:63
-msgid "Order messages"
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "could not reach WAHA."
 msgstr ""
 
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:65
-msgid ""
-"Automatic WhatsApp text notifications equivalent to standard WooCommerce "
-"order emails."
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "could not reschedule job."
 msgstr ""
 
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:69
-msgid "Manual admin orders"
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "invalid WAHA response."
 msgstr ""
 
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:70
-msgid "Also send notifications for orders created manually from wp-admin."
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "invalid phone number."
 msgstr ""
 
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:77
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "message build failed."
+msgstr ""
+
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "number is not on WhatsApp."
+msgstr ""
+
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "rate limit reached."
+msgstr ""
+
+#: src/Modules/OrderNotifications/Notifier.php
+msgid "server timed out."
+msgstr ""
+
+#: src/Modules/OrderNotifications/Notifier.php src/Modules/Waha/WahaAdmin.php
+msgid "unexpected error."
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
 msgid "Admin WhatsApp number"
 msgstr ""
 
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:78
-msgid ""
-"Phone number that receives the internal new-order alert (when enabled below)."
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:155
-msgid "Enable this message"
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:171
-msgid "Available variables:"
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:180
-msgid "Restore default text"
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:241
-msgid "Order on hold"
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:242
-msgid ""
-"Sent when an order enters \"on-hold\" status (e.g. bank transfer or offline "
-"Mercado Pago ticket)."
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:246
-msgid "Order processing"
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:247
-msgid ""
-"Sent when payment is confirmed and the order enters \"processing\" status."
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:251
-msgid "Order completed"
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:252
-msgid "Sent when the order is marked as \"completed\"."
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:256
-msgid "Order refunded"
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:257
-msgid "Sent when the order is marked as \"refunded\"."
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:261
-msgid "Customer note"
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:262
-msgid "Sent when a public customer note is added to the order."
-msgstr ""
-
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:266
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
 msgid "Admin: new order alert"
 msgstr ""
 
-#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php:267
-msgid ""
-"Optional internal WhatsApp alert sent to the Admin WhatsApp number above "
-"when a new order arrives."
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Also send notifications for orders created manually from wp-admin."
 msgstr ""
 
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:54
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Automatic WhatsApp text notifications equivalent to standard WooCommerce order emails."
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Available variables:"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Customer note"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Enable this message"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Manual admin orders"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Messages"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Optional internal WhatsApp alert sent to the Admin WhatsApp number above when a new order arrives."
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Order completed"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Order messages"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Order on hold"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Order processing"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Order refunded"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Phone number that receives the internal new-order alert (when enabled below)."
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Restore default text"
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Sent when a public customer note is added to the order."
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Sent when an order enters \"on-hold\" status (e.g. bank transfer or offline Mercado Pago ticket)."
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Sent when payment is confirmed and the order enters \"processing\" status."
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Sent when the order is marked as \"completed\"."
+msgstr ""
+
+#: src/Modules/OrderNotifications/OrderNotificationsAdmin.php
+msgid "Sent when the order is marked as \"refunded\"."
+msgstr ""
+
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php
 msgid "Abandoned Cart (Motored)"
 msgstr ""
 
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:55
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php
 msgid "Abandoned cart recovery email sent to shoppers."
 msgstr ""
 
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:69
-msgid "¿Olvidaste algo en tu carrito de {site_title}?"
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Additional content"
 msgstr ""
 
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:76
-msgid "Tu carrito te está esperando"
-msgstr ""
-
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:83
-msgid ""
-"Si tenés alguna consulta sobre tus productos o necesitás ayuda para "
-"finalizar tu compra, respondenos este correo."
-msgstr ""
-
-#. translators: %s: list of placeholders
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:91
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php src/Modules/Recovery/Emails/PendingPaymentEmail.php
 #, php-format
 msgid "Available placeholders: %s"
 msgstr ""
 
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:95
-msgid "Enable/Disable"
-msgstr ""
-
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:97
-msgid "Enable this email notification"
-msgstr ""
-
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:101
-msgid "Subject"
-msgstr ""
-
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:109
-msgid "Email heading"
-msgstr ""
-
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:117
-msgid "Additional content"
-msgstr ""
-
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:123
-msgid "Text to appear below the main email content."
-msgstr ""
-
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:126
-msgid "Email type"
-msgstr ""
-
-#: src/Modules/Recovery/Emails/AbandonedCartEmail.php:128
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php src/Modules/Recovery/Emails/PendingPaymentEmail.php
 msgid "Choose which format of email to send."
 msgstr ""
 
-#: src/Modules/Recovery/History.php:117
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php
+msgid "Did you forget something in your cart at {site_title}?"
+msgstr ""
+
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Email heading"
+msgstr ""
+
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Email type"
+msgstr ""
+
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Enable this email notification"
+msgstr ""
+
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Enable/Disable"
+msgstr ""
+
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php
+msgid "If you have any questions about your products or need help finishing your purchase, reply to this e-mail."
+msgstr ""
+
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Subject"
+msgstr ""
+
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Text to appear below the main email content."
+msgstr ""
+
+#: src/Modules/Recovery/Emails/AbandonedCartEmail.php
+msgid "Your cart is waiting for you"
+msgstr ""
+
+#: src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Complete the payment of your order"
+msgstr ""
+
+#: src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "If you already paid, ignore this e-mail. If you need help, reply to this message."
+msgstr ""
+
+#: src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Pending payment reminder (Motored)"
+msgstr ""
+
+#: src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Reminder sent to customers whose order is still waiting for payment."
+msgstr ""
+
+#: src/Modules/Recovery/Emails/PendingPaymentEmail.php
+msgid "Your order #{order_number} is waiting for payment"
+msgstr ""
+
+#: src/Modules/Recovery/History.php
 msgid "Cart captured"
 msgstr ""
 
-#: src/Modules/Recovery/History.php:118
-msgid "Cart updated"
-msgstr ""
-
-#: src/Modules/Recovery/History.php:119
-msgid "Order created"
-msgstr ""
-
-#: src/Modules/Recovery/History.php:120
-msgid "Message sent"
-msgstr ""
-
-#: src/Modules/Recovery/History.php:121
-msgid "Send failed"
-msgstr ""
-
-#: src/Modules/Recovery/History.php:122
-msgid "Link clicked"
-msgstr ""
-
-#: src/Modules/Recovery/History.php:123
-msgid "Cart restored"
-msgstr ""
-
-#: src/Modules/Recovery/History.php:124
+#: src/Modules/Recovery/History.php
 msgid "Cart recovered"
 msgstr ""
 
-#: src/Modules/Recovery/History.php:125 src/Modules/Recovery/Status.php:81
-msgid "Opted out"
+#: src/Modules/Recovery/History.php
+msgid "Cart restored"
 msgstr ""
 
-#: src/Modules/Recovery/History.php:126
-msgid "Note"
+#: src/Modules/Recovery/History.php
+msgid "Cart updated"
 msgstr ""
 
-#: src/Modules/Recovery/History.php:127 src/Modules/Recovery/Status.php:79
+#: src/Modules/Recovery/History.php src/Modules/Recovery/Status.php
 msgid "Expired"
 msgstr ""
 
-#: src/Modules/Recovery/History.php:143
-msgid "manual"
+#: src/Modules/Recovery/History.php
+msgid "Link clicked"
 msgstr ""
 
-#: src/Modules/Recovery/History.php:145
+#: src/Modules/Recovery/History.php
+msgid "Message sent"
+msgstr ""
+
+#: src/Modules/Recovery/History.php
+msgid "Note"
+msgstr ""
+
+#: src/Modules/Recovery/History.php src/Modules/Recovery/Status.php
+msgid "Opted out"
+msgstr ""
+
+#: src/Modules/Recovery/History.php
+msgid "Order created"
+msgstr ""
+
+#: src/Modules/Recovery/History.php
+msgid "Send failed"
+msgstr ""
+
+#: src/Modules/Recovery/History.php src/Modules/Recovery/OrderNote.php
 msgid "automatic"
 msgstr ""
 
-#: src/Modules/Recovery/History.php:151
+#: src/Modules/Recovery/History.php src/Modules/Recovery/OrderNote.php
 msgid "e-mail"
 msgstr ""
 
-#: src/Modules/Recovery/History.php:154
+#: src/Modules/Recovery/History.php
 msgid "failed"
 msgstr ""
 
-#: src/Modules/Recovery/Privacy.php:34 src/Modules/Recovery/Privacy.php:49
-#: src/Modules/Recovery/Privacy.php:84
-msgid "Motored carts"
-msgstr ""
-
-#: src/Modules/Recovery/Privacy.php:68
-#: src/Modules/Recovery/RecoveryAdmin.php:206
-#: src/Modules/Recovery/RecoveryAdmin.php:663
-msgid "E-mail"
-msgstr ""
-
-#: src/Modules/Recovery/Privacy.php:69
-#: src/Modules/Recovery/RecoveryAdmin.php:664
-msgid "Phone"
-msgstr ""
-
-#: src/Modules/Recovery/Privacy.php:70
-#: src/Modules/Recovery/RecoveryAdmin.php:662
-msgid "First name"
-msgstr ""
-
-#: src/Modules/Recovery/Privacy.php:72
-msgid "Items in cart"
-msgstr ""
-
-#: src/Modules/Recovery/Privacy.php:73
-msgid "Last activity (GMT)"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:42
-msgid "Recovery"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:61
-msgid "Cart recovery"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:63
-msgid ""
-"Captures carts of visitors and customers who leave an e-mail or phone at "
-"checkout, and coordinates automated recovery messages."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:67
-msgid "Capture carts"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:68
-msgid "Save the cart when the shopper types an e-mail or phone at checkout."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:75
-msgid "Minutes to consider a cart abandoned"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:76
-msgid "Active carts without activity for this long are shown as abandoned."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:88
-msgid "Retention (days)"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:89
-msgid ""
-"Carts are deleted after this many days (converted and recovered ones after 7 "
-"days)."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:104
-msgid "Sending window start"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:105
-msgid ""
-"Time of day when recovery messages start sending (HH:MM in site timezone)."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:114
-msgid "Sending window end"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:115
-msgid ""
-"Time of day after which messages are paused until the next window (HH:MM)."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:124
-msgid "Recovery coupon code"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:125
-msgid ""
-"Optional WooCommerce coupon code automatically applied when a recovery link "
-"is clicked."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:133
-msgid "Token validity (days)"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:134
-msgid "Number of days recovery links remain valid."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:146
-msgid "Fallback to email"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:147
-msgid ""
-"Try sending an email when WhatsApp number does not exist or delivery fails "
-"permanently."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:154
-msgid "Maximum messages per 24 hours"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:155
-msgid ""
-"Soft limit: maximum recovery messages sent to the same phone number within "
-"24 hours."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:167
-msgid "Maximum messages per week"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:168
-msgid ""
-"Soft limit: maximum recovery messages sent to the same phone number in 7 "
-"days."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:191
-msgid "Recovery sequence"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:192
-msgid "Configure the 3-step sequence. Inactive / off steps are skipped."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:194
-#: src/Modules/Recovery/RecoveryAdmin.php:203
-msgid "Step"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:195
-msgid "Channel"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:196
-msgid "Delay (minutes)"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:197
-msgid "Message text"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:205 src/Modules/Waha/WahaAdmin.php:37
-msgid "WhatsApp"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:207
-msgid "Off"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:214
-msgid ""
-"Available placeholders: {first_name}, {cart_items}, {cart_total}, "
-"{recovery_url}, {optout_url}, {store_name}"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:264
-#: src/Modules/Recovery/RecoveryAdmin.php:265
-#: src/Modules/Recovery/RecoveryAdmin.php:579
-msgid "Abandoned carts"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:599
-msgid "Abandoned:"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:601
-msgid "Recovered:"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:603
-msgid "via link"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:605
-msgid "bought after message"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:607
-msgid "Recovered value:"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:614
-msgid "Search e-mail or phone"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:626
-msgid "Back to the list"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:628
-msgid "This item no longer exists."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:633
-msgid "Guest"
-msgstr ""
-
-#. translators: %d: item number.
-#: src/Modules/Recovery/RecoveryAdmin.php:635
-#, php-format
-msgid "Item #%d"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:645
-#: src/Modules/Recovery/RecoveryListTable.php:217
-msgid "Send WhatsApp now"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:646
-#: src/Modules/Recovery/RecoveryListTable.php:218
-msgid "Send email now"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:647
-#: src/Modules/Recovery/RecoveryListTable.php:219
-msgid "Open in WhatsApp Web"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:651
-msgid "Recovery link:"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:654
-#: src/Modules/Recovery/RecoveryListTable.php:220
-msgid "Copy link"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:654
-msgid "Link copied to clipboard!"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:660
-#: src/Modules/Recovery/RecoveryListTable.php:130
-msgid "Cart"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:660
-#: src/Modules/Recovery/RecoveryListTable.php:131
-msgid "Order"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:660
-msgid "Type"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:661
-#: src/Modules/Recovery/RecoveryListTable.php:45
-msgid "Customer"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:665
-msgid "WhatsApp sent count"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:666
-msgid "Email sent count"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:667
-msgid "Created"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:668
-#: src/Modules/Recovery/RecoveryListTable.php:49
-msgid "Last activity"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:672
-msgid "Products (current data)"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:673
-msgid "Product"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:673
-msgid "Qty"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:673
-msgid "Stock"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:673
-msgid "Subtotal"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:684
-msgid "Current total:"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:697
-msgid "History"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:699
-msgid "No events yet."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:722
-msgid "Add a note"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:728
-msgid "Do not type phone numbers or e-mails: they are removed from notes."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:729
-msgid "Add note"
-msgstr ""
-
-#. translators: %d: number of deleted items.
-#: src/Modules/Recovery/RecoveryAdmin.php:760
-#, php-format
-msgid "%d item(s) deleted."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:763
-msgid "Note added."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:766
-msgid "WhatsApp message sent."
-msgstr ""
-
-#. translators: %s: failure code.
-#: src/Modules/Recovery/RecoveryAdmin.php:771
-#, php-format
-msgid "WhatsApp message could not be sent: %s"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:774
-msgid "Recovery email sent."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:778
-msgid "Recovery email could not be sent."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:781
-msgid "Recovery link is ready."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:785
-msgid "Cannot send: this contact has opted out of messages."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:789
-msgid "Cannot send: no phone number recorded."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:793
-msgid "Cannot send: phone number is invalid."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:797
-msgid "Cannot send: no email address recorded."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:801
-msgid "Cart item not found."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:857
-msgid "In stock"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:859
-msgid "Out of stock"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:861
-msgid "Unavailable"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php:877
-#: src/Modules/Waha/WahaAdmin.php:308
-msgid "You are not allowed to do this."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryLinkHandler.php:34
-msgid "Too many requests. Please try again in a few minutes."
-msgstr ""
-
-#. translators: %s: product name
-#: src/Modules/Recovery/RecoveryLinkHandler.php:98
-#, php-format
-msgid ""
-"Item \"%s\" is no longer available and could not be restored to your cart."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryLinkHandler.php:141
-msgid "Invalid opt-out link."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryLinkHandler.php:147
-msgid "Invalid or expired opt-out link."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryLinkHandler.php:152
-msgid "Record not found."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryLinkHandler.php:173
-msgid ""
-"You have successfully opted out. You will not receive any more reminders "
-"about this cart."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryLinkHandler.php:174
-msgid "Opt-out confirmed"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryLinkHandler.php:215
-msgid "The recovery link is invalid or has expired."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:43
-msgid "No."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:44
-msgid "Date"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:46
-msgid "Total"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:48
-msgid "Steps / sends"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:74
-#: src/Modules/Recovery/RecoveryListTable.php:221
-msgid "Delete"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:125
-msgid "All statuses"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:129
-msgid "All types"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:133
-msgid "From"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:134
-msgid "To"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:135
-msgid "Filter"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:143
-msgid "No carts found."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryListTable.php:216
-msgid "View"
-msgstr ""
-
-#. translators: %s: human readable time difference, e.g. "2 hours".
-#: src/Modules/Recovery/RecoveryListTable.php:282
-#, php-format
-msgid "%s ago"
-msgstr ""
-
-#: src/Modules/Recovery/Status.php:71 src/Modules/Waha/WahaAdmin.php:237
-msgid "Active"
-msgstr ""
-
-#: src/Modules/Recovery/Status.php:73
-msgid "Abandoned"
-msgstr ""
-
-#: src/Modules/Recovery/Status.php:75
-msgid "Converted"
-msgstr ""
-
-#: src/Modules/Recovery/Status.php:77
-msgid "Recovered"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:61
-msgid "WAHA URL"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:62
-msgid "Base URL of your WAHA instance. It must use https."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:67
-msgid "Session"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:68
-msgid "Name of the WAHA session that sends the messages."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:73
-msgid "API key"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:74
-msgid "Sent in the X-Api-Key header. Prefer defining it in wp-config.php."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:97
-msgid "Calling code used for numbers without one (54 = Argentina)."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:97
-msgid "Default country code"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:98
-msgid "Messages per minute"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:98
-msgid "Over this limit, messages wait for the next minute."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:99
-msgid "Messages per hour"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:99
-msgid "Over this limit, messages wait for the next hour."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:100
-msgid "Consecutive failures that pause all sending."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:100
-msgid "Failures to pause sending"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:101
-msgid "How long sending stays paused after too many failures."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:101
-msgid "Pause length (minutes)"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:109
-msgid "Read-only, defined in wp-config.php:"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:115
-msgid "WhatsApp (WAHA)"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:138
-msgid "Tests"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:146
-msgid "Tests use the saved settings: save before testing."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:153
-msgid "Test connection"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:161
-msgid "Send test message"
-msgstr ""
-
-#. translators: %s: WAHA session state, e.g. WORKING.
-#: src/Modules/Waha/WahaAdmin.php:177
-#, php-format
-msgid "Connection OK. Session status: %s."
-msgstr ""
-
-#. translators: %s: reason of the failure.
-#: src/Modules/Waha/WahaAdmin.php:185
-#, php-format
-msgid "Connection failed: %s"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:197
-msgid "Type a phone number first."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:203
-msgid "Test message from Motored Core."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:214
-msgid "Test message sent."
-msgstr ""
-
-#. translators: %s: reason of the failure.
-#: src/Modules/Waha/WahaAdmin.php:219
-#, php-format
-msgid "The message was not sent: %s"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:233
-msgid "WAHA configured"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:234
-msgid "WhatsApp sending"
-msgstr ""
-
-#. translators: %s: time when sending resumes.
-#: src/Modules/Waha/WahaAdmin.php:236
-#, php-format
-msgid "Paused by circuit breaker until %s"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:238
-msgid "Consecutive WhatsApp failures"
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:250
-msgid "URL or API key missing."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:252
-msgid "the URL is not valid."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:254
-msgid "the URL must use https."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:256
-msgid "the server did not answer in time."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:258
-msgid "could not connect to the server."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:260
-msgid "the API key was rejected."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:262
-msgid "session or endpoint not found."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:264
-msgid "too many requests."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:268
-msgid "unexpected response from WAHA."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:270
-msgid "the phone number is not valid."
-msgstr ""
-
-#: src/Modules/Waha/WahaAdmin.php:272
-msgid "that number is not on WhatsApp."
-msgstr ""
-
-#: src/Plugin.php:180
-msgid ""
-"Motored Core needs WooCommerce to be active. The plugin stays disabled until "
-"you activate it."
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php
-msgid "Available placeholders: {first_name}, {order_number}, {order_total}, {order_items}, {pay_url}, {optout_url}, {store_name}"
+#: src/Modules/Recovery/History.php src/Modules/Recovery/OrderNote.php
+msgid "manual"
 msgstr ""
 
 #: src/Modules/Recovery/OrderCase.php
 msgid "Cancelled order"
 msgstr ""
 
-#: src/Modules/Recovery/RecoveryAdmin.php
-msgid "Cancelled order message"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php
-msgid "Cancelled orders"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php
-msgid "Cannot send: the order no longer exists."
-msgstr ""
-
-#: src/Modules/Recovery/Emails/PendingPaymentEmail.php
-msgid "Completá el pago de tu pedido"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php
-msgid "Current order status"
-msgstr ""
-
-#: src/Modules/Recovery/RecoveryAdmin.php
-msgid "Delays count from the moment the order entered that status. The e-mail channel uses the \"Pending payment reminder\" e-mail in WooCommerce > Settings > Emails."
-msgstr ""
-
 #: src/Modules/Recovery/OrderCase.php
 msgid "Failed payment"
 msgstr ""
 
-#: src/Modules/Recovery/RecoveryAdmin.php
-msgid "Follow up orders left pending, failed or on hold. Step 1 of pending/failed orders should go out before WooCommerce cancels unpaid orders (WooCommerce > Settings > Products > Inventory > Hold stock, 60 minutes by default)."
+#: src/Modules/Recovery/OrderCase.php
+msgid "Pending payment"
 msgstr ""
 
-#: src/Modules/Recovery/RecoveryAdmin.php
-msgid "Latest order notes"
+#: src/Modules/Recovery/OrderCase.php
+msgid "Waiting for payment"
 msgstr ""
 
 #: src/Modules/Recovery/OrderNote.php
@@ -1143,8 +418,250 @@ msgstr ""
 msgid "Motored: payment reminder sent by %1$s (%2$s)."
 msgstr ""
 
+#: src/Modules/Recovery/Privacy.php src/Modules/Recovery/RecoveryAdmin.php
+msgid "E-mail"
+msgstr ""
+
+#: src/Modules/Recovery/Privacy.php src/Modules/Recovery/RecoveryAdmin.php
+msgid "First name"
+msgstr ""
+
+#: src/Modules/Recovery/Privacy.php
+msgid "Items in cart"
+msgstr ""
+
+#: src/Modules/Recovery/Privacy.php
+msgid "Last activity (GMT)"
+msgstr ""
+
+#: src/Modules/Recovery/Privacy.php
+msgid "Motored carts"
+msgstr ""
+
+#: src/Modules/Recovery/Privacy.php src/Modules/Recovery/RecoveryAdmin.php
+msgid "Phone"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+#, php-format
+msgid "%d item(s) deleted."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Abandoned carts"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Abandoned:"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Active carts without activity for this long are shown as abandoned."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Add a note"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Add note"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Available placeholders: {first_name}, {cart_items}, {cart_total}, {recovery_url}, {optout_url}, {store_name}"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Available placeholders: {first_name}, {order_number}, {order_total}, {order_items}, {pay_url}, {optout_url}, {store_name}"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Back to the list"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Cancelled order message"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Cancelled orders"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Cannot send: no email address recorded."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Cannot send: no phone number recorded."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Cannot send: phone number is invalid."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Cannot send: the order no longer exists."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Cannot send: this contact has opted out of messages."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Capture carts"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Captures carts of visitors and customers who leave an e-mail or phone at checkout, and coordinates automated recovery messages."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php src/Modules/Recovery/RecoveryListTable.php
+msgid "Cart"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Cart item not found."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Cart recovery"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Carts are deleted after this many days (converted and recovered ones after 7 days)."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Channel"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Configure the 3-step sequence. Inactive / off steps are skipped."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php src/Modules/Recovery/RecoveryListTable.php
+msgid "Copy link"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Created"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Current order status"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Current total:"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php src/Modules/Recovery/RecoveryListTable.php
+msgid "Customer"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Delay (minutes)"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Delays count from the moment the order entered that status. The e-mail channel uses the \"Pending payment reminder\" e-mail in WooCommerce > Settings > Emails."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Do not type phone numbers or e-mails: they are removed from notes."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Email sent count"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Fallback to email"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Follow up orders left pending, failed or on hold. Step 1 of pending/failed orders should go out before WooCommerce cancels unpaid orders (WooCommerce > Settings > Products > Inventory > Hold stock, 60 minutes by default)."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Guest"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "History"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "In stock"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+#, php-format
+msgid "Item #%d"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php src/Modules/Recovery/RecoveryListTable.php
+msgid "Last activity"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Latest order notes"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Link copied to clipboard!"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Maximum messages per 24 hours"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Maximum messages per week"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Message text"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Minutes to consider a cart abandoned"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "No events yet."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Note added."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Number of days recovery links remain valid."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Off"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php src/Modules/Recovery/RecoveryListTable.php
+msgid "Open in WhatsApp Web"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Optional WooCommerce coupon code automatically applied when a recovery link is clicked."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php src/Modules/Recovery/RecoveryListTable.php
+msgid "Order"
+msgstr ""
+
 #: src/Modules/Recovery/RecoveryAdmin.php
 msgid "Order total"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Out of stock"
 msgstr ""
 
 #: src/Modules/Recovery/RecoveryAdmin.php
@@ -1155,28 +672,104 @@ msgstr ""
 msgid "Payment method"
 msgstr ""
 
-#: src/Modules/Recovery/OrderCase.php
-msgid "Pending payment"
+#: src/Modules/Recovery/RecoveryAdmin.php templates/emails/motored-abandoned-cart.php templates/emails/motored-pending-payment.php
+msgid "Product"
 msgstr ""
 
-#: src/Modules/Recovery/Emails/PendingPaymentEmail.php
-msgid "Pending payment reminder (Motored)"
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Products (current data)"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Qty"
 msgstr ""
 
 #: src/Modules/Recovery/RecoveryAdmin.php
 msgid "Recover unpaid orders"
 msgstr ""
 
-#: src/Modules/Recovery/Emails/PendingPaymentEmail.php
-msgid "Reminder sent to customers whose order is still waiting for payment."
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Recovered value:"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Recovered:"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Recovery"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Recovery coupon code"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Recovery email could not be sent."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Recovery email sent."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Recovery link is ready."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Recovery link:"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Recovery sequence"
 msgstr ""
 
 #: src/Modules/Recovery/RecoveryAdmin.php
 msgid "Restore the items in a new cart through the recovery link"
 msgstr ""
 
-#: src/Modules/Recovery/Emails/PendingPaymentEmail.php
-msgid "Si ya pagaste, ignorá este correo. Si necesitás ayuda, respondenos este mensaje."
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Retention (days)"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Save the cart when the shopper types an e-mail or phone at checkout."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Search e-mail or phone"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php src/Modules/Recovery/RecoveryListTable.php
+msgid "Send WhatsApp now"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php src/Modules/Recovery/RecoveryListTable.php
+msgid "Send email now"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Sending window end"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Sending window start"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Soft limit: maximum recovery messages sent to the same phone number in 7 days."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Soft limit: maximum recovery messages sent to the same phone number within 24 hours."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Step"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Stock"
 msgstr ""
 
 #: src/Modules/Recovery/RecoveryAdmin.php
@@ -1184,25 +777,431 @@ msgid "Stop the sequence"
 msgstr ""
 
 #: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Subtotal"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "This item no longer exists."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
 msgid "This order no longer exists."
 msgstr ""
 
-#: src/Modules/Recovery/Emails/PendingPaymentEmail.php
-msgid "Tu pedido #{order_number} está esperando el pago"
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Time of day after which messages are paused until the next window (HH:MM)."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Time of day when recovery messages start sending (HH:MM in site timezone)."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Token validity (days)"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Try sending an email when WhatsApp number does not exist or delivery fails permanently."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Type"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "Unavailable"
 msgstr ""
 
 #: src/Modules/Recovery/RecoveryAdmin.php
 msgid "Unpaid order sequences"
 msgstr ""
 
-#: src/Modules/Recovery/OrderCase.php
-msgid "Waiting for payment"
-msgstr ""
-
 #: src/Modules/Recovery/RecoveryAdmin.php
 msgid "What to do when the order was cancelled automatically before the next step."
 msgstr ""
 
+#: src/Modules/Recovery/RecoveryAdmin.php src/Modules/Waha/WahaAdmin.php
+msgid "WhatsApp"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+#, php-format
+msgid "WhatsApp message could not be sent: %s"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "WhatsApp message sent."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "WhatsApp sent count"
+msgstr ""
+
 #: src/Modules/Recovery/RecoveryAdmin.php
 msgid "WhatsApp text for the \"restore\" option. Placeholders: {first_name}, {order_number}, {order_items}, {recovery_url}, {optout_url}, {store_name}"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php src/Modules/Waha/WahaAdmin.php
+msgid "You are not allowed to do this."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "bought after message"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryAdmin.php
+msgid "via link"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryLinkHandler.php
+msgid "Do you want to stop receiving reminders about this purchase?"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryLinkHandler.php
+msgid "Invalid opt-out link."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryLinkHandler.php
+#, php-format
+msgid "Item \"%s\" is no longer available and could not be restored to your cart."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryLinkHandler.php
+msgid "Opt-out confirmed"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryLinkHandler.php
+msgid "The recovery link is invalid or has expired."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryLinkHandler.php
+msgid "Too many requests. Please try again in a few minutes."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryLinkHandler.php templates/emails/motored-abandoned-cart.php templates/emails/motored-pending-payment.php
+msgid "Unsubscribe"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryLinkHandler.php
+msgid "Yes, unsubscribe me"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryLinkHandler.php
+msgid "You have successfully opted out. You will not receive any more reminders about this cart."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+#, php-format
+msgid "%s ago"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "All statuses"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "All types"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "Date"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "Delete"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "Filter"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "From"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "No carts found."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "No."
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "Steps / sends"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "To"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "Total"
+msgstr ""
+
+#: src/Modules/Recovery/RecoveryListTable.php
+msgid "View"
+msgstr ""
+
+#: src/Modules/Recovery/Status.php
+msgid "Abandoned"
+msgstr ""
+
+#: src/Modules/Recovery/Status.php src/Modules/Waha/WahaAdmin.php
+msgid "Active"
+msgstr ""
+
+#: src/Modules/Recovery/Status.php
+msgid "Converted"
+msgstr ""
+
+#: src/Modules/Recovery/Status.php
+msgid "Recovered"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "API key"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Base URL of your WAHA instance. It must use https."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Calling code used for numbers without one (54 = Argentina)."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+#, php-format
+msgid "Connection OK. Session status: %s."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+#, php-format
+msgid "Connection failed: %s"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Consecutive WhatsApp failures"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Consecutive failures that pause all sending."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Default country code"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Failures to pause sending"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "How long sending stays paused after too many failures."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Messages per hour"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Messages per minute"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Name of the WAHA session that sends the messages."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Over this limit, messages wait for the next hour."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Over this limit, messages wait for the next minute."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Pause length (minutes)"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+#, php-format
+msgid "Paused by circuit breaker until %s"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Read-only, defined in wp-config.php:"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Send test message"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Sent in the X-Api-Key header. Prefer defining it in wp-config.php."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Session"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Test connection"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Test message from Motored Core."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Test message sent."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Tests"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Tests use the saved settings: save before testing."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+#, php-format
+msgid "The message was not sent: %s"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Type a phone number first."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "URL or API key missing."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "WAHA URL"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "WAHA configured"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "WhatsApp (WAHA)"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "WhatsApp sending"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "could not connect to the server."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "session or endpoint not found."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "that number is not on WhatsApp."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "the API key was rejected."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "the URL is not valid."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "the URL must use https."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "the phone number is not valid."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "the server did not answer in time."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "too many requests."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "unexpected response from WAHA."
+msgstr ""
+
+#: src/Plugin.php
+msgid "Motored Core needs WooCommerce to be active. The plugin stays disabled until you activate it."
+msgstr ""
+
+#: templates/emails/motored-abandoned-cart.php templates/emails/motored-pending-payment.php templates/emails/plain/motored-abandoned-cart.php templates/emails/plain/motored-pending-payment.php
+#, php-format
+msgid "Hi %s!"
+msgstr ""
+
+#: templates/emails/motored-abandoned-cart.php templates/emails/motored-pending-payment.php templates/emails/plain/motored-abandoned-cart.php templates/emails/plain/motored-pending-payment.php
+msgid "Hi!"
+msgstr ""
+
+#: templates/emails/motored-abandoned-cart.php
+msgid "If you do not want to receive more reminders about this cart:"
+msgstr ""
+
+#: templates/emails/motored-abandoned-cart.php
+msgid "Price"
+msgstr ""
+
+#: templates/emails/motored-abandoned-cart.php templates/emails/motored-pending-payment.php
+msgid "Quantity"
+msgstr ""
+
+#: templates/emails/motored-abandoned-cart.php
+msgid "Recover my cart"
+msgstr ""
+
+#: templates/emails/motored-abandoned-cart.php
+msgid "We noticed you left some products in your cart. To make your purchase easier, we saved the details:"
+msgstr ""
+
+#: templates/emails/motored-pending-payment.php
+msgid "Complete the payment"
+msgstr ""
+
+#: templates/emails/motored-pending-payment.php
+msgid "If you do not want to receive more reminders about this order:"
+msgstr ""
+
+#: templates/emails/motored-pending-payment.php
+msgid "Total:"
+msgstr ""
+
+#: templates/emails/motored-pending-payment.php
+#, php-format
+msgid "Your order #%s is still waiting for payment. These are the details:"
+msgstr ""
+
+#: templates/emails/plain/motored-abandoned-cart.php
+msgid "Recover your cart here:"
+msgstr ""
+
+#: templates/emails/plain/motored-abandoned-cart.php templates/emails/plain/motored-pending-payment.php
+msgid "To stop receiving reminders:"
+msgstr ""
+
+#: templates/emails/plain/motored-abandoned-cart.php
+msgid "We noticed you left some products in your cart:"
+msgstr ""
+
+#: templates/emails/plain/motored-pending-payment.php
+msgid "Complete the payment here:"
+msgstr ""
+
+#: templates/emails/plain/motored-pending-payment.php
+#, php-format
+msgid "Your order #%s is still waiting for payment:"
 msgstr ""

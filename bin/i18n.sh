@@ -26,7 +26,7 @@ cd "$ROOT"
 if have wp && wp i18n --help >/dev/null 2>&1; then
   wp i18n make-pot . "$POT" --slug=motored-core --domain=motored-core --exclude=vendor,tests,docs,bin,build,.claude
 elif have xgettext; then
-  find src motored-core.php uninstall.php -name '*.php' -print0 \
+  find src templates motored-core.php uninstall.php -name '*.php' -print0 \
     | xargs -0 xgettext --language=PHP --from-code=UTF-8 \
         --keyword=__ --keyword=_e --keyword=_x:1,2c --keyword=_n:1,2 \
         --keyword=esc_html__ --keyword=esc_attr__ --keyword=esc_html_e --keyword=esc_attr_e \

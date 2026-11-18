@@ -22,21 +22,21 @@ $first_name = isset( $recovery['first_name'] ) && is_string( $recovery['first_na
 	: '';
 if ( '' !== $first_name ) {
 	/* translators: %s: customer first name */
-	printf( esc_html__( '¡Hola %s!', 'motored-core' ), esc_html( $first_name ) );
+	printf( esc_html__( 'Hi %s!', 'motored-core' ), esc_html( $first_name ) );
 } else {
-	esc_html_e( '¡Hola!', 'motored-core' );
+	esc_html_e( 'Hi!', 'motored-core' );
 }
 ?>
 </p>
 
-<p><?php esc_html_e( 'Notamos que dejaste productos seleccionados en tu carrito. Para facilitarte la compra, te guardamos el detalle:', 'motored-core' ); ?></p>
+<p><?php esc_html_e( 'We noticed you left some products in your cart. To make your purchase easier, we saved the details:', 'motored-core' ); ?></p>
 
 <table class="td" cellspacing="0" cellpadding="6" style="width: 100%; margin-bottom: 24px; border: 1px solid #e5e5e5;" border="1">
 	<thead>
 		<tr>
-			<th class="td" scope="col" style="text-align: left;"><?php esc_html_e( 'Producto', 'motored-core' ); ?></th>
-			<th class="td" scope="col" style="text-align: center;"><?php esc_html_e( 'Cantidad', 'motored-core' ); ?></th>
-			<th class="td" scope="col" style="text-align: right;"><?php esc_html_e( 'Precio', 'motored-core' ); ?></th>
+			<th class="td" scope="col" style="text-align: left;"><?php esc_html_e( 'Product', 'motored-core' ); ?></th>
+			<th class="td" scope="col" style="text-align: center;"><?php esc_html_e( 'Quantity', 'motored-core' ); ?></th>
+			<th class="td" scope="col" style="text-align: right;"><?php esc_html_e( 'Price', 'motored-core' ); ?></th>
 		</tr>
 	</thead>
 	<tbody>
@@ -58,7 +58,7 @@ if ( '' !== $first_name ) {
 
 <p style="text-align: center; margin: 30px 0;">
 	<a href="<?php echo esc_url( $recovery_url ); ?>" style="background-color: #0073aa; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">
-		<?php esc_html_e( 'Recuperar mi carrito', 'motored-core' ); ?>
+		<?php esc_html_e( 'Recover my cart', 'motored-core' ); ?>
 	</a>
 </p>
 
@@ -67,8 +67,8 @@ if ( '' !== $first_name ) {
 <?php endif; ?>
 
 <p style="font-size: 11px; color: #777777; text-align: center; margin-top: 30px; border-top: 1px solid #eeeeee; padding-top: 12px;">
-	<?php esc_html_e( 'Si no querés recibir más recordatorios sobre este carrito:', 'motored-core' ); ?>
-	<a href="<?php echo esc_url( $optout_url ); ?>" style="color: #777777;"><?php esc_html_e( 'Darse de baja', 'motored-core' ); ?></a>
+	<?php esc_html_e( 'If you do not want to receive more reminders about this cart:', 'motored-core' ); ?>
+	<a href="<?php echo esc_url( $optout_url ); ?>" style="color: #777777;"><?php esc_html_e( 'Unsubscribe', 'motored-core' ); ?></a>
 </p>
 
 <?php

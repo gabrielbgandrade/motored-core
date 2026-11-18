@@ -18,9 +18,9 @@ $first_name = isset( $recovery['first_name'] ) && is_string( $recovery['first_na
 <?php
 if ( '' !== $first_name ) {
 	/* translators: %s: customer first name */
-	printf( esc_html__( '¡Hola %s!', 'motored-core' ), esc_html( $first_name ) );
+	printf( esc_html__( 'Hi %s!', 'motored-core' ), esc_html( $first_name ) );
 } else {
-	esc_html_e( '¡Hola!', 'motored-core' );
+	esc_html_e( 'Hi!', 'motored-core' );
 }
 ?>
 </p>
@@ -28,15 +28,15 @@ if ( '' !== $first_name ) {
 <p>
 <?php
 /* translators: %s: order number */
-printf( esc_html__( 'Tu pedido #%s todavía está esperando el pago. Este es el detalle:', 'motored-core' ), esc_html( $order->get_order_number() ) );
+printf( esc_html__( 'Your order #%s is still waiting for payment. These are the details:', 'motored-core' ), esc_html( $order->get_order_number() ) );
 ?>
 </p>
 
 <table class="td" cellspacing="0" cellpadding="6" style="width: 100%; margin-bottom: 24px; border: 1px solid #e5e5e5;" border="1">
 	<thead>
 		<tr>
-			<th class="td" scope="col" style="text-align: left;"><?php esc_html_e( 'Producto', 'motored-core' ); ?></th>
-			<th class="td" scope="col" style="text-align: center;"><?php esc_html_e( 'Cantidad', 'motored-core' ); ?></th>
+			<th class="td" scope="col" style="text-align: left;"><?php esc_html_e( 'Product', 'motored-core' ); ?></th>
+			<th class="td" scope="col" style="text-align: center;"><?php esc_html_e( 'Quantity', 'motored-core' ); ?></th>
 		</tr>
 	</thead>
 	<tbody>
@@ -53,7 +53,7 @@ printf( esc_html__( 'Tu pedido #%s todavía está esperando el pago. Este es el 
 
 <p style="text-align: center; margin: 30px 0;">
 	<a href="<?php echo esc_url( $pay_url ); ?>" style="background-color: #0073aa; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">
-		<?php esc_html_e( 'Completar el pago', 'motored-core' ); ?>
+		<?php esc_html_e( 'Complete the payment', 'motored-core' ); ?>
 	</a>
 </p>
 
@@ -62,8 +62,8 @@ printf( esc_html__( 'Tu pedido #%s todavía está esperando el pago. Este es el 
 <?php endif; ?>
 
 <p style="font-size: 11px; color: #777777; text-align: center; margin-top: 30px; border-top: 1px solid #eeeeee; padding-top: 12px;">
-	<?php esc_html_e( 'Si no querés recibir más recordatorios sobre este pedido:', 'motored-core' ); ?>
-	<a href="<?php echo esc_url( $optout_url ); ?>" style="color: #777777;"><?php esc_html_e( 'Darse de baja', 'motored-core' ); ?></a>
+	<?php esc_html_e( 'If you do not want to receive more reminders about this order:', 'motored-core' ); ?>
+	<a href="<?php echo esc_url( $optout_url ); ?>" style="color: #777777;"><?php esc_html_e( 'Unsubscribe', 'motored-core' ); ?></a>
 </p>
 
 <?php

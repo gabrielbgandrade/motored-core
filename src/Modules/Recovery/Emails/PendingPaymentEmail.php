@@ -68,21 +68,21 @@ class PendingPaymentEmail extends \WC_Email {
 	 * Default subject.
 	 */
 	public function get_default_subject() {
-		return __( 'Tu pedido #{order_number} está esperando el pago', 'motored-core' );
+		return __( 'Your order #{order_number} is waiting for payment', 'motored-core' );
 	}
 
 	/**
 	 * Default heading.
 	 */
 	public function get_default_heading() {
-		return __( 'Completá el pago de tu pedido', 'motored-core' );
+		return __( 'Complete the payment of your order', 'motored-core' );
 	}
 
 	/**
 	 * Default additional content.
 	 */
 	public function get_default_additional_content() {
-		return __( 'Si ya pagaste, ignorá este correo. Si necesitás ayuda, respondenos este mensaje.', 'motored-core' );
+		return __( 'If you already paid, ignore this e-mail. If you need help, reply to this message.', 'motored-core' );
 	}
 
 	/**
