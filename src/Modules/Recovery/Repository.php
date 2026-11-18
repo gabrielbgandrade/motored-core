@@ -181,54 +181,6 @@ final class Repository {
 	}
 
 	/**
-	 * Marks the active row of a session as converted (or recovered if step > 0).
-	 *
-	 * @param string $session_key Session key.
-	 * @param int    $order_id    Created order.
-	 * @param string $now         GMT datetime.
-	 * @return array{id:int,recovered:bool}|null Result, or null when there was nothing to convert.
-	 */
-	public static function mark_converted( string $session_key, int $order_id, string $now ): ?array {
-		$row = self::find_by_session( $session_key );
-		if ( null === $row || Status::ACTIVE !== $row['status'] ) {
-			return null;
-		}
-		return self::mark_converted_by_id( $row['id'], $order_id, $now );
-	}
-
-	/**
-	 * Marks an active row by ID as converted (or recovered if step > 0).
-	 *
-	 * @param int    $id       Row ID.
-	 * @param int    $order_id Created order.
-	 * @param string $now      GMT datetime.
-	 * @return array{id:int,recovered:bool}|null Result, or null on failure.
-	 */
-	public static function mark_converted_by_id( int $id, int $order_id, string $now ): ?array {
-		$row = self::get( $id );
-		if ( null === $row || Status::ACTIVE !== $row['status'] ) {
-			return null;
-		}
-		$step_num     = (int) ( $row['step'] ?? 0 );
-		$is_recovered = $step_num > 0;
-		$fields       = array(
-			'status'          => $is_recovered ? Status::RECOVERED : Status::CONVERTED,
-			'order_id'        => $order_id,
-			'next_action_gmt' => null,
-			'last_event_gmt'  => $now,
-			'updated_gmt'     => $now,
-		);
-		if ( $is_recovered ) {
-			$fields['recovered_order_id'] = $order_id;
-		}
-		$done = self::update( $id, $fields );
-		return $done ? array(
-			'id'        => $id,
-			'recovered' => $is_recovered,
-		) : null;
-	}
-
-	/**
 	 * Single-query lookup for order recovery: the row of this order, else the active cart row of the
 	 * same session or of the same e-mail with recent activity (to convert it into the order row).
 	 *

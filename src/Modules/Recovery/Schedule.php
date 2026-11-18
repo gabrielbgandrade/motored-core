@@ -69,21 +69,6 @@ final class Schedule {
 	}
 
 	/**
-	 * If the timestamp is inside the window, returns it. Otherwise returns the next window start.
-	 *
-	 * @param int                $timestamp Unix time.
-	 * @param string             $start     Window start 'HH:MM'.
-	 * @param string             $end       Window end 'HH:MM'.
-	 * @param \DateTimeZone|null $tz        Store timezone.
-	 */
-	public static function adjust_to_window( int $timestamp, string $start = self::DEFAULT_START, string $end = self::DEFAULT_END, ?\DateTimeZone $tz = null ): int {
-		if ( self::is_inside_window( $timestamp, $start, $end, $tz ) ) {
-			return $timestamp;
-		}
-		return self::next_window_start( $timestamp, $start, $end, $tz );
-	}
-
-	/**
 	 * Resolves timezone object.
 	 *
 	 * @param \DateTimeZone|null $tz Timezone.

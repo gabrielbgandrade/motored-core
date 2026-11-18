@@ -57,13 +57,6 @@ final class Retention {
 	}
 
 	/**
-	 * Cancels the job (uninstall / tooling).
-	 */
-	public static function unschedule(): void {
-		ActionScheduler::unschedule_all( self::HOOK );
-	}
-
-	/**
 	 * Action Scheduler callback: deletes one batch; schedules a follow-up when the batch was full.
 	 */
 	public static function run(): void {

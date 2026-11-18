@@ -43,13 +43,6 @@ final class Scanner {
 	}
 
 	/**
-	 * Unschedules the scanner (uninstall / tooling).
-	 */
-	public static function unschedule(): void {
-		ActionScheduler::unschedule_all( self::HOOK );
-	}
-
-	/**
 	 * Action Scheduler callback.
 	 */
 	public static function run(): void {

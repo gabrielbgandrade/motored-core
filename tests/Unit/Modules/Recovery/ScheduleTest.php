@@ -38,14 +38,4 @@ final class ScheduleTest extends TestCase {
 		$this->assertSame( '2026-11-19 09:00', date( 'Y-m-d H:i', $next_start ) );
 	}
 
-	public function test_adjust_to_window(): void {
-		// Inside window: unchanged.
-		$ts_inside = strtotime( '2026-11-18 10:00:00' );
-		$this->assertSame( $ts_inside, Schedule::adjust_to_window( $ts_inside, '09:00', '21:00' ) );
-
-		// Outside window: adjusted to start.
-		$ts_outside = strtotime( '2026-11-18 23:00:00' );
-		$expected   = strtotime( '2026-11-19 09:00:00' );
-		$this->assertSame( $expected, Schedule::adjust_to_window( $ts_outside, '09:00', '21:00' ) );
-	}
 }

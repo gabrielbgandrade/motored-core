@@ -98,15 +98,6 @@ final class EventMap {
 	}
 
 	/**
-	 * Expected WooCommerce status for a status-based event, or null for non-status events.
-	 *
-	 * @param string $event Event slug.
-	 */
-	public static function expected_status( string $event ): ?string {
-		return self::EVENT_TO_STATUS[ $event ] ?? null;
-	}
-
-	/**
 	 * Whether an order's current status still matches the queued event at send time.
 	 *
 	 * @param string $event        Event slug.

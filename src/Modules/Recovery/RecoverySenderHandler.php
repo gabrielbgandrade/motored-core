@@ -56,7 +56,20 @@ final class RecoverySenderHandler {
 			(string) $row['last_activity_gmt']
 		);
 		if ( null !== $recent_order && $recent_order > 0 ) {
-			CaptureService::convert( (string) $row['session_key'], $recent_order );
+			// Bought in another session: stop the cart sequence. Attribution only happens when an order is paid (OrderSync).
+			$closed = Repository::update_if_status(
+				$recovery_id,
+				Status::ACTIVE,
+				array(
+					'status'          => Status::CONVERTED,
+					'order_id'        => $recent_order,
+					'next_action_gmt' => null,
+					'updated_gmt'     => gmdate( 'Y-m-d H:i:s' ),
+				)
+			);
+			if ( $closed ) {
+				History::log( $recovery_id, 'order_created', 'none', 'system', 0, 'ok', 'order_id=' . $recent_order );
+			}
 			return null;
 		}
 

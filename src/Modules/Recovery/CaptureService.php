@@ -115,29 +115,4 @@ final class CaptureService {
 		}
 		return $id;
 	}
-
-	/**
-	 * Marks the session's active row as converted (or recovered) and records order_created.
-	 *
-	 * @param string $session_key Shopper session.
-	 * @param int    $order_id    Created order.
-	 */
-	public static function convert( string $session_key, int $order_id ): void {
-		if ( '' === $session_key || $order_id <= 0 ) {
-			return;
-		}
-		$converted = Repository::mark_converted( $session_key, $order_id, gmdate( 'Y-m-d H:i:s' ) );
-		if ( null !== $converted ) {
-			$id           = $converted['id'];
-			$is_recovered = $converted['recovered'];
-			History::log( $id, $is_recovered ? 'recovered' : 'order_created', 'none', 'system', 0, 'ok', 'order_id=' . $order_id, false );
-			if ( $is_recovered && function_exists( 'wc_get_order' ) ) {
-				$order = wc_get_order( $order_id );
-				if ( $order instanceof \WC_Order ) {
-					$order->update_meta_data( '_motored_recovered_cart_id', (string) $id );
-					$order->save_meta_data();
-				}
-			}
-		}
-	}
 }
