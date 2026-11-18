@@ -1933,3 +1933,7 @@ msgstr "Revisar integración (plugin activo %1$s, validado con %2$s)"
 #, php-format
 msgid "Mercado Pago plugin %1$s is active but the installments limit was validated with %2$s. Review the integration: payments are blocked whenever the limit cannot be applied to the preference."
 msgstr "El plugin de Mercado Pago %1$s está activo pero el límite de cuotas se validó con la versión %2$s. Revisá la integración: los pagos se bloquean siempre que no se pueda aplicar el límite a la preferencia."
+
+#: src/Modules/Recovery/OrderSync.php:75
+msgid "Recovery paused for payment plan review."
+msgstr "Recuperación pausada por revisión de plan."

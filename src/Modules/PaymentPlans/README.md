@@ -53,7 +53,7 @@ WC session key `motored_plan` (plan id). No tables, no cache keys.
   Order not identifiable: blocked while plans are enabled (a saved plan is enforced even if the module is disabled later).
 - Version guard: `CheckoutPro::VALIDATED_VERSION` (8.10.2); another active version only warns (Status row + section notice).
 - `Reconciler`: on processing/completed and 120 s later, reads plain order meta (`Mercado Pago - <id> - installments`, `Mercado Pago - Payment <id>`): installments <= plan max, no card on cash plans,
-  amount and paid ~ order total. Divergence: private note, `on-hold`, e-mail to the admin, state meta `_motored_plan_recon`; never cancels or refunds. No data at the second look: note only.
+  amount and paid ~ order total. Divergence: meta `_motored_plan_mismatch` (set first), private note, `on-hold`, e-mail to the admin, state meta `_motored_plan_recon`; never cancels or refunds. The flag pauses customer notices (OrderNotifications) and the Recovery sequence of that order. No data at the second look: note only.
 
 ## Performance and security notes
 Loads on frontend, ajax and admin only. `register()` reads no options. Public pages read the option only when a product price/cart is processed
@@ -67,7 +67,7 @@ gateway warnings, contexts. Manual: `docs/STAGING-CHECKLIST.md` (Payment plans),
 
 ## Known limitations
 - Cart/Checkout Blocks: no selector and no fee (the module does not load in REST). Planned for a later stage.
-- On-hold after a divergence also triggers the OrderNotifications / Recovery on-hold flows (VERIFY #84).
+- ReviewRequests is not paused by the mismatch flag.
 - Stores with a currency ratio or a discount/commission inside the MP gateway are blocked by the total check (#85).
 - Variable products add about 0.4 KB per variation to the page data.
 - The block-theme product template needs the shortcode; the variation script needs jQuery (WooCommerce's own events), otherwise the line keeps the minimum price.

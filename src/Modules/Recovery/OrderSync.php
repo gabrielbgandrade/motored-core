@@ -50,11 +50,30 @@ final class OrderSync {
 	 * @param \WC_Order $order Order.
 	 */
 	public static function sync_order( \WC_Order $order ): void {
+		if ( OrderHooks::has_plan_mismatch( $order ) ) {
+			self::pause_for_plan_review( $order );
+			return;
+		}
 		$recovered = self::apply( OrderHooks::facts( $order ), OrderHooks::paid_statuses(), CartHooks::session_key(), time(), get_current_user_id() );
 		if ( null !== $recovered ) {
 			$order->update_meta_data( '_motored_recovered_cart_id', (string) $recovered );
 			$order->save_meta_data();
 		}
+	}
+
+	/**
+	 * A paid order that does not match its payment plan is under review: stop its sequence (never start or continue one).
+	 *
+	 * @param \WC_Order $order Order flagged by PaymentPlans.
+	 */
+	private static function pause_for_plan_review( \WC_Order $order ): void {
+		$order_id = (int) $order->get_id();
+		$row      = Repository::find_for_order( $order_id, CartHooks::session_key(), strtolower( trim( (string) $order->get_billing_email() ) ), gmdate( 'Y-m-d H:i:s', time() - 86400 ) );
+		if ( null === $row || Status::ACTIVE !== $row['status'] ) {
+			return;
+		}
+		self::expire( $row['id'], 'plan_review' );
+		$order->add_order_note( __( 'Recovery paused for payment plan review.', 'motored-core' ), 0, false );
 	}
 
 	/**

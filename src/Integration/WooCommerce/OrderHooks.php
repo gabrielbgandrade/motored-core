@@ -111,6 +111,20 @@ final class OrderHooks {
 	}
 
 	/**
+	 * Order meta set by PaymentPlans when a paid order does not match its plan (customer messages stay paused).
+	 */
+	public const PLAN_MISMATCH_META = '_motored_plan_mismatch';
+
+	/**
+	 * Whether the order was flagged as mismatching its payment plan (no customer message or recovery step may go out).
+	 *
+	 * @param \WC_Order $order Order.
+	 */
+	public static function has_plan_mismatch( \WC_Order $order ): bool {
+		return '' !== (string) $order->get_meta( self::PLAN_MISMATCH_META, true );
+	}
+
+	/**
 	 * Statuses WooCommerce considers paid (without the "wc-" prefix).
 	 *
 	 * @return list<string>

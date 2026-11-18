@@ -130,6 +130,11 @@ final class Notifier {
 			return;
 		}
 
+		// Orders paused by a payment plan mismatch get no customer notice (the internal admin alert is unaffected).
+		if ( OrderHooks::has_plan_mismatch( $order ) ) {
+			$events = array_values( array_filter( $events, static fn( string $event ): bool => EventMap::ADMIN_NEW_ORDER === $event ) );
+		}
+
 		$dirty = false;
 		foreach ( $events as $event ) {
 			$meta_key = EventMap::meta_key( $event );
@@ -170,7 +175,7 @@ final class Notifier {
 		}
 
 		$order = $this->resolve_order( $order_id, null );
-		if ( null === $order ) {
+		if ( null === $order || OrderHooks::has_plan_mismatch( $order ) ) {
 			return;
 		}
 
@@ -216,6 +221,10 @@ final class Notifier {
 		}
 
 		if ( ! EventMap::matches_status( $step, (string) $order->get_status() ) ) {
+			return null;
+		}
+		// Already queued jobs also stop (customer events only; the admin alert is internal).
+		if ( EventMap::ADMIN_NEW_ORDER !== $step && OrderHooks::has_plan_mismatch( $order ) ) {
 			return null;
 		}
 

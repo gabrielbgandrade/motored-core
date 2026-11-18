@@ -42,7 +42,11 @@ final class OrderStepHandler {
 			return null;
 		}
 
-		$order    = OrderHooks::load_order( (int) $row['order_id'] );
+		$order = OrderHooks::load_order( (int) $row['order_id'] );
+		if ( null !== $order && OrderHooks::has_plan_mismatch( $order ) ) {
+			OrderSync::expire( $id, 'plan_review' );
+			return null;
+		}
 		$decision = OrderRecovery::decide( $row, null === $order ? null : OrderHooks::facts( $order ), OrderHooks::paid_statuses(), Config::order_cancelled_fallback() );
 		if ( 'paid' === $decision['action'] ) {
 			OrderSync::resolve_paid( $row, (int) $row['order_id'], gmdate( 'Y-m-d H:i:s' ) );
@@ -90,7 +94,10 @@ final class OrderStepHandler {
 	 * @param bool                $fallback Whether this is a fallback from WhatsApp.
 	 */
 	public static function send_email( array $row, int $step_num, bool $fallback ): bool {
-		$order    = OrderHooks::load_order( (int) $row['order_id'] );
+		$order = OrderHooks::load_order( (int) $row['order_id'] );
+		if ( null !== $order && OrderHooks::has_plan_mismatch( $order ) ) {
+			return false;
+		}
 		$decision = OrderRecovery::decide( $row, null === $order ? null : OrderHooks::facts( $order ), OrderHooks::paid_statuses(), Config::order_cancelled_fallback() );
 		if ( null === $order || ! in_array( $decision['action'], array( 'send', 'restore' ), true ) ) {
 			return false;

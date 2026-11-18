@@ -1858,3 +1858,7 @@ msgstr ""
 #, php-format
 msgid "Mercado Pago plugin %1$s is active but the installments limit was validated with %2$s. Review the integration: payments are blocked whenever the limit cannot be applied to the preference."
 msgstr ""
+
+#: src/Modules/Recovery/OrderSync.php:75
+msgid "Recovery paused for payment plan review."
+msgstr ""

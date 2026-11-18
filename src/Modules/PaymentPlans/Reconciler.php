@@ -174,6 +174,10 @@ final class Reconciler {
 	 */
 	private function mark( \WC_Order $order, string $state ): void {
 		$order->update_meta_data( self::META_STATE, $state );
+		if ( self::STATE_DIVERGED === $state ) {
+			// Set BEFORE the status change below: customer notices and Recovery check it (OrderHooks::has_plan_mismatch).
+			$order->update_meta_data( OrderHooks::PLAN_MISMATCH_META, '1' );
+		}
 		$order->save_meta_data();
 	}
 
