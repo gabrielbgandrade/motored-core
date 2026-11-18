@@ -1630,3 +1630,231 @@ msgstr ""
 #: templates/emails/plain/motored-pending-payment.php:32
 msgid "Complete the payment here:"
 msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:30
+msgid "Payment plans"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:56
+msgid "The product price (ERP) is the price of the 6 interest-free installments. Each plan adds a percentage to it (negative = discount). Applies to the classic checkout with Mercado Pago Checkout Pro."
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:60
+msgid "Enable payment plans"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:61
+msgid "Show the installments line on products and let customers choose a plan at checkout."
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:88
+msgid "Plans"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:90
+msgid "ID"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:91
+msgid "Name"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:92
+msgid "Adjustment %"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:93
+msgid "Max. installments"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:95
+msgid "Remove"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:120
+msgid "Card"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:122
+msgid "Cash / transfer"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:136
+msgid "Percentages: negative = discount, positive = surcharge (never shown to customers). Cash plans always have 1 installment. To add a plan fill the empty row (ID: lowercase letters, numbers and underscores)."
+msgstr ""
+
+#. translators: 1: number of installments, 2: amount of each installment
+#: src/Modules/PaymentPlans/Presenter.php:38
+#, php-format
+msgid "%1$d payment of %2$s"
+msgid_plural "%1$d payments of %2$s"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: total price, 2: discount percentage
+#: src/Modules/PaymentPlans/Presenter.php:60
+#, php-format
+msgid "%1$s (%2$s%% OFF)"
+msgstr ""
+
+#. translators: %s: total price
+#: src/Modules/PaymentPlans/Presenter.php:79
+#, php-format
+msgid "Total %s"
+msgstr ""
+
+#. translators: 1: plan name, 2: total price
+#: src/Modules/PaymentPlans/Presenter.php:92
+#, php-format
+msgid "%1$s: %2$s"
+msgstr ""
+
+#. translators: 1: plan name (e.g. "6 interest-free installments"), 2: amount of each installment
+#: src/Modules/PaymentPlans/Presenter.php:95
+#, php-format
+msgid "%1$s of %2$s"
+msgstr ""
+
+#: src/Modules/PaymentPlans/Presenter.php:106
+msgid "Discount for paying by transfer, account money or cash"
+msgstr ""
+
+#. translators: %d: number of installments
+#: src/Modules/PaymentPlans/Presenter.php:110
+#, php-format
+msgid "Discount for paying in %d installment"
+msgid_plural "Discount for paying in %d installments"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of installments
+#: src/Modules/PaymentPlans/Presenter.php:117
+#, php-format
+msgid "Financing in %d installment"
+msgid_plural "Financing in %d installments"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: percentage configured in the gateway
+#: src/Modules/PaymentPlans/GatewayCheck.php:27
+#, php-format
+msgid "Mercado Pago Checkout Pro has a discount of %s%%. Set it to 0: the plans already apply the discounts."
+msgstr ""
+
+#. translators: %s: percentage configured in the gateway
+#: src/Modules/PaymentPlans/GatewayCheck.php:34
+#, php-format
+msgid "Mercado Pago Checkout Pro has a commission of %s%%. Set it to 0: the plans already apply the surcharges."
+msgstr ""
+
+#. translators: 1: maximum installments in the gateway, 2: highest number of installments among the active plans
+#: src/Modules/PaymentPlans/GatewayCheck.php:41
+#, php-format
+msgid "Mercado Pago Checkout Pro allows up to %1$d installments, but your longest active plan has %2$d."
+msgstr ""
+
+#: src/Modules/PaymentPlans/Storefront.php:93
+msgid "See all payment methods"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PlanDialog.php:58
+msgid "Payment methods"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PlanDialog.php:59
+msgid "Close"
+msgstr ""
+
+#: src/Modules/PaymentPlans/CheckoutPlans.php:178
+msgid "Choose your payment plan"
+msgstr ""
+
+#: src/Integration/MercadoPago/PreferenceFilter.php:67
+msgid "We could not start the payment with the selected plan. Please try again in a few minutes or contact the store."
+msgstr ""
+
+#. translators: %s: short reason code
+#: src/Integration/MercadoPago/PreferenceFilter.php:150
+#, php-format
+msgid "Payment blocked: the installments limit of the plan could not be applied to the Mercado Pago preference (%s)."
+msgstr ""
+
+#. translators: 1: installments used, 2: maximum of the plan
+#: src/Modules/PaymentPlans/Reconciler.php:48
+#, php-format
+msgid "paid in %1$d installments but the plan allows up to %2$d"
+msgstr ""
+
+#: src/Modules/PaymentPlans/Reconciler.php:52
+msgid "paid with a card but the plan is cash/transfer"
+msgstr ""
+
+#. translators: 1: amount recorded by Mercado Pago, 2: order total
+#: src/Modules/PaymentPlans/Reconciler.php:60
+#, php-format
+msgid "the payment amount (%1$s) differs from the order total (%2$s)"
+msgstr ""
+
+#. translators: 1: amount paid by the customer, 2: order total
+#: src/Modules/PaymentPlans/Reconciler.php:68
+#, php-format
+msgid "the customer paid %1$s but the order total is %2$s"
+msgstr ""
+
+#: src/Modules/PaymentPlans/Reconciler.php:140
+msgid "Payment plan not verified: no Mercado Pago payment data was found on the order."
+msgstr ""
+
+#. translators: %s: list of divergences
+#: src/Modules/PaymentPlans/Reconciler.php:158
+#, php-format
+msgid "Payment plan mismatch: %s. The order was put on hold for review; nothing was cancelled or refunded."
+msgstr ""
+
+#. translators: %s: order number
+#: src/Modules/PaymentPlans/Reconciler.php:195
+#, php-format
+msgid "Review order #%s: payment plan mismatch"
+msgstr ""
+
+#. translators: 1: order number, 2: divergences
+#: src/Modules/PaymentPlans/Reconciler.php:190
+#, php-format
+msgid "Order #%1$s was paid with installments or an amount that its payment plan does not allow: %2$s."
+msgstr ""
+
+#: src/Modules/PaymentPlans/Reconciler.php:192
+msgid "The order was put on hold. Nothing was cancelled or refunded."
+msgstr ""
+
+#. translators: %s: order admin URL
+#: src/Modules/PaymentPlans/Reconciler.php:193
+#, php-format
+msgid "Review it here: %s"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:50
+msgid "Mercado Pago integration"
+msgstr ""
+
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:64
+msgid "Mercado Pago plugin not active"
+msgstr ""
+
+#. translators: %s: Mercado Pago plugin version
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:69
+#, php-format
+msgid "OK (plugin %s)"
+msgstr ""
+
+#. translators: 1: active Mercado Pago plugin version, 2: validated version
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:73
+#, php-format
+msgid "Review integration (active plugin %1$s, validated with %2$s)"
+msgstr ""
+
+#. translators: 1: active Mercado Pago plugin version, 2: validated version
+#: src/Modules/PaymentPlans/PaymentPlansAdmin.php:97
+#, php-format
+msgid "Mercado Pago plugin %1$s is active but the installments limit was validated with %2$s. Review the integration: payments are blocked whenever the limit cannot be applied to the preference."
+msgstr ""

@@ -112,3 +112,23 @@ its own templates.
 - [ ] Switch on: Status "Test mode (N)"; only a listed number receives messages; others get the note "modo de prueba".
 - [ ] Test mode off: real customers receive; Status shows "Real". Recovery is off until enabled.
 
+## Payment plans (Motored > Planes de pago)
+- [ ] Default OFF; enable: products show "6 cuotas sin interés de $X" + "Ver todos los medios de pago" (single, shop, category; shortcode on a block theme); out-of-stock / no price: nothing.
+- [ ] Dialog: discounts show "$total (X% OFF)", surcharges only installment + total; variable product updates on variation change and resets.
+- [ ] Query Monitor: pages without a link load no script/dialog; the one script is < 3 KB `defer`; no HTTP.
+- [ ] Classic checkout with Mercado Pago Checkout Pro: selector visible only for that gateway, fee row (negative/positive, untaxed), totals after coupon and tax; place the order: `_motored_plan_*` meta on the order (HPOS on/off).
+- [ ] Pay an unpaid order from its link: same plan/fee. Blocks checkout: no selector, no fee (documented).
+- [ ] MP settings with discount/commission/low max installments: warning in the section.
+
+## Payment plans x Mercado Pago sandbox (part B)
+Prerequisites: MP plugin 8.10.2, sandbox credentials, Checkout Pro enabled, plugin discount/commission = 0, installments >= 12; in the MP account confirm "cuotas sin interés" up to 12 is active; "Cuotas sin Tarjeta" (`consumer_credits`) is off in the account/plugin.
+- [ ] Motored > Status: "Integración con Mercado Pago: OK (plugin 8.10.2)".
+- [ ] Cash plan: Checkout Pro offers no credit/debit card (account money, transfer, cash only); the order total in MP = order total.
+- [ ] Plan 3: account money and 1, 2 or 3 installments; NEVER 6 or more.
+- [ ] Plan 9: account money and installments up to 9 (1, 2, 3, 6, 9 as MP offers).
+- [ ] Preference value: sum of items = order total (coupon + tax + shipping + plan fee); the preference shows no extra discount/commission.
+- [ ] Pending order paid later from its link: same plan limit, same total.
+- [ ] Fail closed: break the plan meta of a pending order, press pay: error message in es_AR, NO preference in MP, private note, log without personal data.
+- [ ] Approved payment: order meta `Mercado Pago - <id> - installments` <= plan max; reconcile leaves state `ok`. Forced mismatch: on-hold, note, admin e-mail, nothing cancelled or refunded.
+- [ ] Update the MP plugin: Status shows "Revisar integración"; repeat the cash/3/9 checks.
+

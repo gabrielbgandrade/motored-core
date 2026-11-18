@@ -32,6 +32,7 @@ final class Plugin {
 		Modules\Recovery\RecoveryModule::class,
 		Modules\ReviewPhotos\ReviewPhotosModule::class,
 		Modules\ReviewRequests\ReviewRequestsModule::class,
+		Modules\PaymentPlans\PaymentPlansModule::class,
 	);
 
 	/**
@@ -39,7 +40,7 @@ final class Plugin {
 	 *
 	 * @var list<string>
 	 */
-	public const ACTION_HOOKS = array( 'motored_waha_send', 'motored_recovery_cleanup', 'motored_recovery_scan' );
+	public const ACTION_HOOKS = array( 'motored_waha_send', 'motored_recovery_cleanup', 'motored_recovery_scan', 'motored_plans_reconcile' );
 
 	/**
 	 * Defaults of the built-in "general" settings.

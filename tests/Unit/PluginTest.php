@@ -75,6 +75,7 @@ final class PluginTest extends TestCase {
 				\Motored\Core\Modules\Recovery\RecoveryModule::class,
 				\Motored\Core\Modules\ReviewPhotos\ReviewPhotosModule::class,
 				\Motored\Core\Modules\ReviewRequests\ReviewRequestsModule::class,
+				\Motored\Core\Modules\PaymentPlans\PaymentPlansModule::class,
 			),
 			Plugin::MODULES
 		);
@@ -105,7 +106,7 @@ final class PluginTest extends TestCase {
 
 	public function test_deactivation_removes_every_scheduled_job_and_keeps_data(): void {
 		$hooks = array();
-		Functions\expect( 'as_unschedule_all_actions' )->times( 3 )->andReturnUsing(
+		Functions\expect( 'as_unschedule_all_actions' )->times( 4 )->andReturnUsing(
 			function ( $hook, $args, $group ) use ( &$hooks ) {
 				$this->assertSame( 'motored-core', $group );
 				$hooks[] = $hook;

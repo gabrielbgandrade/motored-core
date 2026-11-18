@@ -9,7 +9,7 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 // Jobs are not data: always remove them, or Action Scheduler keeps running hooks with no listener.
 if ( function_exists( 'as_unschedule_all_actions' ) ) {
-	foreach ( array( 'motored_waha_send', 'motored_recovery_cleanup', 'motored_recovery_scan' ) as $motored_hook ) {
+	foreach ( array( 'motored_waha_send', 'motored_recovery_cleanup', 'motored_recovery_scan', 'motored_plans_reconcile' ) as $motored_hook ) {
 		as_unschedule_all_actions( $motored_hook, array(), 'motored-core' );
 	}
 }

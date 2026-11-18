@@ -68,6 +68,13 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
 - **Padrões:** desligado; 7 dias; até 3 produtos.
 - **Limites:** um pedido de avaliação por pedido, para sempre; "já avaliou" é detectado por usuário ou e-mail de cobrança.
 
+## Planos de pagamento (PaymentPlans)
+- **O que faz:** o preço do ERP é o preço de 6 cuotas sin interés; cada plano (transferência/efectivo -10%, 3 cuotas -5%, 6 cuotas 0%, 9 cuotas +10%, 12 cuotas +20%) ajusta esse preço.
+- **Onde:** Motored > Planes de pago (interruptor geral e tabela editável de planos). Vitrine: linha "6 cuotas sin interés de $X" + link "Ver todos los medios de pago" (janela com todos os planos). Checkout clássico com Mercado Pago Checkout Pro: seletor de plano e taxa nativa (desconto negativo, acréscimo positivo, sem imposto).
+- **Regras:** descontos mostram "% OFF"; acréscimos nunca mostram a porcentagem. A base no checkout é produtos após cupons + impostos, sem frete. O plano fica gravado no pedido (`_motored_plan_*`).
+- **Limite no Mercado Pago (parte B):** ao criar a preferência do Checkout Pro, o plugin limita as parcelas ao máximo do plano (plano 3 nunca oferece 6; plano cash sem cartão de crédito/débito; dinero en cuenta sempre permitido). Se o limite não puder ser aplicado ou o total dos itens não bater com o pedido, o pagamento é **bloqueado** (mensagem ao cliente, nota privada e log) — nunca sai uma preferência sem limite. Depois do pagamento, confere parcelas e valor com o plano; se divergir, o pedido vai para *on-hold*, com nota e e-mail ao administrador (nada é cancelado nem reembolsado). Motored > Status mostra "Integración con Mercado Pago: OK / Revisar integración" (versão validada: 8.10.2).
+- **Padrões / limites:** desligado; Checkout de Blocos fica para depois. Avisa se o Mercado Pago tem desconto/comissão ou menos parcelas que o maior plano.
+
 ## Estado por funcionalidade
 | Funcionalidade | Estado |
 |---|---|
@@ -86,6 +93,9 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
 | Fotos nas avaliações: validação, limites, exclusão | implementado + coberto por testes |
 | Fotos nas avaliações: formulário e miniaturas em cada tema | implementado, depende de staging |
 | Pedido de avaliação | implementado + coberto por testes |
+| Planos de pagamento: cálculo, validação, taxa | implementado + coberto por testes |
+| Planos de pagamento: vitrine, seletor no checkout clássico | implementado, depende de staging |
+| Planos x Mercado Pago: limite de parcelas, bloqueio, reconciliação | implementado + coberto por testes; depende da sandbox do MP |
 | Receber respostas dos clientes; WhatsApp com imagem/botões | pendente |
 | Caixa de consentimento (decisão: não nesta fase) | pendente |
 

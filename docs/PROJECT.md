@@ -48,6 +48,12 @@ Format: date — decision — reason. Divergences from the original brief are ma
 
 - 2026-11-18 — ReviewRequests module: ONE WhatsApp review request per order, scheduled with `Sender::enqueue` (priority LOW, delay = days moved to the Recovery window start) from the existing status listener; no own AS hook and no tables; idempotency by order meta `_motored_review_req`; everything is re-checked at send time (status, full refund, phone, suppression, window, per-number limit, already reviewed). Reuses Recovery's suppression, per-number limiter and window settings; own stateless per-order opt-out link (Recovery's link needs a recovery row). Manual "Send now" uses priority NORMAL and skips trigger/window/limit only. Settings share the "Reseñas" section with ReviewPhotos through the `motored_reviews_section_fields` filter (`Admin\ReviewsSection`). `Renderer` gained `{review_links}` and `{store_review_url}`. Disabled by default. — Reviews without new infrastructure.
 
+- 2026-11-18 — PaymentPlans module, part A: the ERP price is the 6-installment list price; plans (cash -10%, 3 -5%, 6 0%, 9 +10%, 12 +20%) are rows in option `motored_payment_plans` (OFF by default) edited in Motored > Planes de pago. Money is integer cents (`PlanCalculator`, half up, leftover cents on the last installment); texts are formatted on the server only (discounts show "% OFF", surcharges never show the percentage). Storefront uses core hooks (single/loop priority 11) + shortcode, ONE shared `<dialog>` and a < 3 KB defer script only on pages with a link. Classic checkout only: plan in the WC session while `woo-mercado-pago-basic` is chosen, untaxed native fee on base = product lines after coupons + taxes (no shipping), order meta `_motored_plan_*`. Blocks and the Mercado Pago installments/preference integration (part B) are deferred. — Product request.
+- 2026-11-18 — **DIVERGENCE:** the storefront needs the plans, so public product/shop pages read option `motored_payment_plans` once (0 queries with Redis, 1 without) instead of 0 queries; `register()` itself reads nothing and nothing loads when the module is off beyond that read. The variation script listens to WooCommerce's jQuery events only when `window.jQuery` exists (the script itself uses no jQuery). — The spec requires the price to come from the server and `found_variation` updates.
+- 2026-11-18 — The MP gateway option keys (`gateway_discount`, `commission`, effective only with `<key>_checkbox` = yes; `installments`, 0 = 12) were read in the MP plugin 8.10.2 source copy under `reference/`; read-only admin warnings. — Verification of an unverified API (VERIFY #77).
+
+- 2026-11-18 — PaymentPlans part B: the MP plugin (8.10.2, read in `reference/`) has no preference filter, so `PreferenceFilter` rewrites the outgoing POST to `/v1/asgard/preferences` (`http_request_args` 9999) and blocks through `pre_http_request` (priority 1) when the plan limit cannot be applied (**fail closed**: unreadable body, bad plan meta, total mismatch, unidentifiable order while plans are enabled). Installments = min(plugin, plan max); cash plans merge `credit_card`+`debit_card` exclusions (never `account_money`). New order meta `_motored_plan_type`. Version guard `VALIDATED_VERSION` = 8.10.2 (warning only). `Reconciler` (status change + 120 s Action Scheduler job `motored_plans_reconcile`) compares the plugin's order meta (`Mercado Pago - <id> - installments`; `mp_installments` is NOT written by Checkout Pro) with the plan: divergence = note + on-hold + admin e-mail, never cancel/refund. The module now also loads in cron. — Product request.
+
 ## Roadmap
 | Stage | Scope | Status |
 |-------|-------|--------|
@@ -60,6 +66,7 @@ Format: date — decision — reason. Divergences from the original brief are ma
 | 7 | Hardening: load/perf validation on staging, docs/skills final pass, release | planned |
 | 8 | ReviewPhotos: photos on native product reviews | **implemented** (see decisions; VERIFY #60-#65 pending staging) |
 | 9 | ReviewRequests: one review request per order after N days | **implemented** (VERIFY #66-#70 pending staging) |
+| 10 | PaymentPlans part A: plans, calculator, storefront line + dialog, classic checkout selector and fee, admin warnings | **implemented** (VERIFY #73-#79 pending staging); part B (Mercado Pago limit, fail closed, reconciliation) **implemented** (VERIFY #80-#85 pending sandbox); Blocks planned |
 
 Each module stage delivers: module README, module skill (`motored-module-<name>`), VERIFY.md rows, tests, es_AR strings.
 
@@ -167,4 +174,18 @@ Decision: WhatsApp sending is OFF by default (`motored_waha[enabled]=no`); with 
 allowed list after the handler built the message, before any WAHA call); discarded jobs finish with `sending_disabled` / `test_mode` (no retry, no e-mail fallback),
 logged without PII and noted by OrderNotifications, ReviewRequests and Recovery (order notes / history). Recovery now defaults to disabled; OrderNotifications,
 ReviewPhotos and ReviewRequests keep their defaults. Status row + warning notice show the state. Tests: `DeliveryModeTest`; VERIFY #72. PENDING: staging check of the settings fields.
+
+
+### 2026-11-18 — PaymentPlans part A authoring (self-review; needs independent `motored-review`)
+Results (PHP 8.5.9): phpunit 393 tests OK (43 new), phpstan level 6 clean, phpcs clean on the plugin (run with `--ignore='reference/*,vendor/*,build/*'`: the untracked `reference/` copy of the MP plugin is picked up by the default `composer check` and fails phpcs; it is not part of this change). `.pot/.po/.mo` updated (393 entries, `msgfmt --check`).
+- Delivered: `PlanCalculator`/`Plan`/`Plans`/`Quote`, `Presenter`, `Storefront` + `PlanDialog` + `assets/js/payment-plans.js` (2.0 KB), `CheckoutPlans`, `PaymentPlansAdmin`, `GatewayCheck`, adapters `Integration/WooCommerce/{PlanHooks,CheckoutState}` and `Integration/MercadoPago/CheckoutPro`.
+- Perf check by reading: `register()` reads no option; the cart-fee path tests the session before `Config`; script/dialog only when a link renders; no HTTP; no migrations/tables.
+- Reviewer: look first at `CheckoutState::cart_base_cents` (cart totals at the fee hook, VERIFY #76), `CheckoutPlans::on_posted_data` (order of `woocommerce_checkout_posted_data` vs `update_session`) and the `.motored-plan-selector` fragment + `update_totals_on_change` refresh (VERIFY #75).
+- Pending: VERIFY #73-#79 on staging (themes matrix, variable products, tax/coupon/shipping totals, HPOS); Blocks checkout and part B (Mercado Pago installments from `_motored_plan_max_installments`).
+
+### 2026-11-18 — PaymentPlans part B authoring (self-review; needs independent `motored-review`)
+Results (PHP 8.5.9): phpunit 429 tests OK, phpstan level 6 clean, phpcs clean on the plugin (default `composer check` still scans the untracked `reference/`). `.pot/.po/.mo` updated (`msgfmt --check`). Payment type ids checked against MP docs only (VERIFY #82).
+- Delivered: `PreferenceFilter`, `PreferenceRewriter`, `Reconciler`, `CheckoutPro` (version, order id from reference, payment meta), Status row, version notice; `motored_plans_reconcile` added to `Plugin::ACTION_HOOKS` and `uninstall.php`.
+- Reviewer: look first at `PreferenceFilter::guard` (every path that returns the original args must be provably "no plan"), the `order not found` policy (blocks only while the module is enabled), and `Reconciler` on-hold side effects (VERIFY #84).
+- Pending: sandbox run of the staging checklist (cash/3/9, fail closed, reconciliation), real `/v1/payment_methods` list for AR.
 
