@@ -67,8 +67,15 @@ final class PluginTest extends TestCase {
 		$this->assertNotFalse( has_filter( 'woocommerce_get_settings_pages', array( $admin, 'register_settings_page' ) ) );
 	}
 
-	public function test_default_module_list_is_empty_in_stage_one(): void {
-		$this->assertSame( array(), Plugin::MODULES );
+	public function test_default_module_list_registers_waha_and_order_notifications(): void {
+		$this->assertSame(
+			array(
+				\Motored\Core\Modules\Waha\WahaModule::class,
+				\Motored\Core\Modules\OrderNotifications\OrderNotificationsModule::class,
+				\Motored\Core\Modules\Recovery\RecoveryModule::class,
+			),
+			Plugin::MODULES
+		);
 	}
 
 	public function test_boot_is_idempotent(): void {
@@ -84,7 +91,13 @@ final class PluginTest extends TestCase {
 	}
 
 	public function test_activation_creates_general_option_without_autoload(): void {
+		$wpdb         = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET=utf8mb4' );
+		$GLOBALS['wpdb'] = $wpdb;
+		Functions\when( 'dbDelta' )->justReturn( array() );
 		Functions\expect( 'add_option' )->once()->with( 'motored_general', Plugin::GENERAL_DEFAULTS, '', false );
 		Plugin::activate();
+		$this->assertSame( '2026111901', $this->options['motored_schema_version'] );
 	}
 }

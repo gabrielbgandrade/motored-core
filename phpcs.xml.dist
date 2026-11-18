@@ -13,15 +13,25 @@
   <arg value="ps"/>
   <arg name="cache" value=".phpcs.cache"/>
   <config name="minimum_supported_wp_version" value="6.8"/>
+  <config name="testVersion" value="8.1-"/>
 
   <rule ref="WordPress-Extra"/>
   <rule ref="WordPress-Docs"/>
 
   <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+    <exclude-pattern>/templates/*</exclude-pattern>
     <properties>
       <property name="prefixes" type="array">
         <element value="motored"/>
         <element value="Motored"/>
+      </property>
+    </properties>
+  </rule>
+
+  <rule ref="WordPress.WP.Capabilities">
+    <properties>
+      <property name="custom_capabilities" type="array">
+        <element value="manage_woocommerce"/>
       </property>
     </properties>
   </rule>

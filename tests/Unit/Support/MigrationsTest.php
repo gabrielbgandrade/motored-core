@@ -107,8 +107,15 @@ final class MigrationsTest extends TestCase {
 		$this->assertSame( 0, ( new Migrations() )->run() );
 	}
 
-	public function test_default_registry_is_empty(): void {
-		$this->assertSame( array(), \Motored\Core\Plugin::migrations() );
+	public function test_default_registry_only_has_valid_ids(): void {
+		$ids = array_keys( \Motored\Core\Plugin::migrations() );
+		$this->assertNotEmpty( $ids );
+		foreach ( $ids as $id ) {
+			$this->assertMatchesRegularExpression( '/^\d{10}$/', (string) $id );
+		}
+		$sorted = $ids;
+		sort( $sorted, SORT_STRING );
+		$this->assertSame( $sorted, $ids, 'Ids must be listed in ascending order.' );
 	}
 
 	public function test_rejects_malformed_id(): void {

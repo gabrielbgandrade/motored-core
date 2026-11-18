@@ -10,7 +10,7 @@
 #   - No msgfmt: compile with Python's bundled script, e.g.
 #       python3 /usr/lib/python3*/Tools/i18n/msgfmt.py -o languages/motored-core-es_AR.mo languages/motored-core-es_AR.po
 #     or any equivalent .po -> .mo compiler. The repo's .mo was generated with a small Python
-#     implementation of the GNU .mo format (see docs/DECISIONS.md).
+#     implementation of the GNU .mo format (see docs/PROJECT.md).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

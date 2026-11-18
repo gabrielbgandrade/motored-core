@@ -149,6 +149,9 @@ final class SettingsTab extends \WC_Settings_Page {
 			__( 'Locale is es_AR', 'motored-core' )     => 'es_AR' === $locale ? $yes : $no,
 		);
 
+		// Modules add their own rows (label => value, already translated).
+		$rows = apply_filters( 'motored_status_rows', $rows );
+
 		echo '<h2>' . esc_html__( 'Status', 'motored-core' ) . '</h2>';
 		echo '<table class="widefat striped" style="max-width:640px"><tbody>';
 		foreach ( $rows as $label => $value ) {

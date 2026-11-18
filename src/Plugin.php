@@ -22,11 +22,15 @@ defined( 'ABSPATH' ) || exit;
 final class Plugin {
 
 	/**
-	 * Module class names. Empty in stage 1; each future module adds one line here.
+	 * Module class names; each module adds one line here.
 	 *
 	 * @var list<class-string<Module>>
 	 */
-	public const MODULES = array();
+	public const MODULES = array(
+		Modules\Waha\WahaModule::class,
+		Modules\OrderNotifications\OrderNotificationsModule::class,
+		Modules\Recovery\RecoveryModule::class,
+	);
 
 	/**
 	 * Defaults of the built-in "general" settings.
@@ -90,17 +94,22 @@ final class Plugin {
 		Options::register_defaults( 'general', self::GENERAL_DEFAULTS );
 		Options::ensure( 'general' );
 		( new Migrations( self::migrations() ) )->run();
+		Modules\Recovery\Retention::schedule();
+		Modules\Recovery\Scanner::schedule();
 	}
 
 	/**
-	 * Migration registry (id => up callable). Empty in stage 1.
+	 * Migration registry (id => up callable).
 	 *
 	 * Future modules add entries such as '2026120101' => array( SomeMigration::class, 'up' ).
 	 *
-	 * @return array<string,callable>
+	 * @return array<int|string,callable():mixed>
 	 */
 	public static function migrations(): array {
-		return array();
+		return array(
+			'2026111801' => Modules\Recovery\RecoveryMigration::up( ... ),
+			'2026111901' => Modules\Recovery\SuppressionMigration::up( ... ),
+		);
 	}
 
 	/**

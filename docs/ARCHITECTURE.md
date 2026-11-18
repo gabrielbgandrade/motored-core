@@ -53,3 +53,21 @@ logged (masked) and stored as an event. No external HTTP ever happens inside a c
 ## Queues
 Action Scheduler only (no custom queue table, no WP-Cron events of our own). Scheduling happens in
 event handlers or admin, never on frontend page views. Availability is reported on the Status section.
+
+## Cart capture flow (Recovery module, part A)
+Checkout (classic) -> one deferred script posts e-mail/phone/name (debounced, only if changed) -> `wc-ajax=motored_capture`
+(nonce, rate limit) -> validate -> read the cart ON THE SERVER -> `CaptureService` upsert in `motored_recoveries` + event in
+`motored_recovery_events`. Logged-in cart changes capture at `shutdown` (5 min throttle). Order creation marks `converted`.
+"Abandoned" is derived on read. A daily Action Scheduler job purges old rows (batches of 500). No messages yet.
+
+## Unpaid-order recovery flow (Recovery module, part C)
+Order created / status changed (pending, failed, on-hold) -> `OrderSync` (lookup + write, no HTTP) -> one `type=order` row (an active cart row of the same
+session/e-mail is converted) with `next_action_gmt` from the case sequence -> scanner enqueues `recovery_step` -> `OrderStepHandler` reloads the order and decides
+(`OrderRecovery::decide`: paid / expire / restore / send) -> WhatsApp via `Sender` or `PendingPaymentEmail`; each send adds a private order note.
+Paid status -> `recovered` (message delivered first) or `converted`.
+
+## WhatsApp send flow (Waha module)
+Module -> `Sender::enqueue( kind, id, step, delay )` -> Action Scheduler (`motored_waha_send`, group `motored-core`)
+-> worker: breaker, rate limit, handler(kind) builds `Message` -> `ChatResolver` (check-exists, cached chat id) ->
+`WahaClient::sendText` -> retry/backoff or `motored_waha_result`. Only the two admin test buttons make sync HTTP.
+The core filter `motored_status_rows` lets modules add rows to the Status section.

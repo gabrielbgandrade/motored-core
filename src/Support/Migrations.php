@@ -32,7 +32,7 @@ final class Migrations {
 	/**
 	 * Constructor.
 	 *
-	 * @param array<string,callable> $migrations Map of id => up callable.
+	 * @param array<int|string,callable> $migrations Map of id => up callable (numeric ids become int keys in PHP).
 	 * @throws \InvalidArgumentException On a malformed id.
 	 */
 	public function __construct( array $migrations = array() ) {

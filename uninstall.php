@@ -27,5 +27,19 @@ foreach ( $motored_patterns as $motored_pattern ) {
 	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $motored_pattern ) );
 }
 
-// Persistent object cache entries expire by TTL; nothing else to remove in stage 1.
-// Future modules: drop their tables and unschedule their Action Scheduler actions here.
+// Pending WhatsApp jobs (Action Scheduler; guarded, see docs/VERIFY.md).
+if ( function_exists( 'as_unschedule_all_actions' ) ) {
+	as_unschedule_all_actions( 'motored_waha_send', array(), 'motored-core' );
+}
+
+// Recovery: cleanup job, scanner job, and tables.
+if ( function_exists( 'as_unschedule_all_actions' ) ) {
+	as_unschedule_all_actions( 'motored_recovery_cleanup', array(), 'motored-core' );
+	as_unschedule_all_actions( 'motored_recovery_scan', array(), 'motored-core' );
+}
+foreach ( array( 'motored_recoveries', 'motored_recovery_events', 'motored_suppressions' ) as $motored_table ) {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- One-off uninstall cleanup; fixed table names.
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$motored_table}" );
+}
+
+// Persistent object cache entries expire by TTL. Future modules: drop their tables here.
