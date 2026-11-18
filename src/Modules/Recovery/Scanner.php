@@ -69,20 +69,24 @@ final class Scanner {
 				: Config::next_step_num( (string) $row['step'] );
 
 			if ( null === $next_step ) {
-				Repository::update(
+				$expired = Repository::update_if_status(
 					$id,
+					Status::ACTIVE,
 					array(
 						'status'          => Status::EXPIRED,
 						'next_action_gmt' => null,
 					)
 				);
-				History::log( $id, 'expired', 'none', 'system', 0, 'ok', '' );
+				if ( $expired ) {
+					History::log( $id, 'expired', 'none', 'system', 0, 'ok', '' );
+				}
 				continue;
 			}
 
-			// Clear next_action_gmt while job is in-flight so subsequent scans do not double-enqueue.
-			Repository::update( $id, array( 'next_action_gmt' => null ) );
-			Sender::enqueue( 'recovery_step', $id, (string) $next_step );
+			// Atomic claim: an overlapping scanner run (or a status change meanwhile) cannot enqueue the same row twice.
+			if ( Repository::claim_due( $id, (string) $row['next_action_gmt'] ) ) {
+				Sender::enqueue( 'recovery_step', $id, (string) $next_step );
+			}
 		}
 	}
 }

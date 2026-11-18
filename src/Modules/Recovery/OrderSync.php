@@ -164,8 +164,8 @@ final class OrderSync {
 	public static function resolve_paid( array $row, int $order_id, string $gmt ): ?int {
 		$id         = (int) $row['id'];
 		$resolution = OrderRecovery::paid_resolution( $row, $order_id, $gmt );
-		Repository::update( $id, $resolution['fields'] );
-		if ( ! $resolution['recovered'] ) {
+		// Compare-and-set: the IPN and the customer's return can report the payment at the same time.
+		if ( ! Repository::update_if_status( $id, Status::ACTIVE, $resolution['fields'] ) || ! $resolution['recovered'] ) {
 			return null;
 		}
 		History::log( $id, 'recovered', 'none', 'system', 0, 'ok', 'order_id=' . $order_id, false );

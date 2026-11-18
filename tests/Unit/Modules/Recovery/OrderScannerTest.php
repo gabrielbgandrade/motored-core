@@ -111,4 +111,30 @@ final class OrderScannerTest extends TestCase {
 		$this->assertStringNotContainsString( 'session_key', $sql );
 		$this->assertSame( array( 501, 501 ), $args );
 	}
+
+	public function test_row_claimed_by_another_run_is_not_enqueued_again(): void {
+		$wpdb = \Mockery::mock( 'wpdb_claim' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$wpdb->shouldReceive( 'get_results' )->andReturn(
+			array( array( 'id' => 7, 'type' => 'order', 'step' => '', 'order_id' => 500, 'last_activity_gmt' => '2026-11-18 10:00:00', 'next_action_gmt' => '2026-11-18 10:30:00' ) )
+		);
+		$wpdb->shouldReceive( 'update' )->once()->withArgs(
+			fn( $table, $data, $where ) => array( 'next_action_gmt' => null ) === $data && '2026-11-18 10:30:00' === $where['next_action_gmt'] && 'active' === $where['status']
+		)->andReturn( 0 ); // Another run cleared it first.
+		$GLOBALS['wpdb'] = $wpdb;
+		Functions\expect( 'as_schedule_single_action' )->never();
+
+		Scanner::run();
+	}
+
+	public function test_paid_resolution_is_written_once_under_concurrency(): void {
+		$wpdb = \Mockery::mock( 'wpdb_cas' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'update' )->once()->withArgs( fn( $t, $d, $where ) => array( 'id' => 3, 'status' => 'active' ) === $where )->andReturn( 0 );
+		$wpdb->shouldReceive( 'insert' )->never(); // No duplicated "recovered" event.
+		$GLOBALS['wpdb'] = $wpdb;
+
+		$this->assertNull( \Motored\Core\Modules\Recovery\OrderSync::resolve_paid( array( 'id' => 3, 'step' => '1', 'wa_sent_count' => 1, 'email_sent_count' => 0 ), 500, '2026-11-18 10:00:00' ) );
+	}
 }

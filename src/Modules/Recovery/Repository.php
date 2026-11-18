@@ -134,6 +134,53 @@ final class Repository {
 	}
 
 	/**
+	 * Updates a row only while it still has the given status (compare-and-set against concurrent requests).
+	 *
+	 * @param int                 $id     Row id.
+	 * @param string              $status Expected current status.
+	 * @param array<string,mixed> $data   Column => value.
+	 * @return bool True when this call changed the row.
+	 */
+	public static function update_if_status( int $id, string $status, array $data ): bool {
+		global $wpdb;
+		$data   = self::only_known( $data );
+		$result = $wpdb->update(
+			self::table(),
+			$data,
+			array(
+				'id'     => $id,
+				'status' => $status,
+			),
+			self::formats( $data ),
+			array( '%d', '%s' )
+		);
+		return is_int( $result ) && $result > 0;
+	}
+
+	/**
+	 * Claims a due row for the scanner: clears next_action_gmt only if nobody else did it first.
+	 *
+	 * @param int    $id       Row id.
+	 * @param string $expected next_action_gmt read by the scanner.
+	 * @return bool True when this scanner run owns the row.
+	 */
+	public static function claim_due( int $id, string $expected ): bool {
+		global $wpdb;
+		$result = $wpdb->update(
+			self::table(),
+			array( 'next_action_gmt' => null ),
+			array(
+				'id'              => $id,
+				'status'          => Status::ACTIVE,
+				'next_action_gmt' => $expected,
+			),
+			array( '%s' ),
+			array( '%d', '%s', '%s' )
+		);
+		return is_int( $result ) && $result > 0;
+	}
+
+	/**
 	 * Marks the active row of a session as converted (or recovered if step > 0).
 	 *
 	 * @param string $session_key Session key.
