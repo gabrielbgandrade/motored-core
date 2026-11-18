@@ -32,11 +32,12 @@ final class RecoveryResultHandler {
 		}
 
 		// Skipped by handler (e.g. out of stock, already converted, outside window).
+		$step_num = is_numeric( $step ) ? (int) $step : 1;
+
 		if ( ! $result->ok && 'skipped' === $result->code ) {
+			self::release_skipped( $ref_id, $step_num );
 			return;
 		}
-
-		$step_num = is_numeric( $step ) ? (int) $step : 1;
 
 		if ( $result->ok ) {
 			History::log( $ref_id, 'sent', 'whatsapp', 'auto', 0, 'ok', 'step=' . $step_num );
@@ -67,6 +68,22 @@ final class RecoveryResultHandler {
 		}
 
 		// Failed and no fallback succeeded: advance past this step anyway to prevent stuck queue.
+		self::advance_step( $ref_id, $step_num, 'whatsapp', false );
+	}
+
+	/**
+	 * The scanner clears next_action_gmt when it claims a row. A skipped step that neither rescheduled the row
+	 * (sending window), closed it (converted/paid/expired) nor advanced it (e-mail sent) would leave it active
+	 * and never scanned again: move it past the step so the sequence continues or ends.
+	 *
+	 * @param int $ref_id   Recovery id.
+	 * @param int $step_num Skipped step.
+	 */
+	private static function release_skipped( int $ref_id, int $step_num ): void {
+		$row = Repository::get( $ref_id );
+		if ( null === $row || Status::ACTIVE !== $row['status'] || ! empty( $row['next_action_gmt'] ) ) {
+			return;
+		}
 		self::advance_step( $ref_id, $step_num, 'whatsapp', false );
 	}
 
