@@ -124,8 +124,8 @@ final class Plugin {
 	 */
 	public static function migrations(): array {
 		return array(
-			'2026111801' => Modules\Recovery\RecoveryMigration::up( ... ),
-			'2026111901' => Modules\Recovery\SuppressionMigration::up( ... ),
+			'2026111801' => \Closure::fromCallable( array( Modules\Recovery\RecoveryMigration::class, 'up' ) ),
+			'2026111901' => \Closure::fromCallable( array( Modules\Recovery\SuppressionMigration::class, 'up' ) ),
 		);
 	}
 
