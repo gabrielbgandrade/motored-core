@@ -506,7 +506,7 @@ final class RecoveryAdmin {
 
 		$token        = RecoveryToken::get_or_generate( $id, Config::token_validity_days() );
 		$recovery_url = RecoveryToken::recovery_url( $id, $token );
-		$optout_url   = RecoveryToken::optout_url( $id, $token );
+		$optout_url   = RecoveryToken::optout_url( $id );
 
 		$text = $this->manual_text( $row, $recovery_url, $optout_url );
 		if ( null === $text ) {
@@ -606,7 +606,7 @@ final class RecoveryAdmin {
 
 		$token        = RecoveryToken::get_or_generate( $id, Config::token_validity_days() );
 		$recovery_url = RecoveryToken::recovery_url( $id, $token );
-		$optout_url   = RecoveryToken::optout_url( $id, $token );
+		$optout_url   = RecoveryToken::optout_url( $id );
 
 		$sent = $this->manual_email( $row, $recovery_url, $optout_url );
 		OrderNote::record( $id, 'email', 'manual', $sent );
@@ -701,7 +701,7 @@ final class RecoveryAdmin {
 
 		$token        = RecoveryToken::get_or_generate( $id, Config::token_validity_days() );
 		$recovery_url = RecoveryToken::recovery_url( $id, $token );
-		$optout_url   = RecoveryToken::optout_url( $id, $token );
+		$optout_url   = RecoveryToken::optout_url( $id );
 
 		$text = $this->manual_text( $row, $recovery_url, $optout_url );
 		if ( null === $text ) {

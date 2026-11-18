@@ -61,7 +61,7 @@ final class RecoveryLinkHandler {
 
 		list( $id, $token ) = $parsed;
 
-		if ( ! RecoveryToken::verify( $id, $token, true ) ) {
+		if ( ! RecoveryToken::verify( $id, $token ) ) {
 			self::recover_failed();
 		}
 
@@ -137,38 +137,41 @@ final class RecoveryLinkHandler {
 	 */
 	public static function handle_optout( string $param ): never {
 		$parsed = self::parse_param( $param );
-		if ( null === $parsed ) {
+		if ( null === $parsed || ! RecoveryToken::verify_optout( $parsed[0], $parsed[1] ) ) {
 			wp_die( esc_html__( 'Invalid opt-out link.', 'motored-core' ), '', array( 'response' => 400 ) );
 		}
+		$id = $parsed[0];
+		nocache_headers();
 
-		list( $id, $token ) = $parsed;
-
-		if ( ! RecoveryToken::verify( $id, $token, false ) ) {
-			wp_die( esc_html__( 'Invalid or expired opt-out link.', 'motored-core' ), '', array( 'response' => 403 ) );
+		// A GET never changes state: mail scanners and link previews prefetch URLs. Confirm with a POST.
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
+		if ( 'POST' !== $method ) {
+			$form = '<p>' . esc_html__( 'Do you want to stop receiving reminders about this purchase?', 'motored-core' ) . '</p>'
+				. '<form method="post" action="' . esc_url( RecoveryToken::optout_url( $id ) ) . '">'
+				. '<p><button type="submit" class="button">' . esc_html__( 'Yes, unsubscribe me', 'motored-core' ) . '</button></p></form>';
+			wp_die( $form, esc_html__( 'Unsubscribe', 'motored-core' ), array( 'response' => 200 ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts above.
 		}
 
 		$row = Repository::get( $id );
-		if ( null === $row ) {
-			wp_die( esc_html__( 'Record not found.', 'motored-core' ), '', array( 'response' => 404 ) );
+		if ( null !== $row ) {
+			if ( '' !== (string) $row['phone'] ) {
+				Suppression::suppress( (string) $row['phone'], 'whatsapp' );
+			}
+			if ( '' !== (string) $row['email'] ) {
+				Suppression::suppress( (string) $row['email'], 'email' );
+			}
+			if ( Status::OPTED_OUT !== $row['status'] ) {
+				Repository::update(
+					$id,
+					array(
+						'status'          => Status::OPTED_OUT,
+						'next_action_gmt' => null,
+					)
+				);
+				History::log( $id, 'opted_out', 'none', 'auto', 0, 'ok', '' );
+			}
 		}
 
-		if ( '' !== (string) $row['phone'] ) {
-			Suppression::suppress( (string) $row['phone'], 'whatsapp' );
-		}
-		if ( '' !== (string) $row['email'] ) {
-			Suppression::suppress( (string) $row['email'], 'email' );
-		}
-
-		Repository::update(
-			$id,
-			array(
-				'status'          => Status::OPTED_OUT,
-				'next_action_gmt' => null,
-			)
-		);
-		History::log( $id, 'opted_out', 'none', 'auto', 0, 'ok', '' );
-
-		nocache_headers();
 		wp_die(
 			'<p>' . esc_html__( 'You have successfully opted out. You will not receive any more reminders about this cart.', 'motored-core' ) . '</p>',
 			esc_html__( 'Opt-out confirmed', 'motored-core' ),

@@ -149,7 +149,7 @@ final class OrderStepHandler {
 			'order_items'  => Renderer::format_items( OrderHooks::item_names( $order ), 3 ),
 			'pay_url'      => OrderHooks::pay_url( $order, OrderCase::ON_HOLD === $variant ),
 			'recovery_url' => RecoveryToken::recovery_url( $id, $token ),
-			'optout_url'   => RecoveryToken::optout_url( $id, $token ),
+			'optout_url'   => RecoveryToken::optout_url( $id ),
 			'store_name'   => (string) get_bloginfo( 'name' ),
 		);
 	}

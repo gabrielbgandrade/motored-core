@@ -82,7 +82,7 @@ final class RecoverySenderHandler {
 		// 5. Build URLs.
 		$token        = RecoveryToken::get_or_generate( $recovery_id, Config::token_validity_days() );
 		$recovery_url = RecoveryToken::recovery_url( $recovery_id, $token );
-		$optout_url   = RecoveryToken::optout_url( $recovery_id, $token );
+		$optout_url   = RecoveryToken::optout_url( $recovery_id );
 
 		// 6. Handle WhatsApp channel.
 		if ( 'whatsapp' === $channel ) {

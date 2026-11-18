@@ -56,7 +56,7 @@ final class RecoveryResultHandler {
 			if ( null !== $row && Status::ACTIVE === $row['status'] && ! empty( $row['email'] ) ) {
 				$token        = RecoveryToken::get_or_generate( $ref_id, Config::token_validity_days() );
 				$recovery_url = RecoveryToken::recovery_url( $ref_id, $token );
-				$optout_url   = RecoveryToken::optout_url( $ref_id, $token );
+				$optout_url   = RecoveryToken::optout_url( $ref_id );
 
 				$sender_handler = new RecoverySenderHandler();
 				$sent           = $sender_handler->send_email_step( $row, $step_num, $recovery_url, $optout_url, true );
