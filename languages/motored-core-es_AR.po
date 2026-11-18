@@ -24,9 +24,9 @@ msgstr "Reseñas"
 msgid "Motored"
 msgstr "Motored"
 
-#: src/Admin/SettingsTab.php:29 src/Admin/SettingsTab.php:96
-msgid "General"
-msgstr "General"
+#: src/Admin/SettingsTab.php
+msgid "Advanced"
+msgstr "Avanzado"
 
 #: src/Admin/SettingsTab.php:36 src/Admin/SettingsTab.php:155
 #: src/Modules/Recovery/Privacy.php:71

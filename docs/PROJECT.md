@@ -58,6 +58,8 @@ Format: date — decision — reason. Divergences from the original brief are ma
 
 - 2026-11-18 — Admin spacing: one stylesheet `assets/css/motored-admin.css` (CSS only, no JS/dependencies), enqueued by `Admin\AdminAssets` only on WooCommerce > Settings > Motored; every rule is scoped with `.motored-admin` (wrapper printed by `SettingsTab::output`), no own colors or fonts (borders derive from `currentColor`). Wide tables (plans, recovery steps) scroll horizontally inside `.motored-table-wrap`. Inline styles and the hard-coded notice colors of the WhatsApp tests were replaced by classes / WP `notice-*`. — Product request.
 
+- 2026-11-18 — Settings menu: the "General" section was renamed "Avanzado" (id `advanced`, option `motored_general` unchanged) and is always the LAST section (priority 2000, after "Estado"). The tab's default section ('' in the URL) is now the first registered section instead of General. — Product request.
+
 ## Roadmap
 | Stage | Scope | Status |
 |-------|-------|--------|

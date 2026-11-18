@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
  */
 final class SettingsTab extends \WC_Settings_Page {
 
+	public const ADVANCED = 'advanced';
+
 	/**
 	 * Constructor.
 	 */
@@ -25,18 +27,19 @@ final class SettingsTab extends \WC_Settings_Page {
 		$this->label = __( 'Motored', 'motored-core' );
 
 		SectionRegistry::add(
-			'',
-			static fn(): string => __( 'General', 'motored-core' ),
-			array( $this, 'general_settings' ),
-			null,
-			0
-		);
-		SectionRegistry::add(
 			'status',
 			static fn(): string => __( 'Status', 'motored-core' ),
 			null,
 			array( $this, 'render_status' ),
 			1000
+		);
+		// Always the last section of the menu (after Status).
+		SectionRegistry::add(
+			self::ADVANCED,
+			static fn(): string => __( 'Advanced', 'motored-core' ),
+			array( $this, 'advanced_settings' ),
+			null,
+			2000
 		);
 
 		parent::__construct();
@@ -50,7 +53,8 @@ final class SettingsTab extends \WC_Settings_Page {
 	protected function get_own_sections() {
 		$sections = array();
 		foreach ( SectionRegistry::all() as $id => $definition ) {
-			$sections[ (string) $id ] = (string) ( $definition['label'] )();
+			// The first section is the tab's default one (no "section" in the URL).
+			$sections[ array() === $sections ? '' : (string) $id ] = (string) ( $definition['label'] )();
 		}
 		return $sections;
 	}
@@ -62,7 +66,7 @@ final class SettingsTab extends \WC_Settings_Page {
 	 * @return array<int,array<string,mixed>>
 	 */
 	protected function get_settings_for_section_core( $section_id ) {
-		$definition = SectionRegistry::get( (string) $section_id );
+		$definition = SectionRegistry::get( $this->canonical( (string) $section_id ) );
 		if ( null === $definition || null === $definition['settings'] ) {
 			return array();
 		}
@@ -75,11 +79,11 @@ final class SettingsTab extends \WC_Settings_Page {
 	public function output(): void {
 		global $current_section;
 
-		$section    = is_string( $current_section ) ? $current_section : '';
+		$section    = $this->canonical( is_string( $current_section ) ? $current_section : '' );
 		$definition = SectionRegistry::get( $section );
 
 		// Scope for assets/css/motored-admin.css (every rule starts with .motored-admin).
-		echo '<div class="motored-admin motored-section-' . esc_attr( '' === $section ? 'general' : sanitize_html_class( $section ) ) . '">';
+		echo '<div class="motored-admin motored-section-' . esc_attr( sanitize_html_class( $section ) ) . '">';
 		if ( null !== $definition && null !== $definition['render'] ) {
 			// WooCommerce's own global flag, read by its settings view.
 			$GLOBALS['hide_save_button'] = true; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
@@ -91,14 +95,27 @@ final class SettingsTab extends \WC_Settings_Page {
 	}
 
 	/**
-	 * Fields of the "General" section.
+	 * Real id of a requested section: '' (the tab's default) is the first registered section.
+	 *
+	 * @param string $section Requested section.
+	 */
+	private function canonical( string $section ): string {
+		if ( '' !== $section ) {
+			return $section;
+		}
+		$ids = array_keys( SectionRegistry::all() );
+		return array() === $ids ? '' : (string) $ids[0];
+	}
+
+	/**
+	 * Fields of the "Advanced" section.
 	 *
 	 * @return array<int,array<string,mixed>>
 	 */
-	public function general_settings(): array {
+	public function advanced_settings(): array {
 		return array(
 			array(
-				'title' => __( 'General', 'motored-core' ),
+				'title' => __( 'Advanced', 'motored-core' ),
 				'type'  => 'title',
 				'id'    => 'motored_general_title',
 			),

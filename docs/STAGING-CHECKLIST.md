@@ -24,8 +24,8 @@ Tick each item; record failures in `PROJECT.md` (Review log).
 - [ ] Cart/Checkout Blocks compatibility declared (same screen).
 
 ## Settings
-- [ ] WC > Settings > Motored: sections General and Status.
-- [ ] General: toggle "Delete data on uninstall", change "Log level", save, reload: values persist; `autoload` = `no`.
+- [ ] WC > Settings > Motored: sections in order (… Estado, Avanzado last); the default section is the first one.
+- [ ] Avanzado: toggle "Delete data on uninstall", change "Log level", save, reload: values persist; `autoload` = `no`.
 - [ ] Status: values correct; no Save button.
 - [ ] Non-admin (shop manager vs customer) access follows `manage_woocommerce`.
 

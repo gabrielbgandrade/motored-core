@@ -25,8 +25,8 @@ msgstr ""
 msgid "Motored"
 msgstr ""
 
-#: src/Admin/SettingsTab.php:29 src/Admin/SettingsTab.php:96
-msgid "General"
+#: src/Admin/SettingsTab.php
+msgid "Advanced"
 msgstr ""
 
 #: src/Admin/SettingsTab.php:36 src/Admin/SettingsTab.php:155

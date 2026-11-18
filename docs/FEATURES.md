@@ -8,7 +8,7 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
 ## Base
 - **O que faz:** carrega cada módulo só onde precisa, guarda as opções de cada módulo em separado, cria as tabelas da
   Recuperação ao ativar, cancela as tarefas ao desativar e limpa os dados ao desinstalar (só se você marcar).
-- **Onde:** Motored > General (apagar dados ao desinstalar: não por padrão; nível de log: warning) e Estado (diagnóstico).
+- **Onde:** Motored > Avanzado (última seção do menu, depois de Estado; apagar dados ao desinstalar: não por padrão; nível de log: warning) e Estado (diagnóstico).
 - **Limite:** exige WooCommerce ativo; sem ele o plugin avisa e não faz nada.
 
 ## WhatsApp (Waha)
