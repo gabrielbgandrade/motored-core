@@ -1,0 +1,117 @@
+# Motored Core translation template.
+# This file is distributed under the same license as the Motored Core plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Motored Core 0.1.0\n"
+"Report-Msgid-Bugs-To: https://motored.com.ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-11-17 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"X-Generator: manual (bin/i18n.sh fallback)\n"
+"X-Domain: motored-core\n"
+
+#: motored-core.php
+msgctxt "Plugin Name of the plugin"
+msgid "Motored Core"
+msgstr ""
+
+#: motored-core.php
+msgctxt "Description of the plugin"
+msgid "Base platform for Motored store modules (WhatsApp, notifications, cart/order recovery). Lazy, cache-safe and HPOS-compatible."
+msgstr ""
+
+#: src/Plugin.php
+msgid "Motored Core needs WooCommerce to be active. The plugin stays disabled until you activate it."
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Motored"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "General"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Status"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Delete data on uninstall"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Remove all Motored options and cached data when the plugin is deleted."
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Log level"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Minimum severity written to WooCommerce > Status > Logs (source: motored-core)."
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Errors only"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Warnings and errors"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Information"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Debug (verbose)"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Yes"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "No"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Plugin version"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "PHP version"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "WordPress version"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "WooCommerce version"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Persistent object cache"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Action Scheduler available"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Store timezone"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Site locale"
+msgstr ""
+
+#: src/Admin/SettingsTab.php
+msgid "Locale is es_AR"
+msgstr ""
