@@ -41,7 +41,7 @@ final class WahaModule implements Module {
 	public function register(): void {
 		Options::register_defaults( 'waha', Config::DEFAULTS );
 
-		add_action( Sender::HOOK, array( Sender::class, 'run' ), 10, 4 );
+		add_action( Sender::HOOK, array( Sender::class, 'run' ), 10, Sender::HOOK_ARGS );
 
 		$context = new Context();
 		if ( $context->is_admin() ) {

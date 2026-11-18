@@ -1,6 +1,7 @@
 <?php
 namespace Motored\Core\Tests\Unit\Modules\Waha;
 
+use Brain\Monkey\Actions;
 use Brain\Monkey\Functions;
 use Motored\Core\Admin\SectionRegistry;
 use Motored\Core\Modules\Waha\Sender;
@@ -32,6 +33,12 @@ final class WahaModuleTest extends TestCase {
 		$this->assertTrue( $module->should_load( $this->context( true ) ), 'admin' );
 		$this->assertTrue( $module->should_load( $this->context( false, false, true ) ), 'cron' );
 		$this->assertTrue( $module->should_load( $this->context( false, true ) ), 'ajax (Action Scheduler async)' );
+	}
+
+	public function test_job_hook_accepts_every_scheduled_argument_including_priority(): void {
+		$this->context( false, false, true );
+		Actions\expectAdded( Sender::HOOK )->once()->with( array( Sender::class, 'run' ), 10, 5 );
+		( new WahaModule() )->register();
 	}
 
 	public function test_register_outside_admin_only_hooks_the_job(): void {
