@@ -20,13 +20,14 @@ final class CheckoutPlans {
 
 	public const FIELD = 'motored_plan';
 
-	public const META_ID    = '_motored_plan_id';
-	public const META_MAX   = '_motored_plan_max_installments';
-	public const META_PCT   = '_motored_plan_pct';
-	public const META_BASE  = '_motored_plan_base';
-	public const META_FEE   = '_motored_plan_fee';
-	public const META_TYPE  = '_motored_plan_type';
-	public const WRAPPER_JS = '.motored-plan-selector';
+	public const META_ID     = '_motored_plan_id';
+	public const META_MAX    = '_motored_plan_max_installments';
+	public const META_PCT    = '_motored_plan_pct';
+	public const META_BASE   = '_motored_plan_base';
+	public const META_FEE    = '_motored_plan_fee';
+	public const META_TYPE   = '_motored_plan_type';
+	public const META_CREDIT = '_motored_plan_excl_credit';
+	public const WRAPPER_JS  = '.motored-plan-selector';
 
 	/**
 	 * Hook update_order_review: remembers the posted plan (or forgets it for other gateways).
@@ -104,13 +105,14 @@ final class CheckoutPlans {
 		$quote = null !== $cart ? $this->current_quote( $cart ) : null;
 
 		if ( null === $quote ) {
-			foreach ( array( self::META_ID, self::META_MAX, self::META_PCT, self::META_BASE, self::META_FEE, self::META_TYPE ) as $key ) {
+			foreach ( array( self::META_ID, self::META_MAX, self::META_PCT, self::META_BASE, self::META_FEE, self::META_TYPE, self::META_CREDIT ) as $key ) {
 				$order->delete_meta_data( $key );
 			}
 			return;
 		}
 		$order->update_meta_data( self::META_ID, $quote->plan->id );
 		$order->update_meta_data( self::META_TYPE, $quote->plan->type );
+		$order->update_meta_data( self::META_CREDIT, $quote->plan->exclude_credit ? '1' : '0' );
 		$order->update_meta_data( self::META_MAX, (string) $quote->plan->max_installments );
 		$order->update_meta_data( self::META_PCT, (string) $quote->plan->pct );
 		$order->update_meta_data( self::META_BASE, wc_format_decimal( $quote->base / 100, 2 ) );

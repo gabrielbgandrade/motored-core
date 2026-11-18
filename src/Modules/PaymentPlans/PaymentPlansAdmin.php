@@ -134,6 +134,7 @@ final class PaymentPlansAdmin {
 			'max'    => '',
 			'type'   => Plan::TYPE_CARD,
 			'active' => 'yes',
+			'credit' => 'yes',
 		);
 
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD, false );
@@ -147,6 +148,7 @@ final class PaymentPlansAdmin {
 			__( 'Max. installments', 'motored-core' ),
 			__( 'Type', 'motored-core' ),
 			__( 'Active', 'motored-core' ),
+			__( 'Exclude Cuotas sin Tarjeta (consumer_credits)', 'motored-core' ),
 			__( 'Remove', 'motored-core' ),
 		) as $heading ) {
 			echo '<th>' . esc_html( $heading ) . '</th>';
@@ -178,6 +180,11 @@ final class PaymentPlansAdmin {
 				'<td><input type="checkbox" name="%1$s" value="1"%2$s></td>',
 				esc_attr( $name( 'active' ) ),
 				checked( 'yes', $row['active'], false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core helper.
+			);
+			printf(
+				'<td><input type="hidden" name="%1$s" value="0"><input type="checkbox" name="%1$s" value="1"%2$s></td>',
+				esc_attr( $name( 'credit' ) ),
+				checked( 'yes', $row['credit'] ?? 'yes', false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core helper.
 			);
 			printf( '<td>%s</td>', $new ? '' : '<input type="checkbox" name="' . esc_attr( $name( 'remove' ) ) . '" value="1">' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
 			echo '</tr>';
@@ -213,7 +220,7 @@ final class PaymentPlansAdmin {
 	 * Turns posted rows into the stored plans list (removed rows, invalid rows and duplicate ids are dropped).
 	 *
 	 * @param mixed $posted Posted rows.
-	 * @return list<array{id:string,name:string,pct:float,max:int,type:string,active:string}>
+	 * @return list<array{id:string,name:string,pct:float,max:int,type:string,active:string,credit:string}>
 	 */
 	public static function sanitize_rows( $posted ): array {
 		$kept = array();

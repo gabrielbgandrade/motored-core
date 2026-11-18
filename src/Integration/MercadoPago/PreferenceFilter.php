@@ -102,7 +102,7 @@ final class PreferenceFilter {
 		}
 
 		$rewriter = new PreferenceRewriter();
-		$new      = $rewriter->apply( $body, $max, $type, PlanCalculator::to_cents( (float) $order->get_total() ) );
+		$new      = $rewriter->apply( $body, $max, $type, PlanCalculator::to_cents( (float) $order->get_total() ), '0' !== (string) $order->get_meta( CheckoutPlans::META_CREDIT ) );
 		$encoded  = null === $new ? false : wp_json_encode( $new );
 		if ( null === $new || ! is_string( $encoded ) ) {
 			return self::deny( $args, $rewriter->error() ?? 'encode', $order_id );

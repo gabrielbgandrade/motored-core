@@ -22,7 +22,7 @@ final class PreferenceRewriter {
 	public const CASH_EXCLUDED_TYPES = array( 'credit_card', 'debit_card' );
 
 	/**
-	 * Payment method ids excluded by every plan: "Cuotas sin Tarjeta" (Mercado Pago credit) finances outside the plan
+	 * Payment method ids excluded by plans that keep the "exclude credit" setting on (default): "Cuotas sin Tarjeta" (Mercado Pago credit) finances outside the plan
 	 * (the id and whether MP accepts it in `excluded_payment_methods` are unverified, VERIFY.md #86).
 	 */
 	public const EXCLUDED_METHODS = array( 'consumer_credits' );
@@ -53,8 +53,9 @@ final class PreferenceRewriter {
 	 * @param int    $max         Maximum installments of the plan.
 	 * @param string $type        Plan type (cash|card).
 	 * @param int    $total_cents Order total in cents.
+	 * @param bool   $exclude_credit Whether to exclude `consumer_credits` (plan setting, default on).
 	 */
-	public function apply( $body, int $max, string $type, int $total_cents ): ?object {
+	public function apply( $body, int $max, string $type, int $total_cents, bool $exclude_credit = true ): ?object {
 		$this->error = null;
 
 		if ( ! is_object( $body ) || $max < 1 ) {
@@ -91,7 +92,7 @@ final class PreferenceRewriter {
 			}
 			$known[] = $entry->id;
 		}
-		foreach ( self::EXCLUDED_METHODS as $id ) {
+		foreach ( $exclude_credit ? self::EXCLUDED_METHODS : array() as $id ) {
 			if ( ! in_array( $id, $known, true ) ) {
 				$excluded[] = (object) array( 'id' => $id );
 			}

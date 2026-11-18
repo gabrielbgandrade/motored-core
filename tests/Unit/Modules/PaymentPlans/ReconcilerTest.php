@@ -140,6 +140,7 @@ final class ReconcilerTest extends TestCase {
 		$this->assertSame( array(), Reconciler::evaluate( 12, 'card', 1000, $credit ), 'the 12-installment plan allows it' );
 		$by_type = array( array( 'id' => '9', 'type' => 'consumer_credits', 'method' => '', 'amount' => 10.0, 'paid' => 10.0, 'installments' => null ) );
 		$this->assertCount( 1, Reconciler::evaluate( 6, 'card', 1000, $by_type ) );
+		$this->assertSame( array(), Reconciler::evaluate( 3, 'card', 1000, $credit, false ), 'setting off: not a divergence' );
 		$this->assertTrue( Reconciler::is_mp_credit( '', 'consumer_credits' ) );
 		$this->assertFalse( Reconciler::is_mp_credit( 'credit_card', 'visa' ) );
 		$this->assertFalse( Reconciler::is_mp_credit( 'account_money', 'account_money' ) );

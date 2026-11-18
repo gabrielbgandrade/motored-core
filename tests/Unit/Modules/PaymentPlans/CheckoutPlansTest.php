@@ -190,6 +190,7 @@ final class CheckoutPlansTest extends TestCase {
 			array(
 				'_motored_plan_id'               => 'c9',
 				'_motored_plan_type'             => 'card',
+				'_motored_plan_excl_credit'      => '1',
 				'_motored_plan_max_installments' => '9',
 				'_motored_plan_pct'              => '10',
 				'_motored_plan_base'             => '1210.00',
@@ -211,7 +212,7 @@ final class CheckoutPlansTest extends TestCase {
 			}
 		);
 		( new CheckoutPlans() )->save_order( $order );
-		$this->assertCount( 6, $deleted );
+		$this->assertCount( 7, $deleted );
 	}
 
 	public function test_selector_lists_active_plans_and_hides_for_other_gateways(): void {

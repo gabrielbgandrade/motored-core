@@ -30,6 +30,7 @@ final class Plan {
 	 * @param int    $max_installments Maximum installments (1 for cash).
 	 * @param string $type             cash | card.
 	 * @param bool   $active           Whether customers can use it.
+	 * @param bool   $exclude_credit   Exclude Mercado Pago credit ("Cuotas sin Tarjeta", consumer_credits) from the preference.
 	 */
 	public function __construct(
 		public readonly string $id,
@@ -37,7 +38,8 @@ final class Plan {
 		public readonly float $pct,
 		public readonly int $max_installments,
 		public readonly string $type,
-		public readonly bool $active
+		public readonly bool $active,
+		public readonly bool $exclude_credit = true
 	) {
 	}
 
@@ -62,20 +64,24 @@ final class Plan {
 
 		$active = isset( $raw['active'] ) && ( true === $raw['active'] || 'yes' === $raw['active'] || '1' === $raw['active'] || 1 === $raw['active'] );
 
+		// Missing key (plans stored before this setting) = ON; the form always posts "0" or "1".
+		$credit = ! isset( $raw['credit'] ) || true === $raw['credit'] || 'yes' === $raw['credit'] || '1' === $raw['credit'] || 1 === $raw['credit'];
+
 		return new self(
 			$id,
 			mb_substr( $name, 0, 100 ),
 			round( max( self::MIN_PCT, min( self::MAX_PCT, $pct ) ), 2 ),
 			$max,
 			$type,
-			$active
+			$active,
+			$credit
 		);
 	}
 
 	/**
 	 * Storage shape.
 	 *
-	 * @return array{id:string,name:string,pct:float,max:int,type:string,active:string}
+	 * @return array{id:string,name:string,pct:float,max:int,type:string,active:string,credit:string}
 	 */
 	public function to_array(): array {
 		return array(
@@ -85,6 +91,7 @@ final class Plan {
 			'max'    => $this->max_installments,
 			'type'   => $this->type,
 			'active' => $this->active ? 'yes' : 'no',
+			'credit' => $this->exclude_credit ? 'yes' : 'no',
 		);
 	}
 }

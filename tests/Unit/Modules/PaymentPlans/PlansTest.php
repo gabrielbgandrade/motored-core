@@ -82,6 +82,19 @@ final class PlansTest extends TestCase {
 		$this->assertSame( 'no', $saved[1]['active'], 'unchecked checkbox = inactive' );
 	}
 
+	public function test_credit_exclusion_defaults_on_and_is_saved_per_plan(): void {
+		$this->assertTrue( Plan::from_array( array( 'id' => 'a', 'name' => 'A' ) )->exclude_credit, 'plans stored before the setting stay ON' );
+		$rows  = array(
+			array( 'id' => 'a', 'name' => 'A', 'credit' => '0', 'active' => '1' ),
+			array( 'id' => 'b', 'name' => 'B', 'credit' => '1', 'active' => '1' ),
+		);
+		$saved = PaymentPlansAdmin::sanitize_rows( $rows );
+		$this->assertSame( array( 'no', 'yes' ), array_column( $saved, 'credit' ) );
+		foreach ( ( new Plans( Plans::defaults() ) )->all() as $plan ) {
+			$this->assertTrue( $plan->exclude_credit );
+		}
+	}
+
 	public function test_config_reads_stored_plans_and_switch(): void {
 		$this->fake_storage();
 		$this->options['motored_payment_plans'] = array( 'enabled' => 'yes', 'plans' => array( array( 'id' => 'solo', 'name' => 'Solo', 'pct' => 0, 'max' => 2, 'type' => 'card', 'active' => 'yes' ) ) );

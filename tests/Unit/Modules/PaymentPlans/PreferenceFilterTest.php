@@ -99,6 +99,16 @@ final class PreferenceFilterTest extends TestCase {
 		$this->assertSame( array( 'credit_card', 'debit_card' ), array_map( static fn( $t ) => $t->id, $body->payment_methods->excluded_payment_types ) );
 	}
 
+	public function test_credit_exclusion_follows_the_order_setting(): void {
+		$this->plan( 'c3', 3 );
+		$on = json_decode( PreferenceFilter::filter_args( $this->args(), self::URL )['body'] );
+		$this->assertContains( 'consumer_credits', array_map( static fn( $m ) => $m->id, $on->payment_methods->excluded_payment_methods ) );
+
+		$this->meta['_motored_plan_excl_credit'] = '0';
+		$off = json_decode( PreferenceFilter::filter_args( $this->args(), self::URL )['body'] );
+		$this->assertSame( array( 'amex' ), array_map( static fn( $m ) => $m->id, $off->payment_methods->excluded_payment_methods ) );
+	}
+
 	public function test_plan_type_falls_back_to_the_configured_plan(): void {
 		$this->plan( 'cash', 1, '' );
 		$body = json_decode( PreferenceFilter::filter_args( $this->args(), self::URL )['body'] );

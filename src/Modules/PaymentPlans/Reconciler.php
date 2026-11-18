@@ -52,9 +52,10 @@ final class Reconciler {
 	 * @param string                                                                                       $type        Plan type.
 	 * @param int                                                                                          $total_cents Order total in cents.
 	 * @param list<array{id:string,type:string,method:string,amount:?float,paid:?float,installments:?int}> $payments    Payments recorded by the plugin.
+	 * @param bool                                                                                         $credit_excluded Plan setting: MP credit is excluded, so a credit payment diverges (below 12 installments).
 	 * @return list<string>
 	 */
-	public static function evaluate( int $max, string $type, int $total_cents, array $payments ): array {
+	public static function evaluate( int $max, string $type, int $total_cents, array $payments, bool $credit_excluded = true ): array {
 		$reasons  = array();
 		$amount   = 0;
 		$paid     = 0;
@@ -71,7 +72,7 @@ final class Reconciler {
 					$max
 				);
 			}
-			if ( $max < self::CREDIT_MIN_INSTALLMENTS && self::is_mp_credit( $payment['type'], $payment['method'] ) ) {
+			if ( $credit_excluded && $max < self::CREDIT_MIN_INSTALLMENTS && self::is_mp_credit( $payment['type'], $payment['method'] ) ) {
 				$reasons[] = __( 'paid with Mercado Pago credit (Cuotas sin Tarjeta) but the plan allows fewer than 12 installments', 'motored-core' );
 			}
 			if ( $card && Plan::TYPE_CASH === $type ) {
@@ -166,7 +167,8 @@ final class Reconciler {
 			(int) $order->get_meta( CheckoutPlans::META_MAX ),
 			(string) $order->get_meta( CheckoutPlans::META_TYPE ),
 			PlanCalculator::to_cents( (float) $order->get_total() ),
-			$payments
+			$payments,
+			'0' !== (string) $order->get_meta( CheckoutPlans::META_CREDIT )
 		);
 		if ( array() === $reasons ) {
 			$this->mark( $order, self::STATE_OK );

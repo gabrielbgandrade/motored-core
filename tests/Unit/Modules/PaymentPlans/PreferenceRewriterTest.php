@@ -57,6 +57,15 @@ final class PreferenceRewriterTest extends TestCase {
 		$this->assertSame( '[{"id":"consumer_credits"}]', json_encode( $cash->payment_methods->excluded_payment_methods ) );
 	}
 
+	public function test_consumer_credits_is_not_added_when_the_plan_setting_is_off(): void {
+		$rewriter = new PreferenceRewriter();
+		$out      = $rewriter->apply( json_decode( $this->body( array( 'excluded_payment_methods' => array( array( 'id' => 'amex' ) ) ) ) ), 3, 'card', 1260050, false );
+		$this->assertSame( array( 'amex' ), array_map( static fn( $m ) => $m->id, $out->payment_methods->excluded_payment_methods ) );
+		$cash = $rewriter->apply( json_decode( $this->body() ), 1, 'cash', 1260050, false );
+		$this->assertSame( '[]', json_encode( $cash->payment_methods->excluded_payment_methods ) );
+		$this->assertCount( 2, $cash->payment_methods->excluded_payment_types, 'cash still excludes cards' );
+	}
+
 	public function test_malformed_excluded_methods_fail_closed(): void {
 		$json = '{"items":[{"unit_price":10,"quantity":1}],"payment_methods":{"excluded_payment_methods":"amex"}}';
 		[ $out, $error ] = $this->apply( $json, 3, 'card', 1000 );
