@@ -133,3 +133,8 @@ Prerequisites: MP plugin 8.10.2, sandbox credentials, Checkout Pro enabled, plug
 - [ ] Approved payment: order meta `Mercado Pago - <id> - installments` <= plan max; reconcile leaves state `ok`. Forced mismatch: on-hold, note, admin e-mail, nothing cancelled or refunded.
 - [ ] Update the MP plugin: Status shows "Revisar integración"; repeat the cash/3/9 checks.
 
+## Admin spacing (Motored tab)
+- [ ] Planes de pago: columns aligned, "Efectivo / transferencia" not cut, checkboxes centered; at ~700 px the table scrolls sideways.
+- [ ] Mensajes: a box per event with spacing, full-width textarea, variables list separated from it.
+- [ ] Recuperación (steps), WhatsApp (tests), Estado: spacing and alignment consistent; the CSS file is requested only on the Motored tab.
+

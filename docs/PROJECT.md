@@ -56,6 +56,8 @@ Format: date — decision — reason. Divergences from the original brief are ma
 
 - 2026-11-18 — OrderNotifications: the internal admin new-order alert (field "Número de WhatsApp del admin", event `admin_new_order`, listener branch, defaults, texts) was REMOVED; the module sends customer messages only. Old stored `admin_phone` / `admin_new_order` values stay in the option and are ignored (no migration). The PaymentPlans divergence e-mail to the administrator is another flow and stays. — Product request.
 
+- 2026-11-18 — Admin spacing: one stylesheet `assets/css/motored-admin.css` (CSS only, no JS/dependencies), enqueued by `Admin\AdminAssets` only on WooCommerce > Settings > Motored; every rule is scoped with `.motored-admin` (wrapper printed by `SettingsTab::output`), no own colors or fonts (borders derive from `currentColor`). Wide tables (plans, recovery steps) scroll horizontally inside `.motored-table-wrap`. Inline styles and the hard-coded notice colors of the WhatsApp tests were replaced by classes / WP `notice-*`. — Product request.
+
 ## Roadmap
 | Stage | Scope | Status |
 |-------|-------|--------|

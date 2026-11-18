@@ -75,14 +75,19 @@ final class SettingsTab extends \WC_Settings_Page {
 	public function output(): void {
 		global $current_section;
 
-		$definition = SectionRegistry::get( is_string( $current_section ) ? $current_section : '' );
+		$section    = is_string( $current_section ) ? $current_section : '';
+		$definition = SectionRegistry::get( $section );
+
+		// Scope for assets/css/motored-admin.css (every rule starts with .motored-admin).
+		echo '<div class="motored-admin motored-section-' . esc_attr( '' === $section ? 'general' : sanitize_html_class( $section ) ) . '">';
 		if ( null !== $definition && null !== $definition['render'] ) {
 			// WooCommerce's own global flag, read by its settings view.
 			$GLOBALS['hide_save_button'] = true; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 			( $definition['render'] )();
-			return;
+		} else {
+			parent::output();
 		}
-		parent::output();
+		echo '</div>';
 	}
 
 	/**
@@ -153,7 +158,7 @@ final class SettingsTab extends \WC_Settings_Page {
 		$rows = apply_filters( 'motored_status_rows', $rows );
 
 		echo '<h2>' . esc_html__( 'Status', 'motored-core' ) . '</h2>';
-		echo '<table class="widefat striped" style="max-width:640px"><tbody>';
+		echo '<table class="widefat striped motored-status-table"><tbody>';
 		foreach ( $rows as $label => $value ) {
 			printf(
 				'<tr><th scope="row">%1$s</th><td>%2$s</td></tr>',

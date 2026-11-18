@@ -140,18 +140,18 @@ final class PaymentPlansAdmin {
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD, false );
 
 		echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html__( 'Plans', 'motored-core' ) . '</th><td class="forminp">';
-		echo '<table class="widefat striped" style="max-width:960px"><thead><tr>';
+		echo '<div class="motored-table-wrap"><table class="widefat striped motored-plans-table"><thead><tr>';
 		foreach ( array(
-			__( 'ID', 'motored-core' ),
-			__( 'Name', 'motored-core' ),
-			__( 'Adjustment %', 'motored-core' ),
-			__( 'Max. installments', 'motored-core' ),
-			__( 'Type', 'motored-core' ),
-			__( 'Active', 'motored-core' ),
-			__( 'Exclude Cuotas sin Tarjeta (consumer_credits)', 'motored-core' ),
-			__( 'Remove', 'motored-core' ),
-		) as $heading ) {
-			echo '<th>' . esc_html( $heading ) . '</th>';
+			'id'     => __( 'ID', 'motored-core' ),
+			'name'   => __( 'Name', 'motored-core' ),
+			'pct'    => __( 'Adjustment %', 'motored-core' ),
+			'max'    => __( 'Max. installments', 'motored-core' ),
+			'type'   => __( 'Type', 'motored-core' ),
+			'active' => __( 'Active', 'motored-core' ),
+			'credit' => __( 'Exclude Cuotas sin Tarjeta (consumer_credits)', 'motored-core' ),
+			'remove' => __( 'Remove', 'motored-core' ),
+		) as $col => $heading ) {
+			echo '<th class="motored-col-' . esc_attr( $col ) . '">' . esc_html( $heading ) . '</th>';
 		}
 		echo '</tr></thead><tbody>';
 
@@ -160,14 +160,14 @@ final class PaymentPlansAdmin {
 			$new  = '' === $row['id'];
 			echo '<tr>';
 			printf(
-				'<td><input type="text" name="%1$s" value="%2$s" size="8" maxlength="20" pattern="[a-z0-9_]+"%3$s></td>',
+				'<td><input type="text" name="%1$s" value="%2$s" maxlength="20" pattern="[a-z0-9_]+"%3$s></td>',
 				esc_attr( $name( 'id' ) ),
 				esc_attr( (string) $row['id'] ),
 				$new ? '' : ' readonly' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static attribute.
 			);
-			printf( '<td><input type="text" name="%1$s" value="%2$s" class="regular-text"></td>', esc_attr( $name( 'name' ) ), esc_attr( (string) $row['name'] ) );
-			printf( '<td><input type="number" name="%1$s" value="%2$s" step="0.01" min="-90" max="100" style="width:90px"></td>', esc_attr( $name( 'pct' ) ), esc_attr( (string) $row['pct'] ) );
-			printf( '<td><input type="number" name="%1$s" value="%2$s" step="1" min="1" max="%3$d" style="width:70px"></td>', esc_attr( $name( 'max' ) ), esc_attr( (string) $row['max'] ), (int) Plan::MAX_INSTALLMENTS );
+			printf( '<td><input type="text" name="%1$s" value="%2$s" ></td>', esc_attr( $name( 'name' ) ), esc_attr( (string) $row['name'] ) );
+			printf( '<td><input type="number" name="%1$s" value="%2$s" step="0.01" min="-90" max="100"></td>', esc_attr( $name( 'pct' ) ), esc_attr( (string) $row['pct'] ) );
+			printf( '<td><input type="number" name="%1$s" value="%2$s" step="1" min="1" max="%3$d"></td>', esc_attr( $name( 'max' ) ), esc_attr( (string) $row['max'] ), (int) Plan::MAX_INSTALLMENTS );
 			printf(
 				'<td><select name="%1$s"><option value="card"%2$s>%3$s</option><option value="cash"%4$s>%5$s</option></select></td>',
 				esc_attr( $name( 'type' ) ),
@@ -177,20 +177,20 @@ final class PaymentPlansAdmin {
 				esc_html__( 'Cash / transfer', 'motored-core' )
 			);
 			printf(
-				'<td><input type="checkbox" name="%1$s" value="1"%2$s></td>',
+				'<td class="motored-cell-check"><input type="checkbox" name="%1$s" value="1"%2$s></td>',
 				esc_attr( $name( 'active' ) ),
 				checked( 'yes', $row['active'], false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core helper.
 			);
 			printf(
-				'<td><input type="hidden" name="%1$s" value="0"><input type="checkbox" name="%1$s" value="1"%2$s></td>',
+				'<td class="motored-cell-check"><input type="hidden" name="%1$s" value="0"><input type="checkbox" name="%1$s" value="1"%2$s></td>',
 				esc_attr( $name( 'credit' ) ),
 				checked( 'yes', $row['credit'] ?? 'yes', false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core helper.
 			);
-			printf( '<td>%s</td>', $new ? '' : '<input type="checkbox" name="' . esc_attr( $name( 'remove' ) ) . '" value="1">' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+			printf( '<td class="motored-cell-check">%s</td>', $new ? '' : '<input type="checkbox" name="' . esc_attr( $name( 'remove' ) ) . '" value="1">' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
 			echo '</tr>';
 		}
 
-		echo '</tbody></table><p class="description">'
+		echo '</tbody></table></div><p class="description">'
 			. esc_html__( 'Percentages: negative = discount, positive = surcharge (never shown to customers). Cash plans always have 1 installment. To add a plan fill the empty row (ID: lowercase letters, numbers and underscores).', 'motored-core' )
 			. '</p></td></tr>';
 	}

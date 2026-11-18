@@ -274,11 +274,11 @@ final class RecoveryAdmin {
 	private function render_steps_table( string $title, string $description, array $rows, string $footer ): void {
 		echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html( $title ) . '</th><td class="forminp">';
 		echo '<p class="description">' . esc_html( $description ) . '</p>';
-		echo '<table class="widefat striped" style="margin-top:10px; max-width:850px;"><thead><tr>';
-		echo '<th>' . esc_html__( 'Step', 'motored-core' ) . '</th>';
-		echo '<th>' . esc_html__( 'Channel', 'motored-core' ) . '</th>';
-		echo '<th>' . esc_html__( 'Delay (minutes)', 'motored-core' ) . '</th>';
-		echo '<th>' . esc_html__( 'Message text', 'motored-core' ) . '</th>';
+		echo '<div class="motored-table-wrap"><table class="widefat striped motored-steps-table"><thead><tr>';
+		echo '<th class="motored-col-step">' . esc_html__( 'Step', 'motored-core' ) . '</th>';
+		echo '<th class="motored-col-channel">' . esc_html__( 'Channel', 'motored-core' ) . '</th>';
+		echo '<th class="motored-col-delay">' . esc_html__( 'Delay (minutes)', 'motored-core' ) . '</th>';
+		echo '<th class="motored-col-text">' . esc_html__( 'Message text', 'motored-core' ) . '</th>';
 		echo '</tr></thead><tbody>';
 
 		foreach ( $rows as $row ) {
@@ -290,12 +290,12 @@ final class RecoveryAdmin {
 			printf( '<option value="email"%s>%s</option>', selected( $cfg['channel'], 'email', false ), esc_html__( 'E-mail', 'motored-core' ) );
 			printf( '<option value="off"%s>%s</option>', selected( $cfg['channel'], 'off', false ), esc_html__( 'Off', 'motored-core' ) );
 			echo '</select></td>';
-			echo '<td><input type="number" name="' . esc_attr( $row['name'] . '[delay]' ) . '" value="' . absint( $cfg['delay'] ) . '" min="1" step="1" style="width:100px" /></td>';
-			echo '<td><textarea name="' . esc_attr( $row['name'] . '[text]' ) . '" rows="4" style="width:100%; max-width:450px;">' . esc_textarea( $cfg['text'] ) . '</textarea></td>';
+			echo '<td><input type="number" name="' . esc_attr( $row['name'] . '[delay]' ) . '" value="' . absint( $cfg['delay'] ) . '" min="1" step="1" /></td>';
+			echo '<td><textarea name="' . esc_attr( $row['name'] . '[text]' ) . '" rows="4" class="motored-step-text">' . esc_textarea( $cfg['text'] ) . '</textarea></td>';
 			echo '</tr>';
 		}
-		echo '</tbody></table>';
-		echo '<p class="description" style="margin-top:8px;">' . esc_html( $footer ) . '</p>';
+		echo '</tbody></table></div>';
+		echo '<p class="description motored-steps-footer">' . esc_html( $footer ) . '</p>';
 		echo '</td></tr>';
 	}
 

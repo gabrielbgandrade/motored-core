@@ -155,6 +155,7 @@ final class Plugin {
 			add_action( 'admin_init', array( $this, 'run_migrations' ) );
 			// WooCommerce applies this filter only while building its settings screens.
 			add_filter( 'woocommerce_get_settings_pages', array( $this, 'register_settings_page' ) );
+			add_action( 'admin_enqueue_scripts', array( Admin\AdminAssets::class, 'enqueue' ) );
 		}
 
 		$this->register_modules();

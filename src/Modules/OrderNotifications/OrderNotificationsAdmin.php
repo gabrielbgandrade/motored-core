@@ -125,7 +125,7 @@ final class OrderNotificationsAdmin {
 			$code_tags[] = '<code>' . esc_html( (string) $placeholder ) . '</code>';
 		}
 
-		echo '<tr valign="top">';
+		echo '<tr valign="top" class="motored-event">';
 		printf(
 			'<th scope="row" class="titledesc"><label for="%1$s">%2$s</label></th>',
 			esc_attr( $textarea_id ),
@@ -139,25 +139,25 @@ final class OrderNotificationsAdmin {
 		}
 
 		printf(
-			'<p><label><input type="checkbox" name="%1$s" value="1" %2$s /> %3$s</label></p>',
+			'<p class="motored-event-toggle"><label><input type="checkbox" name="%1$s" value="1" %2$s /> %3$s</label></p>',
 			esc_attr( $toggle_name ),
 			checked( $enabled, true, false ),
 			esc_html__( 'Enable this message', 'motored-core' )
 		);
 
 		if ( '' !== $desc ) {
-			echo '<p class="description">' . esc_html( $desc ) . '</p>';
+			echo '<p class="description motored-event-desc">' . esc_html( $desc ) . '</p>';
 		}
 
 		printf(
-			'<p><textarea id="%1$s" name="%2$s" rows="5" class="large-text" style="max-width:560px" data-default="%3$s">%4$s</textarea></p>',
+			'<p><textarea id="%1$s" name="%2$s" rows="6" class="large-text motored-event-text" data-default="%3$s">%4$s</textarea></p>',
 			esc_attr( $textarea_id ),
 			esc_attr( $text_name ),
 			esc_attr( $default_text ),
 			esc_textarea( $text )
 		);
 
-		echo '<p class="description">'
+		echo '<p class="description motored-event-vars">'
 			. esc_html__( 'Available variables:', 'motored-core' )
 			. ' '
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each placeholder is escaped above inside <code>.
@@ -165,7 +165,7 @@ final class OrderNotificationsAdmin {
 			. '</p>';
 
 		printf(
-			'<p><button type="button" class="button motored-on-restore" data-target="%1$s">%2$s</button></p>',
+			'<p class="motored-event-actions"><button type="button" class="button motored-on-restore" data-target="%1$s">%2$s</button></p>',
 			esc_attr( $textarea_id ),
 			esc_html__( 'Restore default text', 'motored-core' )
 		);

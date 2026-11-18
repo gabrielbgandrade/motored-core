@@ -175,11 +175,11 @@ final class WahaAdmin {
 	 */
 	public function render_tools(): void {
 		$notice = $this->pull_notice();
-		echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html__( 'Tests', 'motored-core' ) . '</th><td class="forminp">';
+		echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html__( 'Tests', 'motored-core' ) . '</th><td class="forminp"><div class="motored-tools">';
 		if ( null !== $notice ) {
 			printf(
-				'<p><strong style="color:%1$s">%2$s</strong></p>',
-				esc_attr( $notice['ok'] ? '#008a20' : '#b32d2e' ),
+				'<div class="notice notice-%1$s inline"><p>%2$s</p></div>',
+				esc_attr( $notice['ok'] ? 'success' : 'error' ),
 				esc_html( $notice['text'] )
 			);
 		}
@@ -200,7 +200,7 @@ final class WahaAdmin {
 			$action, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
 			esc_html__( 'Send test message', 'motored-core' )
 		);
-		echo '</td></tr>';
+		echo '</div></td></tr>';
 	}
 
 	/**
