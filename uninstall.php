@@ -5,6 +5,8 @@
  * @package Motored\Core
  */
 
+defined( 'ABSPATH' ) || exit;
+
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 // Jobs are not data: always remove them, or Action Scheduler keeps running hooks with no listener.
