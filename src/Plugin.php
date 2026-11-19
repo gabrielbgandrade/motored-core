@@ -41,7 +41,7 @@ final class Plugin {
 	 *
 	 * @var list<string>
 	 */
-	public const ACTION_HOOKS = array( 'motored_waha_send', 'motored_recovery_cleanup', 'motored_recovery_scan', 'motored_plans_reconcile' );
+	public const ACTION_HOOKS = array( 'motored_waha_send', 'motored_recovery_cleanup', 'motored_recovery_scan', 'motored_plans_reconcile', 'motored_tracking_email' );
 
 	/**
 	 * Defaults of the built-in "general" settings.

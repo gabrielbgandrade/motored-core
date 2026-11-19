@@ -2109,3 +2109,15 @@ msgstr ""
 msgid "You can now track your order #%s:"
 msgstr ""
 
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Delay before sending (minutes)"
+msgstr ""
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "The WhatsApp and e-mail wait this long, so a \"completed\" message sent at the same time can carry the code instead."
+msgstr ""
+
+#: src/Modules/OrderTracking/TrackingNotifier.php
+msgid "Tracking e-mail could not be scheduled."
+msgstr ""

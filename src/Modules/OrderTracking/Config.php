@@ -28,6 +28,7 @@ final class Config {
 		'send_whatsapp' => 'yes',
 		'send_email'    => 'yes',
 		'show_customer' => 'yes',
+		'send_delay'    => '3',
 		'text_added'    => "{¡Hola|¡Buenas} {first_name}! Ya podés seguir tu pedido *#{order_number}* de *{store_name}*.\n{tracking_block}\n\nEl detalle del pedido está {acá|en este link}:\n{order_url}",
 		'text_updated'  => "{Hola|Buenas} {first_name}, actualizamos el seguimiento de tu pedido *#{order_number}* de *{store_name}*.\n{tracking_block}\n\nEl detalle del pedido está {acá|en este link}:\n{order_url}",
 	);
@@ -51,6 +52,16 @@ final class Config {
 	 */
 	public static function show_customer(): bool {
 		return Options::is_enabled( self::OPTION_KEY, 'show_customer' );
+	}
+
+	/**
+	 * Delay (seconds) before the dedicated messages go out, so a "completed" message sent in the same
+	 * admin click can carry the code first. Minutes 0-60 (default 3).
+	 */
+	public static function send_delay_seconds(): int {
+		$value = Options::get( self::OPTION_KEY, 'send_delay', self::DEFAULTS['send_delay'] );
+		$min   = is_scalar( $value ) && '' !== (string) $value ? (int) $value : (int) self::DEFAULTS['send_delay'];
+		return max( 0, min( 60, $min ) ) * 60;
 	}
 
 	/**

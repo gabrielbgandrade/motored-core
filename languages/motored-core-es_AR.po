@@ -2181,3 +2181,15 @@ msgstr "El transportista puede tardar unas horas en mostrar el primer movimiento
 msgid "You can now track your order #%s:"
 msgstr "Ya podés seguir tu pedido #%s:"
 
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Delay before sending (minutes)"
+msgstr "Demora antes de enviar (minutos)"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "The WhatsApp and e-mail wait this long, so a \"completed\" message sent at the same time can carry the code instead."
+msgstr "El WhatsApp y el e-mail esperan este tiempo, así un mensaje de \"completado\" enviado al mismo tiempo puede llevar el código."
+
+#: src/Modules/OrderTracking/TrackingNotifier.php
+msgid "Tracking e-mail could not be scheduled."
+msgstr "No se pudo programar el e-mail de seguimiento."

@@ -105,6 +105,20 @@ final class OrderTrackingAdmin {
 				'autoload' => false,
 			),
 			array(
+				'title'             => __( 'Delay before sending (minutes)', 'motored-core' ),
+				'desc'              => __( 'The WhatsApp and e-mail wait this long, so a "completed" message sent at the same time can carry the code instead.', 'motored-core' ),
+				'desc_tip'          => true,
+				'id'                => 'motored_order_tracking[send_delay]',
+				'type'              => 'number',
+				'default'           => Config::DEFAULTS['send_delay'],
+				'custom_attributes' => array(
+					'min'  => '0',
+					'max'  => '60',
+					'step' => '1',
+				),
+				'autoload'          => false,
+			),
+			array(
 				'type'  => 'motored_tracking_carriers',
 				'title' => __( 'Carriers', 'motored-core' ),
 			),

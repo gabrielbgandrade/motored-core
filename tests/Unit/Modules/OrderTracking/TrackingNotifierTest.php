@@ -19,6 +19,10 @@ final class TrackingNotifierTest extends TestCase {
 	private array $notes = array();
 	/** @var list<array{string,int,?string}> */
 	private array $queued = array();
+	/** @var list<array{int,int,string}> */
+	private array $scheduled = array();
+	/** @var list<int> */
+	private array $delays = array();
 	private int $emails = 0;
 	private bool $email_ok = true;
 	private string $created_via = 'checkout';
@@ -41,6 +45,8 @@ final class TrackingNotifierTest extends TestCase {
 		$this->notes         = array();
 		$this->queued        = array();
 		$this->emails        = 0;
+		$this->scheduled     = array();
+		$this->delays        = array();
 		$this->email_ok      = true;
 		$this->created_via   = 'checkout';
 		$this->phone         = '011 15 5555-1234';
@@ -76,7 +82,8 @@ final class TrackingNotifierTest extends TestCase {
 	private function notifier( \WC_Order $order ): TrackingNotifier {
 		return new TrackingNotifier(
 			fn( int $id ) => 42 === $id ? $order : false,
-			function ( string $kind, int $id, ?string $step ): bool {
+			function ( string $kind, int $id, ?string $step, int $delay = 0 ): bool {
+				$this->delays[] = $delay;
 				$this->queued[] = array( $kind, $id, $step );
 				return true;
 			},
@@ -85,8 +92,20 @@ final class TrackingNotifierTest extends TestCase {
 				return $this->email_ok;
 			},
 			fn( string $iso ): string => 'AR' === $iso ? '54' : '',
-			fn(): string => 'Motored'
+			fn(): string => 'Motored',
+			function ( int $id, int $delay, string $hash ): bool {
+				$this->scheduled[] = array( $id, $delay, $hash );
+				return true;
+			}
 		);
+	}
+
+	/** Runs the scheduled e-mail jobs like Action Scheduler would. */
+	private function run_email_jobs( TrackingNotifier $n ): void {
+		foreach ( $this->scheduled as $job ) {
+			$n->send_scheduled_email( $job[0], $job[2] );
+		}
+		$this->scheduled = array();
 	}
 
 	public function test_new_code_queues_one_whatsapp_and_one_email_then_is_idempotent(): void {
@@ -97,6 +116,10 @@ final class TrackingNotifierTest extends TestCase {
 		$n->on_saved( $order, '' );
 
 		$this->assertSame( array( array( 'order_tracking', 42, 'added' ) ), $this->queued );
+		$this->assertSame( array( array( 42, 180, md5( 'AB123' ) ) ), $this->scheduled, 'e-mail is delayed 3 min by default' );
+		$this->assertSame( array( 180 ), $this->delays, 'WhatsApp is delayed too' );
+		$this->assertSame( 0, $this->emails );
+		$this->run_email_jobs( $n );
 		$this->assertSame( 1, $this->emails );
 		$this->assertSame( md5( 'AB123' ), $this->meta[ Tracking::SENT_WA ] );
 		$this->assertSame( md5( 'AB123' ), $this->meta[ Tracking::SENT_EMAIL ] );
@@ -112,7 +135,70 @@ final class TrackingNotifierTest extends TestCase {
 		$n->on_saved( $order, 'ZZ999' );
 
 		$this->assertSame( array( 'added', 'updated' ), array_column( $this->queued, 2 ) );
-		$this->assertSame( 2, $this->emails );
+		$this->run_email_jobs( $n );
+		$this->assertSame( 1, $this->emails, 'the job of the superseded code is skipped; the new code is sent once' );
+		$this->assertSame( md5( 'ZZ999' ), $this->meta[ Tracking::SENT_EMAIL ] );
+	}
+
+	public function test_regression_code_saved_before_completed_is_skipped_when_completed_carries_it_within_the_delay(): void {
+		$order = $this->order();
+		$n     = $this->notifier( $order );
+		$n->on_saved( $order, '' );
+		$this->assertCount( 1, $this->queued );
+
+		// Order goes to completed afterwards: its WhatsApp and e-mail carry the code.
+		$this->meta[ Tracking::CARRIED_WA ]    = md5( 'AB123' );
+		$this->meta[ Tracking::CARRIED_EMAIL ] = md5( 'AB123' );
+
+		$this->run_email_jobs( $n );
+		$this->assertSame( 0, $this->emails );
+		$this->assertNull( $n->build_message( 42, 'added' ) );
+	}
+
+	public function test_regression_same_click_completed_first_means_nothing_is_even_scheduled(): void {
+		$order                                 = $this->order();
+		$this->meta[ Tracking::CARRIED_WA ]    = md5( 'AB123' );
+		$this->meta[ Tracking::CARRIED_EMAIL ] = md5( 'AB123' );
+		$n                                     = $this->notifier( $order );
+		$n->on_saved( $order, '' );
+		$this->assertSame( array(), $this->queued );
+		$this->assertSame( array(), $this->scheduled );
+	}
+
+	public function test_regression_same_click_completed_after_save_is_caught_by_the_delay(): void {
+		$order = $this->order();
+		$n     = $this->notifier( $order );
+		$n->on_saved( $order, '' );
+		$this->meta[ Tracking::CARRIED_EMAIL ] = md5( 'AB123' );
+		$this->meta[ Tracking::CARRIED_WA ]    = md5( 'AB123' );
+		$this->assertGreaterThan( 0, $this->delays[0], 'the dedicated send waits' );
+		$this->run_email_jobs( $n );
+		$this->assertSame( 0, $this->emails );
+		$this->assertNull( $n->build_message( 42, 'added' ) );
+	}
+
+	public function test_regression_code_saved_after_completed_is_sent(): void {
+		// Completed went out earlier WITHOUT a code, so nothing was marked as carried.
+		$order = $this->order();
+		$n     = $this->notifier( $order );
+		$n->on_saved( $order, '' );
+		$this->run_email_jobs( $n );
+		$this->assertSame( 1, $this->emails );
+		$this->assertCount( 1, $this->queued );
+		$this->assertNotNull( $n->build_message( 42, 'added' ) );
+	}
+
+	public function test_regression_changed_code_is_sent_even_if_the_old_code_was_carried(): void {
+		$order                                 = $this->order();
+		$this->meta[ Tracking::CARRIED_WA ]    = md5( 'AB123' );
+		$this->meta[ Tracking::CARRIED_EMAIL ] = md5( 'AB123' );
+		$this->meta[ Tracking::META ]['code']  = 'NEW777';
+		$n                                     = $this->notifier( $order );
+		$n->on_saved( $order, 'AB123' );
+		$this->run_email_jobs( $n );
+		$this->assertSame( array( 'updated' ), array_column( $this->queued, 2 ) );
+		$this->assertSame( 1, $this->emails );
+		$this->assertNotNull( $n->build_message( 42, 'updated' ) );
 	}
 
 	public function test_completed_message_or_email_that_carried_the_code_suppresses_the_dedicated_ones(): void {
@@ -130,7 +216,9 @@ final class TrackingNotifierTest extends TestCase {
 	public function test_switches_are_respected_per_channel(): void {
 		$order = $this->order();
 		$this->options['motored_order_tracking']['send_whatsapp'] = 'no';
-		$this->notifier( $order )->on_saved( $order, '' );
+		$n = $this->notifier( $order );
+		$n->on_saved( $order, '' );
+		$this->run_email_jobs( $n );
 		$this->assertSame( array(), $this->queued );
 		$this->assertSame( 1, $this->emails );
 	}
@@ -161,8 +249,10 @@ final class TrackingNotifierTest extends TestCase {
 	public function test_failed_email_is_not_marked_as_sent(): void {
 		$order          = $this->order();
 		$this->email_ok = false;
-		$this->notifier( $order )->on_saved( $order, '' );
-		$this->assertArrayNotHasKey( Tracking::SENT_EMAIL, $this->meta );
+		$n              = $this->notifier( $order );
+		$n->on_saved( $order, '' );
+		$this->run_email_jobs( $n );
+		$this->assertSame( '', $this->meta[ Tracking::SENT_EMAIL ], 'cleared so a later save retries' );
 	}
 
 	public function test_build_message_renders_at_send_time_with_tracking_placeholders(): void {

@@ -107,7 +107,7 @@ final class PluginTest extends TestCase {
 
 	public function test_deactivation_removes_every_scheduled_job_and_keeps_data(): void {
 		$hooks = array();
-		Functions\expect( 'as_unschedule_all_actions' )->times( 4 )->andReturnUsing(
+		Functions\expect( 'as_unschedule_all_actions' )->times( 5 )->andReturnUsing(
 			function ( $hook, $args, $group ) use ( &$hooks ) {
 				$this->assertSame( 'motored-core', $group );
 				$hooks[] = $hook;

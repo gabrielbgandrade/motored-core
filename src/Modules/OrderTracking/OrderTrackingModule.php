@@ -54,6 +54,7 @@ final class OrderTrackingModule implements Module {
 			$notifier = new TrackingNotifier();
 			Sender::register_handler( TrackingNotifier::KIND, array( $notifier, 'build_message' ) );
 			add_action( Sender::RESULT_HOOK, array( $notifier, 'on_result' ), 10, 4 );
+			add_action( TrackingNotifier::EMAIL_HOOK, array( $notifier, 'send_scheduled_email' ), 10, 2 );
 		}
 		if ( $context->is_admin() ) {
 			( new OrderTrackingAdmin() )->register();
