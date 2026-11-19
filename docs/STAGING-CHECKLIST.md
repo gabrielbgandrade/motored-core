@@ -53,6 +53,13 @@ Tick each item; record failures in `PROJECT.md` (Review log).
 - [ ] Customer note added -> WhatsApp arrives with `{customer_note}`; private note does not trigger customer WhatsApp.
 - [ ] Mercado Pago Checkout Pro (approved, offline ticket, abandoned `pending`) triggers expected events and logs `wc-api`/REST webhook behavior.
 
+## OrderTracking (Motored > Seguimiento)
+- [ ] Section lists no carriers by default; add one with `{code}` URL: saved (autoload `no`); a template without `{code}` is dropped.
+- [ ] Order edit (HPOS on and off): Tracking box in the side column; save code: reload keeps it; link preview opens; http manual link is rejected.
+- [ ] New code: ONE WhatsApp (test mode) and ONE e-mail, private notes without phone/text; save again unchanged: nothing; change the code: both again.
+- [ ] Completed order whose message carried the code: no dedicated WhatsApp/e-mail; manual order and order without phone/e-mail: skipped with a note.
+- [ ] Customer order page and processing/completed e-mails show carrier, code and button (classic and block theme); switch off "Show to the customer": hidden. VERIFY #90-#92.
+
 ## Recovery (stage 4)
 - [ ] Activation creates both tables with indexes; Scheduled Actions has `motored_recovery_cleanup` (daily, group `motored-core`).
 - [ ] Checkout (classic): one deferred script < 3 KB, nothing else; typing e-mail/phone creates ONE row; cart content equals the server cart.

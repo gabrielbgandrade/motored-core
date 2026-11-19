@@ -44,6 +44,15 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
 - **Padrões:** todos os eventos ligados; pedidos criados à mão não avisam.
 - **Limites:** sem consentimento nem descadastro próprio (são avisos transacionais); uma nota ao cliente com o mesmo texto não se repete.
 
+## Seguimento do envio (OrderTracking)
+- **O que faz:** guarda um código de seguimento por pedido (transportadora, código e link manual opcional), mostra ao cliente e avisa por WhatsApp e e-mail. Não consulta nenhuma transportadora.
+- **Onde:** Motored > Seguimiento (lista de transportadoras com modelo de URL `{code}`, interruptores, textos do WhatsApp) e a caixa "Seguimiento" na edição do pedido. A lista começa **vazia**: você cadastra as transportadoras e as URLs; "Otra / link manual" sempre existe.
+- **Link:** o link manual (só https) tem prioridade; senão vale o modelo da transportadora com o código; sem nenhum, só aparece o código.
+- **Cliente:** vê transportadora, código e botão na página do pedido e nos e-mails de processando e concluído; variáveis novas nos textos de WhatsApp: `{tracking_carrier}`, `{tracking_code}`, `{tracking_url}`, `{tracking_block}` (o texto padrão de concluído já traz o bloco quando há código).
+- **Aviso ao salvar:** código novo ou alterado envia UM WhatsApp (prioridade alta) e UM e-mail dedicado, cada canal uma vez por código; se a mensagem de concluído já levou o código, o aviso dedicado não sai. O resultado vira nota privada (sem telefone nem texto).
+- **Pula com nota:** pedido criado à mão (salvo se OrderNotifications os inclui), sem telefone ou e-mail válido.
+- **Limites:** sem consulta de status; um registro por pedido; o WhatsApp só sai com o envio ligado (veja Waha).
+
 ## Recuperação (carrinhos e pedidos sem pagar)
 - **O que faz:** recupera carrinhos abandonados e pedidos pendentes, falhados ou em espera de pagamento.
 - **Onde:** Motored > Recuperación (sequências, janela de horário, cupom) e WooCommerce > Carritos abandonados (lista, detalhe,

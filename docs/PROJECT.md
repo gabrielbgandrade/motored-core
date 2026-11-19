@@ -208,3 +208,10 @@ Results (PHP 8.5.9): phpunit 429 tests OK, phpstan level 6 clean, phpcs clean on
 - Reviewer: look first at `PreferenceFilter::guard` (every path that returns the original args must be provably "no plan"), the `order not found` policy (blocks only while the module is enabled), and `Reconciler` on-hold side effects (VERIFY #84).
 - Pending: sandbox run of the staging checklist (cash/3/9, fail closed, reconciliation), real `/v1/payment_methods` list for AR.
 
+
+### 2026-11-19 — OrderTracking authoring (self-review; needs independent `motored-review`)
+Decision: tracking is its own module (no tables, no carrier API). One entry per order in meta `_motored_tracking`; carriers editable in Motored > Seguimiento and shipped EMPTY (no invented URLs). Idempotency per channel by code hash (`_sent_*`), plus `_carried_*` when a processing/completed WhatsApp or e-mail already carried the code. Manual orders follow the OrderNotifications setting.
+- Delivered: `TrackingLink` (pure), `Tracking`, `Config`, `Presenter`, `TrackingNotifier` (kind `order_tracking`, priority high), `TrackingEmail` + templates, `CustomerDisplay`, `OrderTrackingAdmin`; Renderer placeholders `{tracking_*}`; default texts of processing/completed carry `{tracking_block}`.
+- Perf: no query on public pages (order meta first, option only with tracking); no HTTP; no assets; no JS.
+- Reviewer: look first at the save hook for HPOS/legacy (VERIFY #90), the carried flags written while an e-mail renders (#92) and the race of a status change plus a code in one admin save (the dedicated message may still go out next to the completed one).
+- Pending: VERIFY #90-#92 on staging; independent review.
