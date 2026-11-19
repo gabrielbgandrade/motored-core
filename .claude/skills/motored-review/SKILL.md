@@ -23,5 +23,7 @@ You are the reviewer, not the author. Verify; do not trust claims. Rules are in 
    `docs/PROJECT.md` and `docs/TESTING.md` accurate.
 9. **Theme-agnostic:** grep for theme names, `get_header`/`get_footer`, layout ids/classes in JS/CSS/PHP; only
    WP/WC core hooks and markup; public pages standalone; e-mails via `wc_get_template*` only; own classes `motored-`.
-10. **Record:** append to the Review log in `docs/PROJECT.md` (date, scope, findings with file:line,
+10. **Admin UI:** tables/boxes/fields use `Admin\Ui` and the shared `assets/admin/motored-admin.css` (no inline
+   `style=`, no per-module CSS, no WC field `css`); the stylesheet loads only on the Motored tab, order edit, Recovery.
+11. **Record:** append to the Review log in `docs/PROJECT.md` (date, scope, findings with file:line,
    fixed/pending). Fix what you can, re-run `composer check`.

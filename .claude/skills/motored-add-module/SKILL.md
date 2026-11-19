@@ -16,7 +16,8 @@ Rule: a module ships its own `README.md` AND `.claude/skills/motored-module-<id>
 4. README: copy `docs/templates/MODULE_README.md` to `src/Modules/<Name>/README.md`, fill every section.
 5. Options: `Options::register_defaults( '<id>', ... )`; `Options::get` / `Options::update` (autoload=false).
 6. Settings (admin only): `SectionRegistry::add( '<id>', label_callable, settings_callable )`; field ids
-   `motored_<id>[key]` with `'autoload' => false`.
+   `motored_<id>[key]` with `'autoload' => false`. Every new admin UI (table, box, field, meta box) uses the
+   classes of `assets/admin/motored-admin.css` via `Admin\Ui`; ad hoc per-module CSS and inline styles are forbidden.
 7. Tables: add `'YYYYMMDDNN' => array( <Name>Migration::class, 'up' )` to `Plugin::migrations()`
    (idempotent `dbDelta`, `Db::table()`); add drops to `uninstall.php`.
 8. Unverified/third-party APIs: wrap in `src/Integration/`, add rows to `docs/VERIFY.md`.

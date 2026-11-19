@@ -29,6 +29,9 @@ frontend always `es_AR`; abandoned-cart AND pending/failed-order recovery are ON
    add a row to `docs/VERIFY.md`.
 9. **Theme-agnostic:** no theme-specific code, selector, CSS class or hook (Flatsome, Storefront, block themes
    alike); only WordPress and WooCommerce core. No `get_header`/`get_footer`; own pages are standalone.
+10. **Admin UI:** every new admin table, box or field uses the classes of `assets/admin/motored-admin.css` through
+   `Admin\Ui` (`.motored-table`, `.motored-box`, `.motored-field`). Ad hoc per-module CSS, inline `style=` and the
+   WC field `css` option are forbidden (`SharedAdminUiTest` fails). Missing class? Add it to the shared file.
 
 ## Conventions
 Namespace `Motored\Core\`, PSR-4, one class per file; `motored`/`MOTORED` prefix for globals;
