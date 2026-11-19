@@ -7,6 +7,7 @@ description: Rules for the OrderTracking module (tracking code per order, custom
 Read `src/Modules/OrderTracking/README.md` first (flows, keys, hooks, VERIFY rows).
 
 - No tables, no carrier API. Data = order meta `_motored_tracking` via WC CRUD (HPOS). Code and URL are sanitized in `TrackingLink` / `Tracking::from_array` only.
+- Carrier rows are saved only through `Config::prepare_carriers` (id = slug of the name, read-only after save; template must be https + `{code}` or the row is rejected with an es_AR error). Admin markup uses `Admin\Ui` classes only.
 - Final link = manual https URL > carrier template with `{code}` > empty (`TrackingLink::build`, pure). Carrier list ships empty: never invent URLs.
 - Idempotency is per channel with a hash of the code: `_sent_wa` / `_sent_email`; `_carried_*` means a completed/processing message or e-mail already carried it.
 - Save path: admin meta box only (nonce + `edit_shop_orders`), then `TrackingNotifier::on_saved`. Never from frontend requests.

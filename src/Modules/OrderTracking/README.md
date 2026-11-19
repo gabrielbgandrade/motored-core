@@ -13,7 +13,7 @@ One tracking entry per order (carrier, code, optional https link). Shown to the 
 ## Data model
 Option `motored_order_tracking` (autoload=false). Order meta `_motored_tracking` = {carrier_id, code, url_override, updated_gmt}; flags `_motored_tracking_sent_wa|_sent_email` (hash at send) and `_carried_wa|_carried_email` (a completed/processing message or e-mail already carried the code).
 ## Configuration keys
-`carriers` (list: id, name, URL template with `{code}`, active; ships EMPTY), `send_whatsapp`, `send_email`, `show_customer` (all `yes`), `send_delay` (minutes, default 3), `text_added`, `text_updated` (es_AR, voseo, `{a|b}`).
+`carriers` (list: id, name, URL template https + `{code}`, active; ships EMPTY; the id is a slug of the name, read-only once saved; an invalid template is rejected with an error and the row is not saved), `send_whatsapp`, `send_email`, `show_customer` (all `yes`), `send_delay` (minutes, default 3), `text_added`, `text_updated` (es_AR, voseo, `{a|b}`).
 ## Main flows
 Admin saves code -> if new/changed: per channel, skip when the hash flag or the carried flag equals the code hash -> `Sender::enqueue( 'order_tracking', id, added|updated, delay, HIGH )` and an Action Scheduler job `motored_tracking_email` (same delay; skipped at send time if superseded or carried) running `TrackingEmail::trigger_order()` -> private note (no phone, no text). Skipped with a note: manual orders (unless OrderNotifications includes them), no valid phone/e-mail. WhatsApp text is rendered at send time.
 ## Performance and security notes
@@ -24,3 +24,4 @@ No query on public pages: callbacks read the loaded order meta first, the option
 No carrier lookups or status polling; one entry per order; a changed code is sent again.
 ## Changelog
 - 0.1.0 — 2026-11-19 — first version
+- 0.1.1 — 2026-11-19 — shared admin CSS (`Admin\Ui`), auto id, https + `{code}` validation, static preview

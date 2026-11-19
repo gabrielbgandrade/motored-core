@@ -2082,10 +2082,6 @@ msgid "URL template with {code}"
 msgstr "Modelo de URL con {code}"
 
 #: src/Modules/OrderTracking/OrderTrackingAdmin.php
-msgid "The list starts empty: add your carriers and their tracking URL. \"Other / manual link\" is always available on the order. Leave the name empty to remove a row."
-msgstr "La lista empieza vacía: cargá tus transportistas y su URL de seguimiento. \"Otra / link manual\" siempre está disponible en el pedido. Dejá el nombre vacío para quitar una fila."
-
-#: src/Modules/OrderTracking/OrderTrackingAdmin.php
 msgid "Other / manual link"
 msgstr "Otra / link manual"
 
@@ -2193,3 +2189,15 @@ msgstr "El WhatsApp y el e-mail esperan este tiempo, así un mensaje de \"comple
 #: src/Modules/OrderTracking/TrackingNotifier.php
 msgid "Tracking e-mail could not be scheduled."
 msgstr "No se pudo programar el e-mail de seguimiento."
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Preview"
+msgstr "Vista previa"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Add your carriers with their tracking URL: it must be https and contain {code}. Example: %s. The id is generated from the name and cannot be changed. \"Other / manual link\" is always available on the order. Leave the name empty to remove a row."
+msgstr "Cargá tus transportistas con su URL de seguimiento: tiene que ser https y contener {code}. Ejemplo: %s. El id se genera a partir del nombre y no se puede cambiar. \"Otra / link manual\" siempre está disponible en el pedido. Dejá el nombre vacío para quitar una fila."
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Carrier \"%1$s\" was not saved: the URL template must start with https:// and contain {code}. Example: %2$s"
+msgstr "El transportista \"%1$s\" no se guardó: el modelo de URL tiene que empezar con https:// y contener {code}. Ejemplo: %2$s"

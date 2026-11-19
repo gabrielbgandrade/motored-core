@@ -2010,10 +2010,6 @@ msgid "URL template with {code}"
 msgstr ""
 
 #: src/Modules/OrderTracking/OrderTrackingAdmin.php
-msgid "The list starts empty: add your carriers and their tracking URL. \"Other / manual link\" is always available on the order. Leave the name empty to remove a row."
-msgstr ""
-
-#: src/Modules/OrderTracking/OrderTrackingAdmin.php
 msgid "Other / manual link"
 msgstr ""
 
@@ -2120,4 +2116,16 @@ msgstr ""
 
 #: src/Modules/OrderTracking/TrackingNotifier.php
 msgid "Tracking e-mail could not be scheduled."
+msgstr ""
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Preview"
+msgstr ""
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Add your carriers with their tracking URL: it must be https and contain {code}. Example: %s. The id is generated from the name and cannot be changed. \"Other / manual link\" is always available on the order. Leave the name empty to remove a row."
+msgstr ""
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Carrier \"%1$s\" was not saved: the URL template must start with https:// and contain {code}. Example: %2$s"
 msgstr ""
