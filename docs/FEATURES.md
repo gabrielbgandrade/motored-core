@@ -13,7 +13,14 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
 
 ## WhatsApp (Waha)
 - **O que faz:** único canal de envio por WhatsApp (via o seu servidor WAHA). Todos os módulos enviam por aqui.
-- **Onde:** Motored > WhatsApp. URL e chave do WAHA (melhor definir a chave como constante), sessão, código do país.
+- **Onde:** Motored > WhatsApp. URL e chave do WAHA, sessão, código do país.
+- **Chave (API key) do WAHA:** configurada pelo próprio painel, sem tocar no `wp-config.php` (ou, se preferir, pela constante
+  `MOTORED_WAHA_API_KEY`, que tem prioridade e deixa o campo só de leitura). A chave é guardada cifrada e **nunca é mostrada de novo**:
+  a tela só diz "Clave guardada", com "Reemplazar" (digite a nova; campo vazio mantém a atual) e "Borrar clave" (pede confirmação).
+  Só administradores (`manage_options`) veem e mudam a URL e a chave; gerentes da loja não. Se você trocar o servidor da URL do WAHA,
+  a chave guardada é apagada por segurança e precisa ser digitada de novo. URL com usuário/senha embutidos é recusada.
+  Se o `wp-config.php` mudar as chaves de segurança (salts), a chave guardada fica ilegível: a tela avisa "Volvé a ingresar la clave".
+  Em Estado aparece só "API key: configurada (panel/constante) / no configurada / ilegible". Salvar, trocar e apagar ficam no log (usuário, sem a chave).
 - **Fluxo:** toda mensagem entra numa fila (Action Scheduler) e nunca é enviada durante a visita do cliente. Antes de enviar:
   pausa do disjuntor, limite por minuto/hora, espaçamento entre mensagens, teto diário e checagem da sessão.
   Tenta de novo até 3 vezes (após 1 e 5 minutos).

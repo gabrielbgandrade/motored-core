@@ -43,6 +43,7 @@ Tick each item; record failures in `PROJECT.md` (Review log).
 - [ ] "Send test message" delivers to a real number in 3 formats (011 15..., +54 9 11..., 0351 15...).
 - [ ] Enqueue from `wp eval`: job in Scheduled Actions (group `motored-core`), jitter 3-15 s, `motored_waha_result` fires.
 - [ ] Stop the WAHA session: retries (60 s/300 s), breaker pauses, Status shows "Paused ... until"; logs have no phone/text.
+- [ ] API key (VERIFY #88-#89): as administrator save a key (field empty afterwards, "Clave guardada"), replace it, save with the field empty (kept), delete with/without the checkbox; view-source never shows the key; change the URL host -> key deleted + warning; `user:pass@` URL rejected; constant defined -> read-only "definida en wp-config.php"; changed salt -> "Ilegible" + "Volvé a ingresar la clave"; shop manager sees no URL/key rows; WooCommerce > Status > Logs has the audit lines (user id) and never the key.
 - [ ] Public pages / checkout: 0 extra queries, requests, assets with the module active.
 
 ## OrderNotifications (Motored > Messages)

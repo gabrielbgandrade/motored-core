@@ -176,6 +176,17 @@ Bugs fixed (one commit each):
 - OK (no change): hook/kind/option names agree across modules (3 jobs, 3 kinds, each with one handler and result listener); all default-text placeholders are resolved by the Renderer; migrations 2026111801/2026111901 cover the 3 tables dropped by uninstall; modules that handle jobs register handlers in admin/ajax/cron/cli.
 - PENDING / known: a claimed row stays without next action if `Sender::enqueue` fails right after the claim (Action Scheduler missing) — needs staging; Recovery is `enabled=yes` by default (acts as soon as Waha is configured); VERIFY #71 added. `docs/FEATURES.md` (pt-BR) describes the owner-facing behaviour.
 
+### 2026-11-19 — WAHA API key from the panel (secure)
+Decision: the API key can be set 100% from WooCommerce > Settings > Motored > WhatsApp. Priority constant `MOTORED_WAHA_API_KEY` > panel. Stored in its own option
+`motored_waha_secret` (autoload=false, no `register_setting`, not in REST), encrypted by `Support\Secrets` (libsodium secretbox, random nonce, key = generichash(`wp_salt(auth)` + label), `v1:` + base64);
+unreadable = not configured + es_AR warning, never an exception. Write-only field (never rendered, not even encrypted; empty keeps; errors never repopulate), Replace / Delete with own nonce and confirmation.
+`manage_options` only for URL and key (render + save + `KeyGuard`). `KeyGuard` (`pre_update_option_motored_waha`): host/port change deletes the key with a warning; `user:pass@` URLs rejected;
+https still mandatory. Central redaction in `Logger` (X-Api-Key/api_key/Authorization keys and registered secret values) and `Result`; test proves only `Config` and `WahaClient` touch the key.
+Audit (info, user id, no value): saved/replaced/deleted/host change. Status shows only the state. `uninstall.php` deletes `motored_waha_secret` explicitly. A plain legacy key in the settings array is migrated when an admin opens the section.
+Audit of Logger, order notes (Notifier/Recovery notes use `Result::code` only), WahaClient, Result, error messages, test buttons, Status, privacy exporters (none read settings) and uninstall: no path printed or logged the key.
+Tests: `SecretsTest`, `ApiKeyTest`, `WahaAdminSecretTest`, Logger/Result redaction. Results (PHP 8.3.36 with ext-sodium): phpcs and phpstan clean; phpunit green except 2 pre-existing `Recovery\ScheduleTest` failures (timezone data, unrelated, fail on a clean checkout).
+PENDING: VERIFY #88 (libsodium on the VPS, stable salt) and #89 (real save actions) on staging; independent `motored-review`.
+
 ### 2026-11-18 — Launch safety: master switch and test mode
 Decision: WhatsApp sending is OFF by default (`motored_waha[enabled]=no`); with it on, test mode (default yes) only sends to `test_numbers`
 (normalized, one per line); the admin must turn test mode off to reach real customers. Enforced once, in `Sender::handle` (switch before the circuit breaker,

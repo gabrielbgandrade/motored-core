@@ -21,17 +21,27 @@ WhatsApp **transport** through WAHA: HTTP client, phone normalization/confirmati
 | `motored_waha_send` (our AS action) | cron/ajax/cli/admin | worker | unverified (VERIFY #21) |
 | `admin_post_motored_waha_test_*` | admin | the two test buttons | unverified (#25) |
 | `woocommerce_admin_field_motored_waha_tools` | admin | custom row with buttons | unverified (#24) |
+| `woocommerce_admin_field_motored_waha_secret`, `woocommerce_update_options_motored`, `admin_post_motored_waha_delete_key` | admin | API key row, save, delete | unverified (#88) |
+| `pre_update_option_motored_waha` | admin/cron/cli | `KeyGuard` | ours |
 | `motored_status_rows` | admin | Status rows | ours |
 | `http_api_curl` (only during a request) | worker/admin | connect timeout 5 s | unverified (#23) |
 
 ## Data model
-Option `motored_waha` (autoload=false). Cache bucket `waha`: `chat:{md5}` (chat id 30 d / negative 24 h),
+Options `motored_waha` and `motored_waha_secret` (both autoload=false). Cache bucket `waha`: `chat:{md5}` (chat id 30 d / negative 24 h),
 `rate:m:*` / `rate:h:*` counters, `next_slot` (global spacing), `day:{Ymd}` (daily counter, site timezone), `session:health` (60 s), `breaker:until`, `breaker:fails`, `notice:{user}` (120 s). No tables.
 
 ## Configuration keys
-`url`, `session`, `api_key` (secret), `country_code` (54), `rate_per_minute` (6), `rate_per_hour` (100),
+`url`, `session`, `country_code` (54), `rate_per_minute` (6), `rate_per_hour` (100),
 `breaker_threshold` (5), `breaker_minutes` (15), `interval_min` (20 s), `interval_max` (60 s), `daily_cap` (150), `low_percent` (60), `typing` (yes). Constants `MOTORED_WAHA_URL`, `MOTORED_WAHA_API_KEY`,
 `MOTORED_WAHA_SESSION` override the option; those fields become read-only. Edited in WooCommerce > Settings > Motored > WhatsApp.
+
+## API key (secret)
+Stored in its OWN option `motored_waha_secret` (autoload=false, outside the `motored_waha` array, no `register_setting`, not in REST), encrypted by `Support\Secrets` (libsodium secretbox, random nonce, key = generichash of `wp_salt('auth')` + plugin label, format `v1:` + base64). Priority: constant `MOTORED_WAHA_API_KEY` > panel. If it cannot be decrypted (salts changed, corrupted) it counts as not configured and the screen asks to enter it again; nothing throws.
+- The field is WRITE-ONLY: the value (plain or encrypted) is never rendered. Saved state shows "Key saved" with "Replace" (password input, `autocomplete=new-password`) and "Delete key" (confirmation + own nonce). An empty field keeps the current key; validation errors never repopulate it.
+- Only `manage_options` can see/change the key and the WAHA URL (checked on render and on save; `KeyGuard` also enforces it on the option update). Shop managers keep the rest of the section.
+- Anti-exfiltration (`KeyGuard`, `pre_update_option_motored_waha`): changing host or port of the URL deletes the stored key (warning shown); URLs with `user:pass@` are rejected; https stays mandatory (`motored_waha_allow_insecure_http` dev filter).
+- Redaction: `Logger` removes `X-Api-Key`/`api_key`/`Authorization` keys and every registered secret value from message and context; `Result` redacts `message` and `data`. Only `Config` and `WahaClient` touch the key (tested). Audit log (info, no value, with user id): saved, replaced, deleted, host change. Status shows only "Configured (panel|constant) / Not configured / Unreadable".
+- A plain key left by the old settings field is moved to the encrypted option when an administrator opens the section.
 
 ## Main flows
 1. `enqueue` -> AS single action (group `motored-core`, args `[kind, ref_id, step, attempt, priority]`) at now+delay+jitter(3-15 s).
@@ -46,8 +56,7 @@ Option `motored_waha` (autoload=false). Cache bucket `waha`: `chat:{md5}` (chat 
 ## Performance and security notes
 Loads only in admin, cron, ajax, cli (not public pages, not REST). Sync HTTP only on the two admin buttons
 (nonce + `manage_woocommerce`, `admin-post.php`). TLS verified, no redirects, https required. Logs carry masked
-phones, kinds and IDs; never text, API key or response bodies. The API key input is `type=password` but its value
-is still in the page HTML for administrators; prefer the constant.
+phones, kinds and IDs; never text, API key or response bodies. The API key is never printed (write-only field).
 
 ## How to test
 `vendor/bin/phpunit tests/Unit/Modules/Waha tests/Unit/Integration/Waha`: client (success, 401, timeout, bad JSON,
