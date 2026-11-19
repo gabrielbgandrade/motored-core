@@ -41,6 +41,9 @@ foreach ( $motored_patterns as $motored_pattern ) {
 	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $motored_pattern ) );
 }
 
+// Encrypted WAHA API key (also matched by the motored_% pattern above; explicit on purpose).
+delete_option( 'motored_waha_secret' );
+
 // Settings of our WooCommerce e-mails (stored by WC_Settings_API).
 delete_option( 'woocommerce_motored_abandoned_cart_settings' );
 delete_option( 'woocommerce_motored_pending_payment_settings' );
