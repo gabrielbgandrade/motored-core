@@ -144,4 +144,30 @@ final class ApiKeyTest extends TestCase {
 		$this->assertSame( 'legacy-key-1', Config::api_key() );
 		$this->assertSame( Config::SOURCE_PANEL, Config::api_key_source() );
 	}
+	private function strip_comments( string $code ): string {
+		$out = '';
+		foreach ( token_get_all( $code ) as $token ) {
+			if ( is_array( $token ) && in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
+				continue;
+			}
+			$out .= is_array( $token ) ? $token[1] : $token;
+		}
+		return $out;
+	}
+
+	public function test_only_the_client_and_config_touch_the_key_in_the_whole_plugin(): void {
+		$allowed = array( 'Modules/Waha/Config.php', 'Integration/Waha/WahaClient.php' );
+		$root    = dirname( __DIR__, 4 ) . '/src';
+		$files   = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $root, \FilesystemIterator::SKIP_DOTS ) );
+		foreach ( $files as $file ) {
+			$path     = str_replace( '\\', '/', (string) $file );
+			$relative = substr( $path, strlen( str_replace( '\\', '/', $root ) ) + 1 );
+			if ( 'php' !== $file->getExtension() || in_array( $relative, $allowed, true ) ) {
+				continue;
+			}
+			$code = (string) file_get_contents( $path );
+			$this->assertStringNotContainsString( 'Config::api_key()', $code, $path );
+			$this->assertStringNotContainsString( "'X-Api-Key'", $this->strip_comments( $code ), $path );
+		}
+	}
 }

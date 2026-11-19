@@ -10,7 +10,7 @@ namespace Motored\Core\Support;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * libsodium secretbox with a key derived from wp_salt( 'auth' ). Stored value: "v1:" + base64( nonce . ciphertext ).
+ * Uses libsodium secretbox with a key derived from wp_salt( 'auth' ). Stored value: "v1:" + base64( nonce . ciphertext ).
  *
  * Each secret lives in its OWN option (autoload=false, never registered with register_setting, so it is not
  * exposed by the REST settings endpoint). Decryption failures (changed salts, corrupted data, no libsodium)
@@ -53,7 +53,7 @@ final class Secrets {
 		try {
 			$nonce  = random_bytes( self::NONCE_LEN );
 			$cipher = sodium_crypto_secretbox( $plain, $nonce, self::key() );
-			return self::PREFIX . base64_encode( $nonce . $cipher );
+			return self::PREFIX . base64_encode( $nonce . $cipher ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Binary to text, not obfuscation.
 		} catch ( \Throwable $e ) {
 			return null;
 		}
@@ -69,7 +69,7 @@ final class Secrets {
 			return null;
 		}
 		try {
-			$raw = base64_decode( substr( $payload, strlen( self::PREFIX ) ), true );
+			$raw = base64_decode( substr( $payload, strlen( self::PREFIX ) ), true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Text to binary, not obfuscation.
 			if ( false === $raw || strlen( $raw ) <= self::NONCE_LEN ) {
 				return null;
 			}

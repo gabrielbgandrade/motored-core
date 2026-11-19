@@ -14,13 +14,43 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Immutable result. `message` is a short English technical text (never a response body,
  * never personal data); user-facing wording is translated by the admin layer from `code`.
+ * `message` and `data` pass through the central secret redaction (API key, X-Api-Key).
  */
 final class Result {
 
+	/**
+	 * Whether the call succeeded.
+	 *
+	 * @var bool
+	 */
 	public readonly bool $ok;
+
+	/**
+	 * HTTP status (0 when there was no response).
+	 *
+	 * @var int
+	 */
 	public readonly int $http_status;
+
+	/**
+	 * Machine code ("ok", "timeout", "auth", ...).
+	 *
+	 * @var string
+	 */
 	public readonly string $code;
+
+	/**
+	 * Short technical message (redacted).
+	 *
+	 * @var string
+	 */
 	public readonly string $message;
+
+	/**
+	 * Whether retrying later may succeed.
+	 *
+	 * @var bool
+	 */
 	public readonly bool $retryable;
 
 	/**
@@ -31,7 +61,7 @@ final class Result {
 	public readonly array $data;
 
 	/**
-	 * Constructor. `message` and `data` pass through the central secret redaction.
+	 * Constructor.
 	 *
 	 * @param bool                $ok          Whether the call succeeded.
 	 * @param int                 $http_status HTTP status (0 when there was no response).
