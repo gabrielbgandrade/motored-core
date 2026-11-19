@@ -113,7 +113,9 @@ class WahaClient {
 		}
 		$scheme = strtolower( (string) wp_parse_url( $base, PHP_URL_SCHEME ) );
 		$host   = (string) wp_parse_url( $base, PHP_URL_HOST );
-		if ( '' === $host || ! in_array( $scheme, array( 'https', 'http' ), true ) ) {
+		$user   = (string) wp_parse_url( $base, PHP_URL_USER );
+		$pass   = (string) wp_parse_url( $base, PHP_URL_PASS );
+		if ( '' === $host || '' !== $user || '' !== $pass || ! in_array( $scheme, array( 'https', 'http' ), true ) ) {
 			return Result::failure( 'invalid_url', 'WAHA URL is invalid.' );
 		}
 		if ( 'https' !== $scheme && true !== apply_filters( 'motored_waha_allow_insecure_http', false ) ) {

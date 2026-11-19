@@ -42,6 +42,7 @@ final class WahaModule implements Module {
 		Options::register_defaults( 'waha', Config::DEFAULTS );
 
 		add_action( Sender::HOOK, array( Sender::class, 'run' ), 10, Sender::HOOK_ARGS );
+		KeyGuard::register();
 
 		$context = new Context();
 		if ( $context->is_admin() ) {

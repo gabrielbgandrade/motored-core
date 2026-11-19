@@ -7,7 +7,9 @@
 
 namespace Motored\Core\Modules\Waha;
 
+use Motored\Core\Support\Logger;
 use Motored\Core\Support\Options;
+use Motored\Core\Support\Secrets;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -19,7 +21,6 @@ final class Config {
 
 	public const DEFAULTS = array(
 		'url'               => '',
-		'api_key'           => '',
 		'session'           => 'default',
 		'country_code'      => '54',
 		'rate_per_minute'   => '6',
@@ -35,6 +36,14 @@ final class Config {
 		'test_mode'         => 'yes',
 		'test_numbers'      => '',
 	);
+
+	/** Option holding the encrypted API key (own option, autoload=false, outside the module array). */
+	public const SECRET_OPTION = 'motored_waha_secret';
+
+	public const SOURCE_CONSTANT   = 'constant';
+	public const SOURCE_PANEL      = 'panel';
+	public const SOURCE_UNREADABLE = 'unreadable';
+	public const SOURCE_NONE       = 'none';
 
 	public const MODE_OFF  = 'off';
 	public const MODE_TEST = 'test';
@@ -74,10 +83,40 @@ final class Config {
 	}
 
 	/**
-	 * API key (secret: never log).
+	 * API key (secret: never log, never render). Priority: wp-config.php constant > encrypted panel value.
+	 * An unreadable panel value (changed salts, corrupted data) counts as "not configured".
 	 */
 	public static function api_key(): string {
-		return self::text( 'api_key' );
+		if ( self::is_locked( 'api_key' ) ) {
+			$key = self::text( 'api_key' );
+		} else {
+			$stored = Secrets::read( self::SECRET_OPTION );
+			$key    = null !== $stored ? trim( $stored ) : self::legacy_key();
+		}
+		Logger::protect( $key );
+		return $key;
+	}
+
+	/**
+	 * Where the key comes from: "constant", "panel", "unreadable" (stored but cannot be decrypted) or "none".
+	 */
+	public static function api_key_source(): string {
+		if ( self::is_locked( 'api_key' ) ) {
+			return self::SOURCE_CONSTANT;
+		}
+		$state = Secrets::state( self::SECRET_OPTION );
+		if ( Secrets::STATE_OK === $state || ( Secrets::STATE_NONE === $state && '' !== self::legacy_key() ) ) {
+			return self::SOURCE_PANEL;
+		}
+		return Secrets::STATE_BAD === $state ? self::SOURCE_UNREADABLE : self::SOURCE_NONE;
+	}
+
+	/**
+	 * Plain-text key of the old settings array (before the encrypted option). Migrated when the settings page opens.
+	 */
+	public static function legacy_key(): string {
+		$value = Options::get( 'waha', 'api_key', '' );
+		return is_string( $value ) ? trim( $value ) : '';
 	}
 
 	/**
