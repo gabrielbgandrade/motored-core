@@ -1282,10 +1282,6 @@ msgstr ""
 msgid "API key"
 msgstr ""
 
-#: src/Modules/Waha/WahaAdmin.php:101
-msgid "Sent in the X-Api-Key header. Prefer defining it in wp-config.php."
-msgstr ""
-
 #: src/Modules/Waha/WahaAdmin.php:124
 msgid "Calling code used for numbers without one (54 = Argentina)."
 msgstr ""
@@ -1854,4 +1850,93 @@ msgstr ""
 
 #: src/Admin/SettingsTab.php
 msgid "You do not have permission to view or change the Advanced settings."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The WAHA URL cannot contain a user or password. The URL was not changed."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The WAHA server changed, so the saved API key was deleted. Enter the API key again."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Key defined"
+msgstr ""
+
+#. translators: %s: constant name.
+#: src/Modules/Waha/WahaAdmin.php
+msgid "defined in wp-config.php (%s). Read-only here."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The saved API key could not be read. Enter it again."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Key saved"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "saved in the panel."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Replace"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "No key saved."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Delete key"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Yes, delete the saved key"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Sent in the X-Api-Key header. It is stored encrypted and never shown again; leave the field empty to keep the current key. Defining it in wp-config.php is preferred."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The security check failed. Reload the page and try again."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The API key has invalid characters (no spaces or line breaks) or is too long. It was not saved."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The API key could not be stored securely (libsodium is not available). Define it in wp-config.php instead."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The key was not deleted: tick the confirmation box first."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The key is defined in wp-config.php and cannot be deleted here."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "API key deleted."
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Configured (constant)"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Configured (panel)"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Unreadable"
+msgstr ""
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Not configured"
 msgstr ""

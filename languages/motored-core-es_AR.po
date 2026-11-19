@@ -1344,10 +1344,6 @@ msgstr "Nombre de la sesión de WAHA que envía los mensajes."
 msgid "API key"
 msgstr "API key"
 
-#: src/Modules/Waha/WahaAdmin.php:101
-msgid "Sent in the X-Api-Key header. Prefer defining it in wp-config.php."
-msgstr "Se envía en el header X-Api-Key. Preferí definirla en wp-config.php."
-
 #: src/Modules/Waha/WahaAdmin.php:124
 msgid "Calling code used for numbers without one (54 = Argentina)."
 msgstr "Código usado para los números que no lo traen (54 = Argentina)."
@@ -1927,3 +1923,92 @@ msgstr "Excluir Cuotas sin Tarjeta (consumer_credits)"
 #: src/Admin/SettingsTab.php
 msgid "You do not have permission to view or change the Advanced settings."
 msgstr "No tenés permiso para ver ni modificar los ajustes avanzados."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The WAHA URL cannot contain a user or password. The URL was not changed."
+msgstr "La URL de WAHA no puede incluir usuario ni contraseña. No se cambió la URL."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The WAHA server changed, so the saved API key was deleted. Enter the API key again."
+msgstr "Cambió el servidor de WAHA, por eso se borró la API key guardada. Volvé a ingresar la API key."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Key defined"
+msgstr "Clave definida"
+
+#. translators: %s: constant name.
+#: src/Modules/Waha/WahaAdmin.php
+msgid "defined in wp-config.php (%s). Read-only here."
+msgstr "definida en wp-config.php (%s). Es de solo lectura acá."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The saved API key could not be read. Enter it again."
+msgstr "No se pudo leer la API key guardada. Volvé a ingresar la clave."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Key saved"
+msgstr "Clave guardada"
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "saved in the panel."
+msgstr "guardada en el panel."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Replace"
+msgstr "Reemplazar"
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "No key saved."
+msgstr "No hay ninguna clave guardada."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Delete key"
+msgstr "Borrar clave"
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Yes, delete the saved key"
+msgstr "Sí, borrar la clave guardada"
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Sent in the X-Api-Key header. It is stored encrypted and never shown again; leave the field empty to keep the current key. Defining it in wp-config.php is preferred."
+msgstr "Se envía en el encabezado X-Api-Key. Se guarda cifrada y no se vuelve a mostrar; dejá el campo vacío para conservar la clave actual. Es preferible definirla en wp-config.php."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The security check failed. Reload the page and try again."
+msgstr "Falló la verificación de seguridad. Recargá la página e intentá de nuevo."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The API key has invalid characters (no spaces or line breaks) or is too long. It was not saved."
+msgstr "La API key tiene caracteres inválidos (sin espacios ni saltos de línea) o es demasiado larga. No se guardó."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The API key could not be stored securely (libsodium is not available). Define it in wp-config.php instead."
+msgstr "No se pudo guardar la API key de forma segura (libsodium no está disponible). Definila en wp-config.php."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The key was not deleted: tick the confirmation box first."
+msgstr "No se borró la clave: tildá primero la casilla de confirmación."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "The key is defined in wp-config.php and cannot be deleted here."
+msgstr "La clave está definida en wp-config.php y no se puede borrar desde acá."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "API key deleted."
+msgstr "Se borró la API key."
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Configured (constant)"
+msgstr "Configurada (constante)"
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Configured (panel)"
+msgstr "Configurada (panel)"
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Unreadable"
+msgstr "Ilegible"
+
+#: src/Modules/Waha/WahaAdmin.php
+msgid "Not configured"
+msgstr "No configurada"

@@ -236,7 +236,7 @@ final class WahaAdmin {
 		echo '<tr valign="top"><th scope="row" class="titledesc"><label for="' . esc_attr( self::NEW_KEY_FIELD ) . '">' . esc_html__( 'API key', 'motored-core' ) . '</label></th><td class="forminp motored-secret">';
 
 		if ( Config::SOURCE_CONSTANT === $source ) {
-			echo '<p><strong>' . esc_html__( 'API key set', 'motored-core' ) . '</strong> &mdash; ';
+			echo '<p><strong>' . esc_html__( 'Key defined', 'motored-core' ) . '</strong> &mdash; ';
 			/* translators: %s: constant name. */
 			echo wp_kses( sprintf( __( 'defined in wp-config.php (%s). Read-only here.', 'motored-core' ), '<code>' . esc_html( Config::constant_name( 'api_key' ) ) . '</code>' ), array( 'code' => array() ) ) . '</p>';
 			echo '</td></tr>';
