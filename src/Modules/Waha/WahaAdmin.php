@@ -12,6 +12,8 @@ use Motored\Core\Integration\Waha\Result;
 use Motored\Core\Integration\Waha\WahaClient;
 use Motored\Core\Support\Cache;
 use Motored\Core\Support\Logger;
+use Motored\Core\Support\Options;
+use Motored\Core\Support\Secrets;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -28,6 +30,14 @@ final class WahaAdmin {
 	public const PHONE_FIELD       = 'motored_waha_test_phone';
 	public const SECTION           = 'whatsapp';
 
+	public const ACTION_DELETE_KEY  = 'motored_waha_delete_key';
+	public const SECRET_NONCE       = 'motored_waha_secret';
+	public const SECRET_NONCE_FIELD = 'motored_waha_secret_nonce';
+	public const NEW_KEY_FIELD      = 'motored_waha_new_key';
+	public const CONFIRM_FIELD      = 'motored_waha_confirm_delete';
+	/** WAHA URL and API key: administrators only (shop managers have manage_woocommerce, not this). */
+	public const SECRET_CAPABILITY = KeyGuard::CAPABILITY;
+
 	/**
 	 * Registers admin hooks.
 	 */
@@ -41,6 +51,10 @@ final class WahaAdmin {
 		);
 		// Custom field type rendered by WooCommerce through woocommerce_admin_field_{type} (VERIFY.md).
 		add_action( 'woocommerce_admin_field_motored_waha_tools', array( $this, 'render_tools' ) );
+		// API key: write-only custom field (no id, so WooCommerce never saves or reads it), saved by our own handler.
+		add_action( 'woocommerce_admin_field_motored_waha_secret', array( $this, 'render_secret' ) );
+		add_action( 'woocommerce_update_options_motored', array( $this, 'save_secret' ) );
+		add_action( 'admin_post_' . self::ACTION_DELETE_KEY, array( $this, 'handle_delete_key' ) );
 		add_action( 'admin_post_' . self::ACTION_CONNECTION, array( $this, 'handle_test_connection' ) );
 		add_action( 'admin_post_' . self::ACTION_MESSAGE, array( $this, 'handle_test_message' ) );
 		add_filter( 'motored_status_rows', array( $this, 'status_rows' ) );
@@ -53,7 +67,11 @@ final class WahaAdmin {
 	 * @return array<int,array<string,mixed>>
 	 */
 	public function settings(): array {
-		$locked = array();
+		$locked   = array();
+		$is_admin = current_user_can( self::SECRET_CAPABILITY );
+		if ( $is_admin ) {
+			$this->migrate_legacy_key();
+		}
 		$fields = array(
 			array(
 				'title'    => __( 'Send messages', 'motored-core' ),
@@ -96,29 +114,32 @@ final class WahaAdmin {
 				'type'  => 'text',
 				'extra' => array(),
 			),
-			'api_key' => array(
-				'title' => __( 'API key', 'motored-core' ),
-				'desc'  => __( 'Sent in the X-Api-Key header. Prefer defining it in wp-config.php.', 'motored-core' ),
-				'type'  => 'password',
-				'extra' => array( 'autocomplete' => 'new-password' ),
-			),
 		);
 
 		foreach ( $definitions as $key => $definition ) {
-			if ( Config::is_locked( $key ) ) {
-				$locked[ $key ] = $definition['title'];
+			// The URL (and the API key below) are visible and editable by administrators only.
+			if ( 'url' === $key && ! $is_admin ) {
 				continue;
 			}
-			$fields[] = array(
-				'title'             => $definition['title'],
-				'desc'              => $definition['desc'],
-				'desc_tip'          => true,
-				'id'                => 'motored_waha[' . $key . ']',
-				'type'              => $definition['type'],
-				'default'           => Config::DEFAULTS[ $key ],
-				'custom_attributes' => $definition['extra'],
-				'autoload'          => false,
-			);
+			if ( Config::is_locked( $key ) ) {
+				$locked[ $key ] = $definition['title'];
+			} else {
+				$fields[] = array(
+					'title'             => $definition['title'],
+					'desc'              => $definition['desc'],
+					'desc_tip'          => true,
+					'id'                => 'motored_waha[' . $key . ']',
+					'type'              => $definition['type'],
+					'default'           => Config::DEFAULTS[ $key ],
+					'custom_attributes' => $definition['extra'],
+					'autoload'          => false,
+				);
+			}
+			if ( 'url' === $key ) {
+				// API key row, right after the URL. No id on purpose: WooCommerce skips id-less fields when
+				// saving; render_secret() prints it and save_secret() stores it.
+				$fields[] = array( 'type' => 'motored_waha_secret' );
+			}
 		}
 
 		$fields[] = $this->number_field( 'country_code', __( 'Default country code', 'motored-core' ), __( 'Calling code used for numbers without one (54 = Argentina).', 'motored-core' ), 'text' );
@@ -204,13 +225,137 @@ final class WahaAdmin {
 	}
 
 	/**
+	 * Prints the API key row. WRITE-ONLY: the key (plain or encrypted) is never printed, not even masked, and
+	 * nothing the admin typed is ever repopulated. Administrators only.
+	 */
+	public function render_secret(): void {
+		if ( ! current_user_can( self::SECRET_CAPABILITY ) ) {
+			return;
+		}
+		$source = Config::api_key_source();
+		echo '<tr valign="top"><th scope="row" class="titledesc"><label for="' . esc_attr( self::NEW_KEY_FIELD ) . '">' . esc_html__( 'API key', 'motored-core' ) . '</label></th><td class="forminp motored-secret">';
+
+		if ( Config::SOURCE_CONSTANT === $source ) {
+			echo '<p><strong>' . esc_html__( 'API key set', 'motored-core' ) . '</strong> &mdash; ';
+			/* translators: %s: constant name. */
+			echo wp_kses( sprintf( __( 'defined in wp-config.php (%s). Read-only here.', 'motored-core' ), '<code>' . esc_html( Config::constant_name( 'api_key' ) ) . '</code>' ), array( 'code' => array() ) ) . '</p>';
+			echo '</td></tr>';
+			return;
+		}
+
+		wp_nonce_field( self::SECRET_NONCE, self::SECRET_NONCE_FIELD, false );
+
+		if ( Config::SOURCE_UNREADABLE === $source ) {
+			echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'The saved API key could not be read. Enter it again.', 'motored-core' ) . '</p></div>';
+		}
+
+		$input = '<input type="password" name="' . esc_attr( self::NEW_KEY_FIELD ) . '" id="' . esc_attr( self::NEW_KEY_FIELD ) . '" autocomplete="new-password" autocapitalize="off" spellcheck="false" class="regular-text" />';
+		if ( Config::SOURCE_PANEL === $source ) {
+			echo '<p><strong>' . esc_html__( 'Key saved', 'motored-core' ) . '</strong> &mdash; ' . esc_html__( 'saved in the panel.', 'motored-core' ) . '</p>';
+			echo '<details><summary>' . esc_html__( 'Replace', 'motored-core' ) . '</summary><p>' . $input . '</p></details>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts above.
+		} else {
+			if ( Config::SOURCE_NONE === $source ) {
+				echo '<p>' . esc_html__( 'No key saved.', 'motored-core' ) . '</p>';
+			}
+			echo '<p>' . $input . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts above.
+		}
+
+		if ( Config::SOURCE_NONE !== $source ) {
+			printf(
+				'<details><summary>%1$s</summary><p><label><input type="checkbox" name="%2$s" value="1" /> %3$s</label> <button type="submit" class="button" name="action" value="%4$s" formmethod="post" formaction="%5$s">%1$s</button></p></details>',
+				esc_html__( 'Delete key', 'motored-core' ),
+				esc_attr( self::CONFIRM_FIELD ),
+				esc_html__( 'Yes, delete the saved key', 'motored-core' ),
+				esc_attr( self::ACTION_DELETE_KEY ),
+				esc_url( admin_url( 'admin-post.php' ) )
+			);
+		}
+		echo '<p class="description">' . esc_html__( 'Sent in the X-Api-Key header. It is stored encrypted and never shown again; leave the field empty to keep the current key. Defining it in wp-config.php is preferred.', 'motored-core' ) . '</p>';
+		echo '</td></tr>';
+	}
+
+	/**
+	 * Stores a key typed in the settings form (WooCommerce action `woocommerce_update_options_motored`).
+	 * Empty field = keep the current key. Capability, own nonce and format are checked; the value is never echoed.
+	 */
+	public function save_secret(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified below with our own nonce.
+		if ( ! isset( $_POST[ self::SECRET_NONCE_FIELD ] ) ) {
+			return; // The row was not rendered (other section or no capability).
+		}
+		if ( ! current_user_can( self::SECRET_CAPABILITY ) ) {
+			\WC_Admin_Settings::add_error( __( 'You are not allowed to do this.', 'motored-core' ) );
+			return;
+		}
+		$nonce = is_string( $_POST[ self::SECRET_NONCE_FIELD ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::SECRET_NONCE_FIELD ] ) ) : '';
+		if ( 1 !== wp_verify_nonce( $nonce, self::SECRET_NONCE ) && 2 !== wp_verify_nonce( $nonce, self::SECRET_NONCE ) ) {
+			\WC_Admin_Settings::add_error( __( 'The security check failed. Reload the page and try again.', 'motored-core' ) );
+			return;
+		}
+		if ( Config::is_locked( 'api_key' ) ) {
+			return; // The constant wins; nothing is stored.
+		}
+		// A password: no sanitize_text_field (it would alter valid characters). Validated by format instead.
+		$key = isset( $_POST[ self::NEW_KEY_FIELD ] ) && is_string( $_POST[ self::NEW_KEY_FIELD ] ) ? trim( wp_unslash( $_POST[ self::NEW_KEY_FIELD ] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+		if ( '' === $key ) {
+			return; // Keeps the current key.
+		}
+		if ( 1 !== preg_match( '/^[\x21-\x7E]{1,512}$/', $key ) ) {
+			\WC_Admin_Settings::add_error( __( 'The API key has invalid characters (no spaces or line breaks) or is too long. It was not saved.', 'motored-core' ) );
+			return;
+		}
+		$replaced = Secrets::has( Config::SECRET_OPTION );
+		if ( ! Secrets::store( Config::SECRET_OPTION, $key ) ) {
+			\WC_Admin_Settings::add_error( __( 'The API key could not be stored securely (libsodium is not available). Define it in wp-config.php instead.', 'motored-core' ) );
+			return;
+		}
+		Logger::protect( $key );
+		Logger::info( $replaced ? 'WAHA API key replaced.' : 'WAHA API key saved.', array( 'user' => get_current_user_id() ) );
+	}
+
+	/**
+	 * "Delete key" button (admin-post): administrators only, own nonce and an explicit confirmation.
+	 */
+	public function handle_delete_key(): void {
+		if ( ! current_user_can( self::SECRET_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You are not allowed to do this.', 'motored-core' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( self::SECRET_NONCE, self::SECRET_NONCE_FIELD );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
+		if ( empty( $_POST[ self::CONFIRM_FIELD ] ) ) {
+			$this->finish( false, __( 'The key was not deleted: tick the confirmation box first.', 'motored-core' ) );
+		}
+		if ( Config::is_locked( 'api_key' ) ) {
+			$this->finish( false, __( 'The key is defined in wp-config.php and cannot be deleted here.', 'motored-core' ) );
+		}
+		Secrets::forget( Config::SECRET_OPTION );
+		Logger::info( 'WAHA API key deleted.', array( 'user' => get_current_user_id() ) );
+		$this->finish( true, __( 'API key deleted.', 'motored-core' ) );
+	}
+
+	/**
+	 * Moves a plain-text key left in the old settings array into the encrypted option (opening the page as admin).
+	 */
+	private function migrate_legacy_key(): void {
+		$legacy = Config::legacy_key();
+		if ( '' === $legacy || Config::is_locked( 'api_key' ) || Secrets::has( Config::SECRET_OPTION ) ) {
+			return;
+		}
+		if ( Secrets::store( Config::SECRET_OPTION, $legacy ) ) {
+			Options::update( 'waha', array( 'api_key' => '' ) );
+			Logger::info( 'WAHA API key moved to encrypted storage.', array( 'user' => get_current_user_id() ) );
+		}
+	}
+
+	/**
 	 * "Test connection": shows the session state.
 	 */
 	public function handle_test_connection(): void {
 		$this->guard();
 		$result = ( new WahaClient() )->sessionStatus();
 		if ( $result->ok ) {
-			$this->finish_test(
+			$this->finish(
 				true,
 				sprintf(
 					/* translators: %s: WAHA session state, e.g. WORKING. */
@@ -219,7 +364,7 @@ final class WahaAdmin {
 				)
 			);
 		}
-		$this->finish_test(
+		$this->finish(
 			false,
 			/* translators: %s: reason of the failure. */
 			sprintf( __( 'Connection failed: %s', 'motored-core' ), self::describe( $result ) )
@@ -234,7 +379,7 @@ final class WahaAdmin {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in guard().
 		$phone = isset( $_POST[ self::PHONE_FIELD ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::PHONE_FIELD ] ) ) : '';
 		if ( '' === $phone ) {
-			$this->finish_test( false, __( 'Type a phone number first.', 'motored-core' ) );
+			$this->finish( false, __( 'Type a phone number first.', 'motored-core' ) );
 		}
 
 		$client   = new WahaClient();
@@ -251,9 +396,9 @@ final class WahaAdmin {
 			)
 		);
 		if ( $result->ok ) {
-			$this->finish_test( true, __( 'Test message sent.', 'motored-core' ) );
+			$this->finish( true, __( 'Test message sent.', 'motored-core' ) );
 		}
-		$this->finish_test(
+		$this->finish(
 			false,
 			/* translators: %s: reason of the failure. */
 			sprintf( __( 'The message was not sent: %s', 'motored-core' ), self::describe( $result ) )
@@ -272,6 +417,7 @@ final class WahaAdmin {
 
 		$rows[ __( 'WhatsApp delivery mode', 'motored-core' ) ] = self::mode_label( Config::mode() );
 		$rows[ __( 'WAHA configured', 'motored-core' ) ]        = Config::is_configured() ? __( 'Yes', 'motored-core' ) : __( 'No', 'motored-core' );
+		$rows[ __( 'API key', 'motored-core' ) ]                = self::key_label( Config::api_key_source() );
 		$rows[ __( 'WhatsApp sending', 'motored-core' ) ]       = $until > time()
 			/* translators: %s: time when sending resumes. */
 			? sprintf( __( 'Paused by circuit breaker until %s', 'motored-core' ), (string) wp_date( 'H:i', $until ) )
@@ -280,6 +426,24 @@ final class WahaAdmin {
 		/* translators: 1: messages sent today, 2: daily limit. */
 		$rows[ __( 'WhatsApp messages sent today', 'motored-core' ) ] = sprintf( __( '%1$d of %2$d', 'motored-core' ), RateLimiter::daily_count( time() ), Config::daily_cap() );
 		return $rows;
+	}
+
+	/**
+	 * Status label of the API key (never the key).
+	 *
+	 * @param string $source Config::SOURCE_*.
+	 */
+	public static function key_label( string $source ): string {
+		switch ( $source ) {
+			case Config::SOURCE_CONSTANT:
+				return __( 'Configured (constant)', 'motored-core' );
+			case Config::SOURCE_PANEL:
+				return __( 'Configured (panel)', 'motored-core' );
+			case Config::SOURCE_UNREADABLE:
+				return __( 'Unreadable', 'motored-core' );
+			default:
+				return __( 'Not configured', 'motored-core' );
+		}
 	}
 
 	/**
@@ -391,7 +555,7 @@ final class WahaAdmin {
 	 * @param bool   $ok   Whether the test passed.
 	 * @param string $text Message shown to the admin.
 	 */
-	private function finish_test( bool $ok, string $text ): never {
+	private function finish( bool $ok, string $text ): never {
 		Cache::set(
 			'notice:' . get_current_user_id(),
 			array(
