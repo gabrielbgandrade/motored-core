@@ -8,12 +8,13 @@
 namespace Motored\Core\Admin;
 
 use Motored\Core\Integration\WooCommerce\OrderHooks;
+use Motored\Core\Modules\ReviewPhotos\PhotoMeta;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * The ONE shared admin stylesheet (CSS only, no JS, no dependencies). Enqueued only on WooCommerce > Settings > Motored,
- * the order edit screen (meta boxes) and the Recovery screen; never on other admin screens.
+ * the order edit screen, the Recovery screen and the comment edit screen with review photos; never on other admin screens.
  */
 final class AdminAssets {
 
@@ -47,6 +48,12 @@ final class AdminAssets {
 			return false;
 		}
 		$screen = get_current_screen();
+		if ( is_object( $screen ) && 'comment' === $screen->id ) {
+			// Comment edit screen: only when the ReviewPhotos meta box will be shown (the comment has photos).
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen detection.
+			$comment_id = isset( $_GET['c'] ) && is_scalar( $_GET['c'] ) ? absint( wp_unslash( $_GET['c'] ) ) : 0;
+			return $comment_id > 0 && array() !== PhotoMeta::ids( $comment_id );
+		}
 		if ( ! is_object( $screen ) || OrderHooks::order_screen_id() !== $screen->id ) {
 			return false;
 		}

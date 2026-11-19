@@ -72,6 +72,17 @@ final class AdminAssetsTest extends TestCase {
 		$screen = (object) array( 'id' => 'edit-shop_order' );
 		$_GET   = array();
 		$this->assertSame( array(), $this->run_enqueue(), 'legacy order list' );
+		// Comment edit screen: only when the comment has review photos.
+		$screen = (object) array( 'id' => 'comment' );
+		$_GET   = array( 'action' => 'editcomment', 'c' => '7' );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'get_comment_meta' )->justReturn( '' );
+		$this->assertSame( array(), $this->run_enqueue(), 'comment without photos' );
+		Functions\when( 'get_comment_meta' )->justReturn( array( 11 ) );
+		$this->assertSame( $css, $this->run_enqueue(), 'comment with photos' );
+		$_GET = array( 'action' => 'editcomment' );
+		$this->assertSame( array(), $this->run_enqueue(), 'no comment id' );
+
 		$screen = (object) array( 'id' => 'dashboard' );
 		$this->assertSame( array(), $this->run_enqueue() );
 	}
