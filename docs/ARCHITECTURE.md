@@ -71,3 +71,6 @@ Module -> `Sender::enqueue( kind, id, step, delay )` -> Action Scheduler (`motor
 -> worker: breaker, rate limit, handler(kind) builds `Message` -> `ChatResolver` (check-exists, cached chat id) ->
 `WahaClient::sendText` -> retry/backoff or `motored_waha_result`. Only the two admin test buttons make sync HTTP.
 The core filter `motored_status_rows` lets modules add rows to the Status section.
+
+## Compatibility + Mi Garage flow (Compatibility module)
+Product save / `set_object_terms` on tire taxonomies -> `ProductIndexSync` (`shutdown` <= 20, AS `motored_compat_reindex` > 20; MD5 `terms_hash` skips ERP price/stock updates) -> `motored_compat_product_index` (`product_id` PK). Storefront remains 100% page-cache safe: `the_posts` batch-primes markers, `<span hidden data-motored-fit>` prints uniform HTML, `compat-garage.js` matches client-side from `localStorage` (0 REST calls during browsing, 12 h TTL revalidation), `?moto=` filters via `post__in` + `noindex`, and the `Compatibility` product tab lazy-loads via REST on open (`CompatCache` uses `Support\Cache` only when persistent).

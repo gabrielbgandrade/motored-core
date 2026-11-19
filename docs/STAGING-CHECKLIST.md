@@ -147,3 +147,19 @@ Prerequisites: MP plugin 8.10.2, sandbox credentials, Checkout Pro enabled, plug
 - [ ] Mensajes: a box per event with spacing, full-width textarea, variables list separated from it.
 - [ ] Recuperación (steps), WhatsApp (tests), Estado: spacing and alignment consistent; the CSS file is requested only on the Motored tab.
 
+## Compatibility + Mi Garage (Motored > Compatibilidad & Productos > Compatibilidad)
+- [ ] Settings > Compatibilidad: enable off by default; buttons 1 (Install global attributes) and 2 (Seed fixed terms) register all 12 attributes (`pa_posicion` has 4 terms including `Delantero / Trasero`, `pa_indice-velocidad` in ETRTO order, `pa_medida-*` sorted by `name`); `product_brand` detected.
+- [ ] Productos > Compatibilidad: CRUD Brands, Models (with aliases), Versions (year range + `0` present, overlap blocked, immutable slug), Fitments, Sizes (`4.10-18` keeps zero), Directed equivalences (with "Create inverse too"), Invalid sizes report.
+- [ ] JSON Import/Export: Export downloads `schema_version: 1` JSON; Dry-Run reports new/updated/unchanged/rejected/suspicious/overlaps; batches > 50 queue via `motored_compat_import`; imported versions default to `draft` and ignore AI constraints unless checked.
+- [ ] ERP-safe sync: saving a tire updates `motored_compat_product_index`; updating price/stock alone writes 0 rows (Query Monitor). Kit products keep `Ancho/Perfil/Rodado` and per-axle load/speed empty; single tires only auto-fill empty dimensions when enabled.
+- [ ] Storefront & Tabs (Storefront, Block theme, Flatsome): `[motored_compat_selector]` cascades Brand -> Model -> Year (+ Version only if multiple); `?moto=` + `&pos=` filter shop/archive & Product Collection, set `noindex`, keep clean product URLs; cards & product page render badges with 0 REST calls when browsing; single product shows `Descripción` -> `Información técnica` (with `Medida completa`) -> `Compatibilidad` (lazy-loaded on open, hidden on non-tires); My Account > `Mi Garage` saves/merges/switches/removes bikes and clears `localStorage` on logout. VERIFY #93–#103.
+
+## Catalog Filters & Search (Motored > Filtros)
+- [ ] Settings > Filtros: disabled by default at launch; enabling activates `[motored_buscador]`, `[motored_filtros]`, classic widget `Motored: Filtros de catálogo`, `?oferta=1` and `/filters/*` REST endpoints; optional `accent_color` applies `--motored-accent`.
+- [ ] Zero overhead on non-filter pages: blog/checkout/institutional pages load 0 queries, 0 `catalog-filters.css`, 0 `catalog-search.js`, 0 `catalog-filters.js` (Query Monitor).
+- [ ] `[motored_buscador layout="tabs"]` & `layout="split"`: Moto tab reuses Compatibility endpoints and saves to Mi Garage; Medida tab cascades Ancho/Perfil/Rodado in any order from versioned `localStorage` JSON (0 REST per click), disables Perfil (`— sin perfil`) for imperial widths (`4.10-18`), allows rim-only search (`Rodado 17`).
+- [ ] Smart search: typing >= 2 chars suggests parsed sizes (`120/70ZR17`), rims (`r17`/`rodado 17`), bikes + aliases (`tornado`), and brands (`pirelli`) with 250 ms debounce; pressing Enter submits native Woo search (`/?s=...&post_type=product`).
+- [ ] Sidebar `[motored_filtros]` / `Motored: Filtros de catálogo` widget (desktop + mobile off-canvas drawer): active chips with `×` (including `?moto=`), 11 collapsible sections with exact disjunctive counts (kits excluded from Ancho/Perfil/Rodado/Carga/Velocidad; speed sorted in ETRTO order), real `<a>` links work with JS disabled, desktop batches clicks (~700 ms), mobile (`< 768px`) shows `"Aplicar filtros"`.
+- [ ] Upgraded Compatibility product tab & `[motored_compat_list]`: SSR HTML grouped by brand in 2 columns (collapsed to 6 brands), heading `"Motos compatibles con {medida}"`, instant alias search, Mi Garage highlight client-side, cap at 120 items with on-demand REST hydration. VERIFY #104–#109.
+
+

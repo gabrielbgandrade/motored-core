@@ -1,0 +1,26 @@
+---
+name: motored-module-catalog-filters
+description: Context and invariants for the CatalogFilters module (home search, faceted sidebar filters, smart suggestions and upgraded Compatibility product list).
+---
+
+# Motored Module: CatalogFilters
+
+## Location & Option
+- Namespace: `Motored\Core\Modules\CatalogFilters` (`src/Modules/CatalogFilters/`)
+- Option: `motored_catalog_filters` (`autoload = false`, `enabled = 'no'` by default)
+- Assets: `assets/css/catalog-filters.css`, `assets/js/catalog-search.js`, `assets/js/catalog-filters.js` (vanilla JS, `defer`, enqueued only when rendered).
+
+## Key Classes
+- `Config` — typed option accessors (`enabled`, `only_in_stock`, `noindex_filtered`, `accent_color`, `default_layout`, `shop_url`) and facet/attribute constants.
+- `FilterState` — pure parser & native Woo URL builder (`?filter_*=a,b&query_type_*=or`, `?product_brand=a,b`, `?oferta=1`, `?moto=`, `&pos=`). Keeps every numeric slug strictly as `string` (`"4-10"`, `"120"`), strips `paged` and `/page/N/`, preserves unknown query params.
+- `FacetEngine` — 1-SQL parent-product snapshot (`post_parent = 0`, excludes `exclude-from-catalog`), O(N) disjunctive counts across all 11 facets, `size_combinations()` for imperial (`p = null`) and metric unit tires. Kits (`Posición = Kit`) never enter `Ancho`/`Perfil`/`Rodado`/`Carga`/`Velocidad`. `on_sale` is NEVER stored in snapshot (`wc_get_product_ids_on_sale()` per request).
+- `SnapshotInvalidator` — anti-storm dirty flag with 60s rebuild cooldown (`REBUILD_COOLDOWN = 60`) and `Cache::add()` lock (`LOCK_TTL = 30`). Never invalidates on price or stock-quantity updates.
+- `QueryFilter` — intersects `?oferta=1` with existing `post__in` (preserving `?moto=`; empty -> `[0]`) and sets `noindex, follow` via `wp_robots`.
+- `RestController` — public `GET motored/v1/filters/sizes` and `GET motored/v1/filters/suggest?q=` (0 DB `LIKE` queries, min 2 chars, max 8 items).
+- `SearchShortcode` (`[motored_buscador layout="tabs|split"]`), `FilterRenderer` (`[motored_filtros]`), `FilterWidget` (`Motored: Catalog Filters`), `StorefrontAssets`, `CatalogFiltersAdmin`.
+
+## Non-Negotiable Invariants
+1. **Theme-agnostic:** zero theme-specific code, hooks, selectors or detection (Flatsome, Storefront, block themes alike).
+2. **Numeric slugs stay strings:** never cast term slugs to `int` (WordPress treats ints as term IDs).
+3. **ERP-safe:** `in_stock` in `motored_compat_product_index` and `SnapshotInvalidator` only react to `woocommerce_product_set_stock_status`, tracked taxonomy changes, or publish/trash transitions — never price or quantity edits.
+4. **Cache safety:** `Support\Cache` only when `Cache::is_persistent()` is true; never write transients to `wp_options` on public requests.
