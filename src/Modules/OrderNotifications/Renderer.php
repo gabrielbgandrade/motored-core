@@ -36,6 +36,10 @@ final class Renderer {
 		'{pay_url}',
 		'{review_links}',
 		'{store_review_url}',
+		'{tracking_carrier}',
+		'{tracking_code}',
+		'{tracking_url}',
+		'{tracking_block}',
 	);
 
 	/**
@@ -67,6 +71,10 @@ final class Renderer {
 			'{pay_url}'          => self::clean_url( self::string_var( $vars, 'pay_url' ) ),
 			'{review_links}'     => self::strip_html( self::string_var( $vars, 'review_links' ) ),
 			'{store_review_url}' => self::clean_url( self::string_var( $vars, 'store_review_url' ) ),
+			'{tracking_carrier}' => self::strip_html( self::string_var( $vars, 'tracking_carrier' ) ),
+			'{tracking_code}'    => self::strip_html( self::string_var( $vars, 'tracking_code' ) ),
+			'{tracking_url}'     => self::clean_url( self::string_var( $vars, 'tracking_url' ) ),
+			'{tracking_block}'   => self::strip_html( self::string_var( $vars, 'tracking_block' ) ),
 		);
 
 		$rendered = strtr( $template, $replacements );

@@ -250,4 +250,34 @@ final class NotifierTest extends TestCase {
 		$this->assertSame( 'WhatsApp failed: number is not on WhatsApp.', $this->notes[1]['note'] );
 		$this->assertStringNotContainsString( '5491155551234', $this->notes[1]['note'] );
 	}
+
+	public function test_completed_message_carries_the_tracking_block_and_marks_it_on_success(): void {
+		$order                           = $this->make_order( array( 'status' => 'completed' ) );
+		$this->meta['_motored_tracking'] = array( 'carrier_id' => 'other', 'code' => 'AB1', 'url_override' => 'https://m.com/x' );
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		$notifier = $this->make_notifier( $order );
+
+		$message = $notifier->build_message( 42, 'completed' );
+		$this->assertNotNull( $message );
+		$this->assertStringContainsString( 'Track your shipment: code AB1 https://m.com/x', $message->text );
+
+		$notifier->on_result( 'order_event', 42, 'completed', Result::success( 200 ) );
+		$this->assertSame( md5( 'AB1' ), $this->meta['_motored_tracking_carried_wa'] );
+	}
+
+	public function test_completed_message_without_tracking_has_no_block_and_marks_nothing(): void {
+		$order    = $this->make_order( array( 'status' => 'completed' ) );
+		$notifier = $this->make_notifier( $order );
+
+		$message = $notifier->build_message( 42, 'completed' );
+		$this->assertNotNull( $message );
+		$this->assertStringNotContainsString( 'Track your shipment', $message->text );
+		$this->assertStringNotContainsString( '{tracking', $message->text );
+		$this->assertDoesNotMatchRegularExpression( "/
+{3,}/", $message->text );
+
+		$notifier->on_result( 'order_event', 42, 'completed', Result::success( 200 ) );
+		$this->assertArrayNotHasKey( '_motored_tracking_carried_wa', $this->meta );
+	}
 }

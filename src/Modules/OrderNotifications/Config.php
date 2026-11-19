@@ -32,11 +32,11 @@ final class Config {
 		),
 		EventMap::PROCESSING    => array(
 			'enabled' => 'yes',
-			'text'    => "{¡Hola|¡Buenas} {first_name}! Ya confirmamos tu pago y estamos preparando tu pedido *#{order_number}* en *{store_name}* (*{order_total}*).\n{order_items}\n\nSeguí el estado de tu compra {acá|en este link}:\n{order_url}",
+			'text'    => "{¡Hola|¡Buenas} {first_name}! Ya confirmamos tu pago y estamos preparando tu pedido *#{order_number}* en *{store_name}* (*{order_total}*).\n{order_items}\n{tracking_block}\n\nSeguí el estado de tu compra {acá|en este link}:\n{order_url}",
 		),
 		EventMap::COMPLETED     => array(
 			'enabled' => 'yes',
-			'text'    => "{¡Hola|¡Buenas} {first_name}! Tu pedido *#{order_number}* en *{store_name}* ya está *completado*.\n{order_items}\n\nPodés consultar el resumen {acá|en este link}:\n{order_url}",
+			'text'    => "{¡Hola|¡Buenas} {first_name}! Tu pedido *#{order_number}* en *{store_name}* ya está *completado*.\n{order_items}\n{tracking_block}\n\nPodés consultar el resumen {acá|en este link}:\n{order_url}",
 		),
 		EventMap::REFUNDED      => array(
 			'enabled' => 'yes',

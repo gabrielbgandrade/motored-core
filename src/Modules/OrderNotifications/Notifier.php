@@ -9,6 +9,8 @@ namespace Motored\Core\Modules\OrderNotifications;
 
 use Motored\Core\Integration\Waha\Result;
 use Motored\Core\Integration\WooCommerce\OrderHooks;
+use Motored\Core\Modules\OrderTracking\Presenter as TrackingPresenter;
+use Motored\Core\Modules\OrderTracking\Tracking;
 use Motored\Core\Modules\Waha\Config as WahaConfig;
 use Motored\Core\Modules\Waha\Message;
 use Motored\Core\Modules\Waha\Phone;
@@ -273,6 +275,11 @@ final class Notifier {
 		}
 
 		$order->add_order_note( $note, 0 );
+
+		// A message that already carried the tracking code makes the dedicated tracking message redundant.
+		if ( $result->ok && false !== strpos( Config::event_text( $step ), '{tracking_' ) ) {
+			Tracking::mark_carried( $order, 'wa' );
+		}
 	}
 
 	/**
@@ -374,14 +381,17 @@ final class Notifier {
 			);
 		}
 
-		return array(
-			'order_number'  => (string) $order->get_order_number(),
-			'first_name'    => (string) $order->get_billing_first_name(),
-			'order_total'   => ( $this->price_formatter )( (string) $order->get_total(), (string) $order->get_currency() ),
-			'order_items'   => Renderer::format_items( $items ),
-			'order_url'     => (string) $order->get_checkout_order_received_url(),
-			'store_name'    => ( $this->store_name_loader )(),
-			'customer_note' => $customer_note,
+		return array_merge(
+			TrackingPresenter::vars( $order ),
+			array(
+				'order_number'  => (string) $order->get_order_number(),
+				'first_name'    => (string) $order->get_billing_first_name(),
+				'order_total'   => ( $this->price_formatter )( (string) $order->get_total(), (string) $order->get_currency() ),
+				'order_items'   => Renderer::format_items( $items ),
+				'order_url'     => (string) $order->get_checkout_order_received_url(),
+				'store_name'    => ( $this->store_name_loader )(),
+				'customer_note' => $customer_note,
+			)
 		);
 	}
 }
