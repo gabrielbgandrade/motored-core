@@ -29,6 +29,7 @@ final class Plugin {
 	public const MODULES = array(
 		Modules\Waha\WahaModule::class,
 		Modules\OrderNotifications\OrderNotificationsModule::class,
+		Modules\OrderTracking\OrderTrackingModule::class,
 		Modules\Recovery\RecoveryModule::class,
 		Modules\ReviewPhotos\ReviewPhotosModule::class,
 		Modules\ReviewRequests\ReviewRequestsModule::class,

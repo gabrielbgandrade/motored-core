@@ -201,10 +201,11 @@ final class FlowsTest extends TestCase {
 			\Motored\Core\Modules\OrderNotifications\EventMap::KIND,
 			\Motored\Core\Modules\Recovery\RecoveryResultHandler::KIND,
 			\Motored\Core\Modules\ReviewRequests\Scheduler::KIND,
+			\Motored\Core\Modules\OrderTracking\TrackingNotifier::KIND,
 		);
-		$this->assertSame( 3, count( array_unique( $kinds ) ) );
+		$this->assertSame( 4, count( array_unique( $kinds ) ) );
 		preg_match_all( '/^\s*Sender::register_handler\(/m', $src, $m );
-		$this->assertCount( 3, $m[0], 'One register_handler per kind.' );
+		$this->assertCount( 4, $m[0], 'One register_handler per kind.' );
 		preg_match_all( "/Sender::enqueue\(\s*'([a-z_]+)'/", $src, $literal );
 		foreach ( $literal[1] as $kind ) {
 			$this->assertContains( $kind, $kinds );
@@ -216,6 +217,7 @@ final class FlowsTest extends TestCase {
 			json_encode( OnConfig::DEFAULTS ),
 			json_encode( RecoveryConfig::DEFAULTS ),
 			json_encode( ReviewConfig::DEFAULTS ),
+			json_encode( \Motored\Core\Modules\OrderTracking\Config::DEFAULTS ),
 		);
 		foreach ( $defaults as $blob ) {
 			preg_match_all( '/\{[a-z_]+\}/', (string) $blob, $m );

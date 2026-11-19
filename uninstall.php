@@ -47,6 +47,7 @@ delete_option( 'motored_waha_secret' );
 // Settings of our WooCommerce e-mails (stored by WC_Settings_API).
 delete_option( 'woocommerce_motored_abandoned_cart_settings' );
 delete_option( 'woocommerce_motored_pending_payment_settings' );
+delete_option( 'woocommerce_motored_tracking_settings' );
 
 // Recovery tables.
 foreach ( array( 'motored_recoveries', 'motored_recovery_events', 'motored_suppressions' ) as $motored_table ) {
