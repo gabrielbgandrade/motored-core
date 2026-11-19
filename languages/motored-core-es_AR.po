@@ -2012,3 +2012,171 @@ msgstr "Ilegible"
 #: src/Modules/Waha/WahaAdmin.php
 msgid "Not configured"
 msgstr "No configurada"
+
+#: src/Modules/OrderTracking/CustomerDisplay.php
+msgid "Tracking"
+msgstr "Seguimiento"
+
+#: src/Modules/OrderTracking/CustomerDisplay.php
+msgid "Carrier:"
+msgstr "Transportista:"
+
+#: src/Modules/OrderTracking/CustomerDisplay.php
+msgid "Tracking code:"
+msgstr "Código de seguimiento:"
+
+#: src/Modules/OrderTracking/CustomerDisplay.php
+msgid "Track shipment"
+msgstr "Seguir envío"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Order tracking"
+msgstr "Seguimiento del pedido"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Tracking code on each order, shown to the customer and sent by WhatsApp and e-mail. No carrier API is queried."
+msgstr "Código de seguimiento en cada pedido, visible para el cliente y enviado por WhatsApp y e-mail. No se consulta ninguna API de transportistas."
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "WhatsApp on save"
+msgstr "WhatsApp al guardar"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Send a WhatsApp when a tracking code is added or changed."
+msgstr "Enviá un WhatsApp cuando se agrega o cambia un código de seguimiento."
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "E-mail on save"
+msgstr "E-mail al guardar"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Send an e-mail when a tracking code is added or changed."
+msgstr "Enviá un e-mail cuando se agrega o cambia un código de seguimiento."
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Show to the customer"
+msgstr "Mostrar al cliente"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Show the tracking on the customer order page and in the processing and completed e-mails."
+msgstr "Mostrá el seguimiento en la página del pedido del cliente y en los e-mails de procesando y completado."
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Carriers"
+msgstr "Transportistas"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "WhatsApp text: tracking added"
+msgstr "Texto de WhatsApp: seguimiento agregado"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "WhatsApp text: tracking updated"
+msgstr "Texto de WhatsApp: seguimiento actualizado"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Id"
+msgstr "Id"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "URL template with {code}"
+msgstr "Modelo de URL con {code}"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "The list starts empty: add your carriers and their tracking URL. \"Other / manual link\" is always available on the order. Leave the name empty to remove a row."
+msgstr "La lista empieza vacía: cargá tus transportistas y su URL de seguimiento. \"Otra / link manual\" siempre está disponible en el pedido. Dejá el nombre vacío para quitar una fila."
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Other / manual link"
+msgstr "Otra / link manual"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Carrier"
+msgstr "Transportista"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Tracking code"
+msgstr "Código de seguimiento"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Manual link (optional)"
+msgstr "Link manual (opcional)"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "https only. It replaces the carrier link."
+msgstr "Solo https. Reemplaza el link del transportista."
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Preview of the saved link:"
+msgstr "Vista previa del link guardado:"
+
+#: src/Modules/OrderTracking/OrderTrackingAdmin.php
+msgid "Open"
+msgstr "Abrir"
+
+#: src/Modules/OrderTracking/Presenter.php
+msgid "Track your shipment with %s"
+msgstr "Seguí tu envío con %s"
+
+#: src/Modules/OrderTracking/Presenter.php
+msgid "Track your shipment"
+msgstr "Seguí tu envío"
+
+#: src/Modules/OrderTracking/Presenter.php
+msgid "code %s"
+msgstr "código %s"
+
+#: src/Modules/OrderTracking/TrackingNotifier.php
+msgid "Tracking not sent: manual order."
+msgstr "Seguimiento no enviado: pedido manual."
+
+#: src/Modules/OrderTracking/TrackingNotifier.php
+msgid "Tracking WhatsApp sent."
+msgstr "WhatsApp de seguimiento enviado."
+
+#: src/Modules/OrderTracking/TrackingNotifier.php
+msgid "Tracking WhatsApp failed: %s"
+msgstr "Falló el WhatsApp de seguimiento: %s"
+
+#: src/Modules/OrderTracking/TrackingNotifier.php
+msgid "Tracking WhatsApp not sent: missing or invalid billing phone."
+msgstr "WhatsApp de seguimiento no enviado: falta el teléfono de facturación o no es válido."
+
+#: src/Modules/OrderTracking/TrackingNotifier.php
+msgid "Tracking WhatsApp could not be queued."
+msgstr "No se pudo encolar el WhatsApp de seguimiento."
+
+#: src/Modules/OrderTracking/TrackingNotifier.php
+msgid "Tracking e-mail not sent: missing or invalid billing e-mail."
+msgstr "E-mail de seguimiento no enviado: falta el e-mail de facturación o no es válido."
+
+#: src/Modules/OrderTracking/TrackingNotifier.php
+msgid "Tracking e-mail sent."
+msgstr "E-mail de seguimiento enviado."
+
+#: src/Modules/OrderTracking/TrackingNotifier.php
+msgid "Tracking e-mail not sent (disabled or failed)."
+msgstr "E-mail de seguimiento no enviado (desactivado o con error)."
+
+#: src/Modules/OrderTracking/Emails/TrackingEmail.php
+msgid "Order tracking (Motored)"
+msgstr "Seguimiento del pedido (Motored)"
+
+#: src/Modules/OrderTracking/Emails/TrackingEmail.php
+msgid "Sent to the customer when a tracking code is added or changed on the order."
+msgstr "Se envía al cliente cuando se agrega o cambia un código de seguimiento en el pedido."
+
+#: src/Modules/OrderTracking/Emails/TrackingEmail.php
+msgid "Track your order #{order_number}"
+msgstr "Seguí tu pedido #{order_number}"
+
+#: src/Modules/OrderTracking/Emails/TrackingEmail.php
+msgid "Your order is on its way"
+msgstr "Tu pedido está en camino"
+
+#: src/Modules/OrderTracking/Emails/TrackingEmail.php
+msgid "The carrier may take a few hours to show the first movement."
+msgstr "El transportista puede tardar unas horas en mostrar el primer movimiento."
+
+#: templates/emails/motored-tracking.php
+msgid "You can now track your order #%s:"
+msgstr "Ya podés seguir tu pedido #%s:"
