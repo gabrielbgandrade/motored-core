@@ -15,7 +15,15 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Logger {
 
-	public const SOURCE = 'motored-core';
+	public const SOURCE   = 'motored-core';
+	public const REDACTED = '[redacted]';
+
+	/**
+	 * Registered secret values (keys of the array).
+	 *
+	 * @var array<string,bool>
+	 */
+	private static array $secrets = array();
 
 	/**
 	 * Severity order (lower = more severe).
@@ -47,7 +55,68 @@ final class Logger {
 		if ( ! function_exists( 'wc_get_logger' ) ) {
 			return;
 		}
-		wc_get_logger()->log( $level, $message, array_merge( $context, array( 'source' => self::SOURCE ) ) );
+		$context = self::redact( $context );
+		wc_get_logger()->log( $level, self::redact_string( $message ), array_merge( is_array( $context ) ? $context : array(), array( 'source' => self::SOURCE ) ) );
+	}
+
+	/**
+	 * Registers a secret value so it is removed from every log message and context.
+	 *
+	 * @param string $secret Secret (ignored when shorter than 4 characters).
+	 */
+	public static function protect( string $secret ): void {
+		if ( strlen( $secret ) >= 4 ) {
+			self::$secrets[ $secret ] = true;
+		}
+	}
+
+	/**
+	 * Removes secrets from a string: registered values and "X-Api-Key: value" pairs.
+	 *
+	 * @param string $text Text.
+	 */
+	public static function redact_string( string $text ): string {
+		foreach ( array_keys( self::$secrets ) as $secret ) {
+			$text = str_replace( (string) $secret, self::REDACTED, $text );
+		}
+		$clean = preg_replace( '/(x-api-key|api[-_]?key|authorization)(["\']?\s*[:=]\s*["\']?)[^\s"\',;&]+/i', '$1$2' . self::REDACTED, $text );
+		return is_string( $clean ) ? $clean : $text;
+	}
+
+	/**
+	 * Redacts a value recursively: secret-looking keys (X-Api-Key, api_key, Authorization) lose their value,
+	 * and registered secrets are removed from every string.
+	 *
+	 * @param mixed $value Value.
+	 * @return mixed
+	 */
+	public static function redact( $value ) {
+		if ( is_string( $value ) ) {
+			return self::redact_string( $value );
+		}
+		if ( is_array( $value ) ) {
+			$clean = array();
+			foreach ( $value as $key => $item ) {
+				if ( is_string( $key ) && 1 === preg_match( '/^(x[-_]?api[-_]?key|api[-_]?key|authorization)$/i', $key ) ) {
+					$clean[ $key ] = self::REDACTED;
+					continue;
+				}
+				$clean[ is_string( $key ) ? self::redact_string( $key ) : $key ] = self::redact( $item );
+			}
+			return $clean;
+		}
+		if ( is_object( $value ) ) {
+			// Objects (exceptions, WP_Error, responses) are never logged raw: they may carry headers.
+			return '[object ' . get_class( $value ) . ']';
+		}
+		return $value;
+	}
+
+	/**
+	 * Forgets the registered secrets (tests).
+	 */
+	public static function reset_secrets(): void {
+		self::$secrets = array();
 	}
 
 	/**

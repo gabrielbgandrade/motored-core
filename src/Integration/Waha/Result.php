@@ -7,6 +7,8 @@
 
 namespace Motored\Core\Integration\Waha;
 
+use Motored\Core\Support\Logger;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -15,8 +17,21 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Result {
 
+	public readonly bool $ok;
+	public readonly int $http_status;
+	public readonly string $code;
+	public readonly string $message;
+	public readonly bool $retryable;
+
 	/**
-	 * Constructor.
+	 * Parsed, whitelisted response fields (redacted: never carries the API key or headers).
+	 *
+	 * @var array<string,mixed>
+	 */
+	public readonly array $data;
+
+	/**
+	 * Constructor. `message` and `data` pass through the central secret redaction.
 	 *
 	 * @param bool                $ok          Whether the call succeeded.
 	 * @param int                 $http_status HTTP status (0 when there was no response).
@@ -25,14 +40,14 @@ final class Result {
 	 * @param bool                $retryable   Whether retrying later may succeed.
 	 * @param array<string,mixed> $data        Parsed, whitelisted response fields.
 	 */
-	public function __construct(
-		public readonly bool $ok,
-		public readonly int $http_status,
-		public readonly string $code,
-		public readonly string $message,
-		public readonly bool $retryable,
-		public readonly array $data = array()
-	) {
+	public function __construct( bool $ok, int $http_status, string $code, string $message, bool $retryable, array $data = array() ) {
+		$clean             = Logger::redact( $data );
+		$this->ok          = $ok;
+		$this->http_status = $http_status;
+		$this->code        = $code;
+		$this->message     = Logger::redact_string( $message );
+		$this->retryable   = $retryable;
+		$this->data        = is_array( $clean ) ? $clean : array();
 	}
 
 	/**
