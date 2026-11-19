@@ -59,6 +59,8 @@ final class AdminAssetsTest extends TestCase {
 		$this->assertSame( $css, $this->run_enqueue() );
 		$_GET = array( 'page' => 'motored-recovery' );
 		$this->assertSame( $css, $this->run_enqueue() );
+		$_GET = array( 'page' => 'motored-compatibility' );
+		$this->assertSame( $css, $this->run_enqueue() );
 
 		// Order edit screen (legacy post.php: no page param; HPOS: wc-orders + action=edit).
 		$screen = (object) array( 'id' => 'shop_order' );

@@ -34,6 +34,8 @@ final class Plugin {
 		Modules\ReviewPhotos\ReviewPhotosModule::class,
 		Modules\ReviewRequests\ReviewRequestsModule::class,
 		Modules\PaymentPlans\PaymentPlansModule::class,
+		Modules\Compatibility\CompatibilityModule::class,
+		Modules\CatalogFilters\CatalogFiltersModule::class,
 	);
 
 	/**
@@ -41,7 +43,15 @@ final class Plugin {
 	 *
 	 * @var list<string>
 	 */
-	public const ACTION_HOOKS = array( 'motored_waha_send', 'motored_recovery_cleanup', 'motored_recovery_scan', 'motored_plans_reconcile', 'motored_tracking_email' );
+	public const ACTION_HOOKS = array(
+		'motored_waha_send',
+		'motored_recovery_cleanup',
+		'motored_recovery_scan',
+		'motored_plans_reconcile',
+		'motored_tracking_email',
+		'motored_compat_reindex',
+		'motored_compat_import',
+	);
 
 	/**
 	 * Defaults of the built-in "general" settings.
@@ -130,6 +140,8 @@ final class Plugin {
 		return array(
 			'2026111801' => \Closure::fromCallable( array( Modules\Recovery\RecoveryMigration::class, 'up' ) ),
 			'2026111901' => \Closure::fromCallable( array( Modules\Recovery\SuppressionMigration::class, 'up' ) ),
+			'2026112001' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up' ) ),
+			'2026112101' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up_2026112101' ) ),
 		);
 	}
 

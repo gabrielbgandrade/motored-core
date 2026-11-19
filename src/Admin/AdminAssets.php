@@ -41,7 +41,7 @@ final class AdminAssets {
 		if ( 'wc-settings' === $page && 'motored' === $tab ) {
 			return true;
 		}
-		if ( 'motored-recovery' === $page ) {
+		if ( 'motored-recovery' === $page || 'motored-compatibility' === $page ) {
 			return true;
 		}
 		if ( ! function_exists( 'get_current_screen' ) ) {

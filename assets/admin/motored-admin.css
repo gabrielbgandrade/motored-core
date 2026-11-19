@@ -6,7 +6,7 @@
  */
 
 /* Settings rows rendered by WooCommerce */
-.motored-admin .form-table th { padding: 20px 12px 20px 0; }
+.motored-admin .form-table th { padding: 20px 12px 20px; }
 .motored-admin .form-table td { padding: 16px 10px; }
 
 /* .motored-field: label + control + description */

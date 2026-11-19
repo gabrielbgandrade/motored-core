@@ -1,0 +1,359 @@
+<?php
+/**
+ * Public REST endpoints for CatalogFilters: versioned size combinations JSON and smart search suggestions.
+ *
+ * @package Motored\Core
+ */
+
+namespace Motored\Core\Modules\CatalogFilters;
+
+use Motored\Core\Modules\Compatibility\CatalogRepository;
+use Motored\Core\Modules\Compatibility\CompatCache;
+use Motored\Core\Modules\Compatibility\MatchEngine;
+use Motored\Core\Modules\Compatibility\SizeParser;
+use Motored\Core\Modules\Compatibility\TireSpecs;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Serves cache-friendly public GET endpoints without running LIKE queries against wp_posts.
+ */
+final class RestController {
+
+	public const NAMESPACE       = 'motored/v1';
+	public const MAX_SUGGESTIONS = 8;
+
+	/**
+	 * Registers REST routes.
+	 */
+	public function register(): void {
+		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+	}
+
+	/**
+	 * Declares GET /filters/sizes and GET /filters/suggest.
+	 */
+	public function register_routes(): void {
+		if ( ! Config::enabled() ) {
+			return;
+		}
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/filters/sizes',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_sizes' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/filters/suggest',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_suggestions' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'q' => array(
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Public GET /motored/v1/filters/sizes — compact versioned Ancho/Perfil/Rodado cascade JSON.
+	 */
+	public function get_sizes(): \WP_REST_Response {
+		$snapshot = FacetEngine::snapshot();
+		$combos   = FacetEngine::size_combinations( $snapshot, Config::only_in_stock() );
+		return self::public_response(
+			array(
+				'version' => SnapshotInvalidator::version(),
+				'sizes'   => $combos,
+			),
+			300,
+			600
+		);
+	}
+
+	/**
+	 * Public GET /motored/v1/filters/suggest?q= — smart search over cached arrays (no DB LIKE queries).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 */
+	public function get_suggestions( \WP_REST_Request $request ): \WP_REST_Response {
+		$raw_q = (string) $request->get_param( 'q' );
+		$items = self::build_suggestions( $raw_q, Config::shop_url(), Config::only_in_stock() );
+		return self::public_response(
+			array(
+				'q'     => self::normalize_query( $raw_q ),
+				'items' => $items,
+			),
+			60,
+			300
+		);
+	}
+
+	/**
+	 * Pure smart-search matcher over cached sizes, brands and published motorcycle versions.
+	 *
+	 * @param string                                                                                   $raw_q         Raw user query.
+	 * @param string                                                                                   $shop_url      Base catalog URL.
+	 * @param bool                                                                                     $only_in_stock Filter to in-stock products.
+	 * @param array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>}|null $snapshot      Optional preloaded snapshot (tests).
+	 * @param list<array{slug:string,label:string,haystack:string}>|null                               $bikes         Optional preloaded bikes index (tests).
+	 * @return list<array{type:string,label:string,meta:string,url:string,slug?:string}>
+	 */
+	public static function build_suggestions(
+		string $raw_q,
+		string $shop_url,
+		bool $only_in_stock = true,
+		?array $snapshot = null,
+		?array $bikes = null
+	): array {
+		$q = self::normalize_query( $raw_q );
+		if ( strlen( $q ) < 2 ) {
+			return array();
+		}
+
+		$snap    = null !== $snapshot ? $snapshot : FacetEngine::snapshot();
+		$combos  = FacetEngine::size_combinations( $snap, $only_in_stock );
+		$results = array();
+		$seen    = array();
+
+		// 1. Exact or parsed tire size (e.g. "120/70-17", "120/70ZR17", "4.10-18", "4,10 18").
+		$parsed = SizeParser::parse( $raw_q );
+		if ( null !== $parsed ) {
+			$w_slug = FilterState::sanitize_term_slug( $parsed['width'] );
+			$p_slug = null !== $parsed['aspect'] ? (string) $parsed['aspect'] : null;
+			$r_slug = (string) $parsed['rim'];
+			foreach ( $combos as $c ) {
+				if ( $c['w'] === $w_slug && $c['r'] === $r_slug && ( null === $p_slug || $c['p'] === $p_slug ) ) {
+					$args = array(
+						'filter_' . TireSpecs::ATTR_WIDTH => $c['w'],
+						'query_type_' . TireSpecs::ATTR_WIDTH => 'or',
+						'filter_' . TireSpecs::ATTR_RIM   => $c['r'],
+						'query_type_' . TireSpecs::ATTR_RIM => 'or',
+					);
+					if ( null !== $c['p'] && '' !== $c['p'] ) {
+						$args[ 'filter_' . TireSpecs::ATTR_PROFILE ]     = $c['p'];
+						$args[ 'query_type_' . TireSpecs::ATTR_PROFILE ] = 'or';
+					}
+					$label = '' !== $c['pl'] ? $c['wl'] . '/' . $c['pl'] . '-' . $c['rl'] : $c['wl'] . '-' . $c['rl'];
+					$url   = add_query_arg( $args, $shop_url );
+					$key   = 'size:' . $label;
+					if ( ! isset( $seen[ $key ] ) ) {
+						$seen[ $key ] = true;
+						$results[]    = array(
+							'type'  => 'size',
+							'label' => $label,
+							/* translators: %d: number of available tires for this size. */
+							'meta'  => sprintf( __( 'Size (%d)', 'motored-core' ), $c['c'] ),
+							'url'   => $url,
+						);
+					}
+				}
+			}
+		}
+
+		// 2. Match explicit rim diameter queries such as rodado 17 or r17.
+		if ( 1 === preg_match( '/^(?:rodado|aro|r)\s*(\d{1,2})$/', $q, $rm ) ) {
+			$rim_slug = (string) (int) $rm[1];
+			$rim_cnt  = 0;
+			foreach ( $combos as $c ) {
+				if ( $c['r'] === $rim_slug ) {
+					$rim_cnt += $c['c'];
+				}
+			}
+			if ( $rim_cnt > 0 ) {
+				$results[] = array(
+					'type'  => 'rim',
+					/* translators: %s: rim diameter in inches. */
+					'label' => sprintf( __( 'Rim %s', 'motored-core' ), $rim_slug ),
+					/* translators: %d: number of available tires for this rim. */
+					'meta'  => sprintf( __( '%d tires', 'motored-core' ), $rim_cnt ),
+					'url'   => add_query_arg(
+						array(
+							'filter_' . TireSpecs::ATTR_RIM => $rim_slug,
+							'query_type_' . TireSpecs::ATTR_RIM => 'or',
+						),
+						$shop_url
+					),
+				);
+			}
+		}
+
+		// 3. Partial size prefix match in cached combos (e.g. "120/70", "90/90", "4.10").
+		if ( count( $results ) < self::MAX_SUGGESTIONS && 1 === preg_match( '/^\d/', $q ) ) {
+			$q_norm = str_replace( array( ',', ' ' ), array( '.', '/' ), $q );
+			foreach ( $combos as $c ) {
+				if ( count( $results ) >= self::MAX_SUGGESTIONS ) {
+					break;
+				}
+				$label = '' !== $c['pl'] ? $c['wl'] . '/' . $c['pl'] . '-' . $c['rl'] : $c['wl'] . '-' . $c['rl'];
+				$key   = 'size:' . $label;
+				if ( isset( $seen[ $key ] ) ) {
+					continue;
+				}
+				if ( str_contains( strtolower( $label ), $q_norm ) ) {
+					$seen[ $key ] = true;
+					$args         = array(
+						'filter_' . TireSpecs::ATTR_WIDTH => $c['w'],
+						'query_type_' . TireSpecs::ATTR_WIDTH => 'or',
+						'filter_' . TireSpecs::ATTR_RIM   => $c['r'],
+						'query_type_' . TireSpecs::ATTR_RIM => 'or',
+					);
+					if ( null !== $c['p'] && '' !== $c['p'] ) {
+						$args[ 'filter_' . TireSpecs::ATTR_PROFILE ]     = $c['p'];
+						$args[ 'query_type_' . TireSpecs::ATTR_PROFILE ] = 'or';
+					}
+					$results[] = array(
+						'type'  => 'size',
+						'label' => $label,
+						/* translators: %d: number of available tires for this size. */
+						'meta'  => sprintf( __( 'Size (%d)', 'motored-core' ), $c['c'] ),
+						'url'   => add_query_arg( $args, $shop_url ),
+					);
+				}
+			}
+		}
+
+		// 4. Published motorcycles (brands, models, aliases, years) from cached array.
+		if ( count( $results ) < self::MAX_SUGGESTIONS ) {
+			$bike_list = null !== $bikes ? $bikes : self::cached_bike_index();
+			$tokens    = array_values( array_filter( explode( ' ', $q ), static fn( string $t ): bool => '' !== $t ) );
+			foreach ( $bike_list as $bk ) {
+				if ( count( $results ) >= self::MAX_SUGGESTIONS ) {
+					break;
+				}
+				$matched = true;
+				foreach ( $tokens as $tok ) {
+					if ( ! str_contains( $bk['haystack'], $tok ) ) {
+						$matched = false;
+						break;
+					}
+				}
+				if ( $matched ) {
+					$results[] = array(
+						'type'  => 'moto',
+						'label' => $bk['label'],
+						'meta'  => __( 'Motorcycle', 'motored-core' ),
+						'url'   => add_query_arg( array( 'moto' => $bk['slug'] ), $shop_url ),
+						'slug'  => $bk['slug'],
+					);
+				}
+			}
+		}
+
+		// 5. Tire brands (product_brand) from snapshot labels + counts.
+		if ( count( $results ) < self::MAX_SUGGESTIONS ) {
+			$brand_counts = array();
+			foreach ( $snap['products'] as $p ) {
+				if ( $only_in_stock && empty( $p['in_stock'] ) ) {
+					continue;
+				}
+				foreach ( $p['brands'] as $bs ) {
+					$brand_counts[ $bs ] = ( $brand_counts[ $bs ] ?? 0 ) + 1;
+				}
+			}
+			foreach ( $brand_counts as $b_slug => $cnt ) {
+				if ( count( $results ) >= self::MAX_SUGGESTIONS ) {
+					break;
+				}
+				$b_label = (string) ( $snap['labels']['product_brand'][ $b_slug ] ?? $b_slug );
+				if ( str_contains( self::normalize_query( $b_label ), $q ) || str_contains( strtolower( (string) $b_slug ), $q ) ) {
+					$results[] = array(
+						'type'  => 'brand',
+						'label' => $b_label,
+						/* translators: %d: number of available tires for this brand. */
+						'meta'  => sprintf( __( 'Brand (%d)', 'motored-core' ), $cnt ),
+						'url'   => add_query_arg( array( 'product_brand' => (string) $b_slug ), $shop_url ),
+					);
+				}
+			}
+		}
+
+		return array_slice( $results, 0, self::MAX_SUGGESTIONS );
+	}
+
+	/**
+	 * Loads the compact published motorcycle search array (cached in compat_catalog when Redis is active).
+	 *
+	 * @return list<array{slug:string,label:string,haystack:string}>
+	 */
+	private static function cached_bike_index(): array {
+		if ( ! \Motored\Core\Modules\Compatibility\Config::enabled() ) {
+			return array();
+		}
+		return CompatCache::remember(
+			'suggest_bikes_v1',
+			static function (): array {
+				global $wpdb;
+				if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
+					return array();
+				}
+				$v = CatalogRepository::versions_table();
+				$m = CatalogRepository::models_table();
+				$b = CatalogRepository::brands_table();
+				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Cached in CompatCache; fixed validated table names.
+				$rows = $wpdb->get_results(
+					"SELECT v.slug, v.year_from, v.year_to, v.variant, m.name AS model_name, m.aliases, b.name AS brand_name
+					FROM {$v} v
+					INNER JOIN {$m} m ON m.id = v.model_id
+					INNER JOIN {$b} b ON b.id = m.brand_id
+					WHERE v.status = 'published'
+					ORDER BY b.name ASC, m.name ASC, v.year_from DESC",
+					ARRAY_A
+				);
+				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$out = array();
+				foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+					$years = MatchEngine::format_years( (int) $row['year_from'], (int) $row['year_to'] );
+					$var   = trim( (string) $row['variant'] );
+					$label = trim( (string) $row['brand_name'] . ' ' . (string) $row['model_name'] . ( '' !== $var ? ' ' . $var : '' ) ) . ' (' . $years . ')';
+					$hay   = self::normalize_query(
+						(string) $row['brand_name'] . ' ' . (string) $row['model_name'] . ' ' . (string) $row['aliases'] . ' ' . $var . ' ' . $years
+					);
+					$out[] = array(
+						'slug'     => (string) $row['slug'],
+						'label'    => $label,
+						'haystack' => $hay,
+					);
+				}
+				return $out;
+			},
+			CompatCache::BUCKET_CATALOG,
+			CompatCache::TTL_CATALOG
+		);
+	}
+
+	/**
+	 * Normalizes a search query (lowercase, trimmed, collapsed spaces).
+	 *
+	 * @param string $raw Raw input.
+	 */
+	public static function normalize_query( string $raw ): string {
+		$lower = function_exists( 'mb_strtolower' ) ? mb_strtolower( trim( $raw ), 'UTF-8' ) : strtolower( trim( $raw ) );
+		return (string) preg_replace( '/\s+/', ' ', $lower );
+	}
+
+	/**
+	 * Builds a public HTTP-cacheable REST response with ETag.
+	 *
+	 * @param array<string,mixed> $data   Payload.
+	 * @param int                 $max_age Max-age seconds.
+	 * @param int                 $swr    Stale-while-revalidate seconds.
+	 */
+	private static function public_response( array $data, int $max_age, int $swr ): \WP_REST_Response {
+		$res  = new \WP_REST_Response( $data, 200 );
+		$etag = '"' . substr( md5( (string) wp_json_encode( $data ) ), 0, 16 ) . '"';
+		$res->header( 'Cache-Control', 'public, max-age=' . $max_age . ', stale-while-revalidate=' . $swr );
+		$res->header( 'ETag', $etag );
+		return $res;
+	}
+}

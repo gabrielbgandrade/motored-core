@@ -182,7 +182,7 @@ final class FlowsTest extends TestCase {
 
 	/** Consistency: kinds, hooks, jobs and placeholders agree across modules. */
 	public function test_action_hooks_are_the_ones_the_modules_register(): void {
-		$this->assertEqualsCanonicalizing( array( Sender::HOOK, Retention::HOOK, Scanner::HOOK, \Motored\Core\Modules\PaymentPlans\Reconciler::HOOK, \Motored\Core\Modules\OrderTracking\TrackingNotifier::EMAIL_HOOK ), Plugin::ACTION_HOOKS );
+		$this->assertEqualsCanonicalizing( array( Sender::HOOK, Retention::HOOK, Scanner::HOOK, \Motored\Core\Modules\PaymentPlans\Reconciler::HOOK, \Motored\Core\Modules\OrderTracking\TrackingNotifier::EMAIL_HOOK, \Motored\Core\Modules\Compatibility\ProductIndexSync::REINDEX_HOOK, \Motored\Core\Modules\Compatibility\ImportRunner::HOOK ), Plugin::ACTION_HOOKS );
 		$uninstall = (string) file_get_contents( dirname( __DIR__, 3 ) . '/uninstall.php' );
 		foreach ( Plugin::ACTION_HOOKS as $hook ) {
 			$this->assertStringContainsString( "'" . $hook . "'", $uninstall, 'uninstall.php unschedules ' . $hook );
