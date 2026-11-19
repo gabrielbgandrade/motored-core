@@ -2129,3 +2129,1125 @@ msgstr ""
 #: src/Modules/OrderTracking/OrderTrackingAdmin.php
 msgid "Carrier \"%1$s\" was not saved: the URL template must start with https:// and contain {code}. Example: %2$s"
 msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Position"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Front size"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Rear size"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Width"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Aspect ratio"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Rim diameter"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Load index"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Speed rating"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Construction"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Tube type"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Riding style"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Model line"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Front"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Rear"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Front / Rear"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Kit"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Radial"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Diagonal"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Belted (B)"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Tubeless (TL)"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Tube type (TT)"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "TL / TT"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Street"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Sport"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Touring"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Trail"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Enduro"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Motocross"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Scooter"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Custom"
+msgstr ""
+
+#: src/Modules/Compatibility/AttributeInstaller.php
+msgid "Track"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Compatibility"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Native WooCommerce product brands taxonomy (product_brand) detected."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Warning: product_brand taxonomy was not detected in this WooCommerce version."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Motorcycle compatibility & My Garage"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Matches motorcycles to tires by size without linking bikes inside every product."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Enable compatibility"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Enable selector shortcode, ?moto= filter, My Garage, compatibility badges and product tabs."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Max bikes in My Garage"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Strict load/speed matching"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Hide tires with missing load/speed attributes when a motorcycle specifies minimum ratings (off by default to protect catalog reach)."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Show incompatible badge on product page"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Display \"Does not match your bike\" with a link to compatible tires when a tire does not fit the active garage bike."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Rename tab to \"Technical information\""
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Rename WooCommerce Additional Information tab to Technical information and include Full size."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Show \"Compatibility\" product tab"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Add a lazy-loaded Compatibility tab after Technical information on indexed tire products."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Auto-fill width, profile and rim"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "When saving a single tire (never kits), fill empty Width, Aspect ratio and Rim attributes from its canonical size."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Verification disclaimer"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Leave blank to use the default message advising shoppers to check their manual."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Catalog base URL"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Optional URL used when redirecting ?moto= searches (defaults to the WooCommerce shop page)."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Catalog & attributes setup"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "1. Install global attributes"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "2. Seed fixed attribute terms"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "3. Reindex tire products"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Open Compatibility catalog"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Run step 1 before step 2 so WooCommerce registers all global taxonomies cleanly."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Unauthorized."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Global attributes setup: %1$d created, %2$d already existed."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Fixed terms setup: %1$d ready, %2$d skipped."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Catalog compatibility reindex queued in Action Scheduler."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Catalog compatibility reindex batch completed."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Full tire size"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Optional display label for Technical information (especially recommended for kits). Leave empty to auto-generate."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Brands"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Models"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Versions & Fitments"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Sizes"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Equivalences"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Import / Export JSON"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Invalid sizes report"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Motorcycle Compatibility"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Add brand"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Brand name"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Save brand"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Brand"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Slug"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Actions"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Add model"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Model name"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Displacement (cc)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Aliases (optional)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Save model"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Model"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Aliases"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Versions"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Add motorcycle version"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Year from"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Year to (0 = present)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Variant (optional)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Draft"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Published"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Verified"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Notes"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Save version"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Motorcycle"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Years"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Fitments"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Edit fitments"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Version not found."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Back to versions"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Variant"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Update version"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Add tire fitment"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Tire size"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Fitment type"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "OEM (original)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Alternative"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Source"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Manual"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Manufacturer"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Third party"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Optional safety limits (leave empty unless needed for high-speed / heavy motorcycles)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Min load index (optional)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Min speed rating (optional)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Required construction (optional)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Save fitment"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Size"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Limits"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Add tire size"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Raw or canonical size"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Normalize & save"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Canonical key"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Notation"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Profile"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Rim"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Add directed equivalence"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Defines which target tire size can replace an OEM motorcycle tire size (1 hop only, never transitive)."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "OEM source size (e.g. 4.10-18)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Compatible target size (e.g. 120/80-18)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Position scope"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Any axle"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Front only"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Rear only"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Create inverse too (target -> source)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Approved for storefront"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Mark as approximate"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Save equivalence"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Source (OEM)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Target"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Scope"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Approved"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Export JSON catalog"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Download catalog JSON (schema v1)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Import JSON catalog (max 2 MB)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Upload .json file"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Or paste JSON payload"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Draft (review before showing in store)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Published immediately"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Default version status"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Import speed/load constraints (advanced)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Simulate (Dry-Run)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Run import"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Dry-run summary"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Published products that have position or size attributes assigned, but cannot be indexed (missing or unparseable size)."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Assigned attributes"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Re-sync"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Saved successfully."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Deleted successfully."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Overlapping year range for this model and variant."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Invalid year range."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Invalid or missing tire size."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Cannot delete while child records still exist."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Action could not be completed."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Search..."
+msgstr ""
+
+#: src/Modules/Compatibility/Config.php
+msgid "Always verify the size, load index and speed rating in your motorcycle's manual."
+msgstr ""
+
+#: src/Modules/Compatibility/GarageEndpoint.php
+msgid "My Garage"
+msgstr ""
+
+#: src/Modules/Compatibility/GarageEndpoint.php
+msgid "Vehicle compatibility is currently disabled."
+msgstr ""
+
+#: src/Modules/Compatibility/GarageEndpoint.php
+msgid "Save your motorcycles to filter tires and verify compatibility automatically across the store."
+msgstr ""
+
+#: src/Modules/Compatibility/GarageEndpoint.php
+msgid "Add a motorcycle"
+msgstr ""
+
+#: src/Modules/Compatibility/ImportRunner.php
+msgid "Import completed."
+msgstr ""
+
+#: src/Modules/Compatibility/ImportRunner.php
+msgid "Import queued in background batches (%d versions)."
+msgstr ""
+
+#: src/Modules/Compatibility/JsonImporter.php
+msgid "The JSON payload is empty."
+msgstr ""
+
+#: src/Modules/Compatibility/JsonImporter.php
+msgid "The JSON payload exceeds the 2 MB maximum size."
+msgstr ""
+
+#: src/Modules/Compatibility/JsonImporter.php
+msgid "Invalid JSON syntax."
+msgstr ""
+
+#: src/Modules/Compatibility/JsonImporter.php
+msgid "Unsupported or missing schema_version (expected 1)."
+msgstr ""
+
+#: src/Modules/Compatibility/MatchEngine.php
+msgid "present"
+msgstr ""
+
+#: src/Modules/Compatibility/Privacy.php
+msgid "Motored My Garage"
+msgstr ""
+
+#: src/Modules/Compatibility/Privacy.php
+msgid "Active motorcycle"
+msgstr ""
+
+#: src/Modules/Compatibility/Privacy.php
+msgid "Saved motorcycle"
+msgstr ""
+
+#: src/Modules/Compatibility/RestController.php
+msgid "Motorcycle not found."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Select brand..."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Select model..."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Year"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Select year..."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Version"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Select version..."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Save to My Garage"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Find compatible tires"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "The selected motorcycle was not found."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "All"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Kits"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Tires compatible with:"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Clear filter"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Technical information"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Full size"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Open this tab to load compatible motorcycles..."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "OEM size"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Alternative size"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Equivalent size"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Complete kit"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Compatible with your %s"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Does not match your %s"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "View compatible tires"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Does it fit your bike? Select your motorcycle"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Check load/speed rating against your manual."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "replaces"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Use"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "View tires"
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "You have not saved any motorcycles yet."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Search your motorcycle (e.g. Tornado, CB500, FZ)..."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "No compatible motorcycles found for this product yet."
+msgstr ""
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Could not load compatibility list."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Processed the next queued import batch."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "There is no active import job to resume."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Active import cancelled and temporary payload cleaned up."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "There is no active import job to cancel."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Last import status"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Status: %s"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Progress: %1$d / %2$d versions"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Processed: %1$d versions, %2$d fitments, %3$d equivalences, %4$d rejected items."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Finished (UTC): %s"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Run next batch now"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Cancel import"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Dry-run previews counts without writing to the database. During import, overlapping year ranges and invalid entries are skipped and counted as rejected."
+msgstr ""
+
+#: src/Modules/Compatibility/ImportRunner.php
+msgid "An import is already in progress. Wait for it to finish or cancel it first."
+msgstr ""
+
+#: src/Modules/Compatibility/ImportRunner.php
+msgid "Partial import completed: %1$d versions, %2$d fitments, %3$d equivalences (%4$d rejected items)."
+msgstr ""
+
+#: src/Modules/Compatibility/ImportRunner.php
+msgid "Import completed: %1$d versions, %2$d fitments, %3$d equivalences."
+msgstr ""
+
+#: src/Modules/Compatibility/CompatListRenderer.php
+msgid "Motorcycles compatible with %s"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatListRenderer.php
+msgid "Compatible motorcycles"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatListRenderer.php
+msgid "Search compatible motorcycles"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatListRenderer.php
+msgid "View all compatible motorcycles (%d)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatListRenderer.php
+msgid "Equivalent approx. (%s)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatListRenderer.php
+msgid "Equivalent (approx.)"
+msgstr ""
+
+#: src/Modules/Compatibility/CompatListRenderer.php
+msgid "Original"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Filters"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Catalog filters & storefront search"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Theme-agnostic tire search ([motored_buscador]), faceted sidebar filters ([motored_filtros] and classic widget) and smart suggestions."
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Enable catalog filters"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Enable [motored_buscador], [motored_filtros], classic filter widget, ?oferta=1 query filter and smart search."
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Only show in-stock products in search & counts"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Exclude out-of-stock tires from size dropdowns and facet counts (WooCommerce catalog out-of-stock visibility is always respected)."
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Noindex filtered catalog URLs"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Add noindex, follow via wp_robots when attribute, brand or sale filter parameters are active."
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Default search layout"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Used by [motored_buscador] when no layout attribute is passed."
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Tabs (Motorcycle / Size / Smart search)"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Side by side (Size + Motorcycle + Smart search)"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Accent color (optional)"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Optional hex color (e.g. #00ae4e) passed to --motored-accent. Leave blank to inherit from the active theme."
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Catalog base URL (optional)"
+msgstr ""
+
+#: src/Modules/CatalogFilters/CatalogFiltersAdmin.php
+msgid "Overrides the destination shop URL for [motored_buscador] (defaults to Compatibility / WooCommerce shop URL)."
+msgstr ""
+
+#: src/Modules/CatalogFilters/FacetEngine.php
+msgid "On sale"
+msgstr ""
+
+#: src/Modules/CatalogFilters/FilterRenderer.php
+msgid "Filter results"
+msgstr ""
+
+#: src/Modules/CatalogFilters/FilterRenderer.php
+msgid "Active filters"
+msgstr ""
+
+#: src/Modules/CatalogFilters/FilterRenderer.php
+msgid "Remove filter %s"
+msgstr ""
+
+#: src/Modules/CatalogFilters/FilterRenderer.php
+msgid "Apply filters"
+msgstr ""
+
+#: src/Modules/CatalogFilters/FilterRenderer.php
+msgid "Clear filters"
+msgstr ""
+
+#: src/Modules/CatalogFilters/FilterWidget.php
+msgid "Motored: Catalog Filters"
+msgstr ""
+
+#: src/Modules/CatalogFilters/FilterWidget.php
+msgid "Theme-agnostic faceted tire filters with active chips and motorcycle-aware counts."
+msgstr ""
+
+#: src/Modules/CatalogFilters/FilterWidget.php
+msgid "Title:"
+msgstr ""
+
+#: src/Modules/CatalogFilters/RestController.php
+msgid "Size (%d)"
+msgstr ""
+
+#: src/Modules/CatalogFilters/RestController.php
+msgid "Rim %s"
+msgstr ""
+
+#: src/Modules/CatalogFilters/RestController.php
+msgid "%d tires"
+msgstr ""
+
+#: src/Modules/CatalogFilters/RestController.php
+msgid "Brand (%d)"
+msgstr ""
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "Search tires"
+msgstr ""
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "By motorcycle"
+msgstr ""
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "By tire size"
+msgstr ""
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "Smart search"
+msgstr ""
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "Search tires by size"
+msgstr ""
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "Search"
+msgstr ""
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "Search tires by motorcycle"
+msgstr ""
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "Smart tire search"
+msgstr ""
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "Search by size, rim, motorcycle or brand"
+msgstr ""
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "Search by size (120/70-17), rim, motorcycle or brand..."
+msgstr ""
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php
+msgid "— no profile"
+msgstr ""
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php
+msgid "No direct matches — press Enter to search the store."
+msgstr ""
+
+#: src/Modules/CatalogFilters/FilterRenderer.php
+msgid "%d result"
+msgid_plural "%d results"
+msgstr[0] ""
+msgstr[1] ""
