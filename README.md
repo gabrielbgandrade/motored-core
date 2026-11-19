@@ -16,7 +16,7 @@ and unpaid orders), review photos, review requests and payment plans.
 | Composer   | 2.x     | dev dependencies (phpcs, PHPStan, PHPUnit, WP stubs)    |
 | Git        | any     | cloning and contributing                                |
 | WordPress  | 6.8+    | running the plugin (not needed for unit tests)          |
-| WooCommerce| 10+     | plugin dependency                                       |
+| WooCommerce| current | plugin dependency (HPOS-compatible)                     |
 
 Optional: `zip` for `bin/build-zip.sh`; GNU gettext (`xgettext`, `msgmerge`, `msgfmt`) or WP-CLI for
 `bin/i18n.sh`; Redis object cache; a WAHA server for WhatsApp messages.
@@ -50,6 +50,13 @@ bin/build-zip.sh          # writes build/motored-core.zip
 
 Then activate **WooCommerce** and **Motored Core**, and open **WooCommerce > Settings > Motored**.
 The zip contains runtime files only (no `vendor/`, tests, docs or skills).
+
+### Keeping the copy up to date
+
+```bash
+git pull            # on main
+composer install    # only downloads when composer.lock changed
+```
 
 ## Development commands
 
