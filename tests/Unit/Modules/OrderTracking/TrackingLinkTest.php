@@ -28,10 +28,17 @@ final class TrackingLinkTest extends TestCase {
 		}
 	}
 
-	public function test_template_needs_code_and_http_scheme(): void {
-		$this->assertSame( 'http://c.com/?n={code}', TrackingLink::sanitize_template( 'http://c.com/?n={code}' ) );
-		$this->assertSame( '', TrackingLink::sanitize_template( 'https://c.com/' ) );
-		$this->assertSame( '', TrackingLink::sanitize_template( 'javascript:{code}' ) );
+	public function test_template_needs_code_and_https_scheme(): void {
+		$this->assertSame( 'https://c.com/?n={code}', TrackingLink::sanitize_template( ' https://c.com/?n={code} ' ) );
+		$this->assertSame( TrackingLink::EXAMPLE_TEMPLATE, TrackingLink::sanitize_template( TrackingLink::EXAMPLE_TEMPLATE ) );
+		foreach ( array( 'http://c.com/?n={code}', 'https://c.com/', 'javascript:{code}', '' ) as $bad ) {
+			$this->assertSame( '', TrackingLink::sanitize_template( $bad ), $bad );
+		}
+	}
+
+	public function test_static_preview_uses_the_sample_code(): void {
+		$this->assertSame( 'https://rapiboy.com/seguimientoPedido?id=AB123456789', TrackingLink::preview( TrackingLink::EXAMPLE_TEMPLATE ) );
+		$this->assertSame( '', TrackingLink::preview( 'https://c.com/no-code' ) );
 	}
 
 	public function test_priority_override_then_template_then_empty(): void {

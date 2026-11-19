@@ -18,6 +18,16 @@ final class TrackingLink {
 	public const URL_MAX  = 300;
 
 	/**
+	 * Sample code of the settings preview.
+	 */
+	public const SAMPLE_CODE = 'AB123456789';
+
+	/**
+	 * Example template shown in the placeholder and in the validation error.
+	 */
+	public const EXAMPLE_TEMPLATE = 'https://rapiboy.com/seguimientoPedido?id={code}';
+
+	/**
 	 * Keeps letters, digits and "-", "_", "." (max 40 characters).
 	 *
 	 * @param string $code Raw code.
@@ -42,16 +52,25 @@ final class TrackingLink {
 	}
 
 	/**
-	 * Carrier URL template: http(s) and it must contain {code}.
+	 * Carrier URL template: https only and it must contain {code}. Invalid input returns ''.
 	 *
 	 * @param string $template Raw template.
 	 */
 	public static function sanitize_template( string $template ): string {
 		$template = trim( $template );
-		if ( strlen( $template ) > self::URL_MAX || false === strpos( $template, '{code}' ) || ! self::is_safe( $template, false ) ) {
+		if ( strlen( $template ) > self::URL_MAX || false === strpos( $template, '{code}' ) || ! self::is_safe( $template, true ) ) {
 			return '';
 		}
 		return $template;
+	}
+
+	/**
+	 * Static preview of a template with a sample code ('' when the template is invalid).
+	 *
+	 * @param string $template Carrier template.
+	 */
+	public static function preview( string $template ): string {
+		return self::build( '', $template, self::SAMPLE_CODE );
 	}
 
 	/**

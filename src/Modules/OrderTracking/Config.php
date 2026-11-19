@@ -128,7 +128,7 @@ final class Config {
 				continue;
 			}
 			$id = strtolower( self::text_field( $row['id'] ?? '' ) );
-			$id = (string) preg_replace( '/[^a-z0-9_-]/', '', '' !== $id ? $id : str_replace( ' ', '-', strtolower( $name ) ) );
+			$id = (string) preg_replace( '/[^a-z0-9_-]/', '', '' !== $id ? $id : self::slugify( $name ) );
 			$id = substr( $id, 0, 30 );
 			if ( '' === $id || isset( $seen[ $id ] ) ) {
 				continue;
@@ -143,6 +143,95 @@ final class Config {
 			);
 		}
 		return $clean;
+	}
+
+	/**
+	 * Lowercase ASCII slug of a carrier name (a-z, 0-9, "-"; max 30). Pure; never empty.
+	 *
+	 * @param string $name Carrier name.
+	 */
+	public static function slugify( string $name ): string {
+		$slug = strtr(
+			strtolower( $name ),
+			array(
+				'á' => 'a',
+				'é' => 'e',
+				'í' => 'i',
+				'ó' => 'o',
+				'ú' => 'u',
+				'ü' => 'u',
+				'ñ' => 'n',
+			)
+		);
+		$slug = trim( (string) preg_replace( '/[^a-z0-9]+/', '-', $slug ), '-' );
+		$slug = trim( substr( $slug, 0, 30 ), '-' );
+		return '' !== $slug ? $slug : 'carrier';
+	}
+
+	/**
+	 * Save-time processing of the posted carrier table. The id is generated from the name and never taken from the
+	 * post unless it is an already stored id (read-only after the first save). A row whose URL template is not https
+	 * with {code} is NOT saved (the previous stored version, if any, is kept) and an error names it.
+	 *
+	 * @param mixed                                                     $raw    Posted rows.
+	 * @param list<array{id:string,name:string,url:string,active:bool}> $stored Current carriers.
+	 * @return array{rows:list<array{id:string,name:string,url:string,active:bool}>,rejected:list<string>}
+	 */
+	public static function prepare_carriers( $raw, array $stored ): array {
+		$known = array();
+		foreach ( $stored as $carrier ) {
+			$known[ $carrier['id'] ] = $carrier;
+		}
+		$rows     = array();
+		$rejected = array();
+		$seen     = array( self::OTHER => true );
+		foreach ( is_array( $raw ) ? $raw : array() as $row ) {
+			if ( ! is_array( $row ) || count( $rows ) >= self::MAX_CARRIERS ) {
+				continue;
+			}
+			$name = self::text_field( $row['name'] ?? '' );
+			$name = function_exists( 'mb_substr' ) ? mb_substr( $name, 0, 60 ) : substr( $name, 0, 60 );
+			if ( '' === $name ) {
+				continue;
+			}
+			$posted = strtolower( self::text_field( $row['id'] ?? '' ) );
+			$id     = isset( $known[ $posted ] ) && ! isset( $seen[ $posted ] ) ? $posted : self::unique_id( self::slugify( $name ), $seen );
+			$url    = TrackingLink::sanitize_template( self::text_field( $row['url'] ?? '' ) );
+			if ( '' === $url ) {
+				$rejected[] = $name;
+				if ( isset( $known[ $id ] ) ) {
+					$seen[ $id ] = true;
+					$rows[]      = $known[ $id ];
+				}
+				continue;
+			}
+			$seen[ $id ] = true;
+			$active      = $row['active'] ?? '';
+			$rows[]      = array(
+				'id'     => $id,
+				'name'   => $name,
+				'url'    => $url,
+				'active' => true === $active || 'yes' === $active || '1' === $active || 1 === $active,
+			);
+		}
+		return array(
+			'rows'     => $rows,
+			'rejected' => $rejected,
+		);
+	}
+
+	/**
+	 * First free id: slug, slug-2, slug-3...
+	 *
+	 * @param string             $slug Base slug.
+	 * @param array<string,bool> $seen Ids already taken.
+	 */
+	private static function unique_id( string $slug, array $seen ): string {
+		$id = $slug;
+		for ( $n = 2; isset( $seen[ $id ] ); $n++ ) {
+			$id = substr( $slug, 0, 27 ) . '-' . $n;
+		}
+		return $id;
 	}
 
 	/**

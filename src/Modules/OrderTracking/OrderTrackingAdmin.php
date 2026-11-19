@@ -8,6 +8,7 @@
 namespace Motored\Core\Modules\OrderTracking;
 
 use Motored\Core\Admin\SectionRegistry;
+use Motored\Core\Admin\Ui;
 use Motored\Core\Integration\WooCommerce\OrderHooks;
 use Motored\Core\Support\Options;
 
@@ -127,7 +128,7 @@ final class OrderTrackingAdmin {
 				'desc'     => $help,
 				'id'       => 'motored_order_tracking[text_added]',
 				'type'     => 'textarea',
-				'css'      => 'width:100%;min-height:130px',
+				'class'    => 'motored-input-wide motored-textarea',
 				'default'  => Config::DEFAULTS['text_added'],
 				'autoload' => false,
 			),
@@ -136,7 +137,7 @@ final class OrderTrackingAdmin {
 				'desc'     => $help,
 				'id'       => 'motored_order_tracking[text_updated]',
 				'type'     => 'textarea',
-				'css'      => 'width:100%;min-height:130px',
+				'class'    => 'motored-input-wide motored-textarea',
 				'default'  => Config::DEFAULTS['text_updated'],
 				'autoload' => false,
 			),
@@ -167,24 +168,41 @@ final class OrderTrackingAdmin {
 
 		echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html( $title ) . '</th><td class="forminp">';
 		wp_nonce_field( self::SETTINGS_NONCE, self::SETTINGS_FIELD, false );
-		echo '<table class="widefat striped" style="max-width:900px"><thead><tr>';
-		foreach ( array( __( 'Id', 'motored-core' ), __( 'Name', 'motored-core' ), __( 'URL template with {code}', 'motored-core' ), __( 'Active', 'motored-core' ) ) as $heading ) {
-			echo '<th>' . esc_html( $heading ) . '</th>';
-		}
-		echo '</tr></thead><tbody>';
+		Ui::table_open();
+		Ui::table_head(
+			array(
+				__( 'Name', 'motored-core' )    => 'md',
+				__( 'Id', 'motored-core' )      => 'md',
+				__( 'URL template with {code}', 'motored-core' ) => 'grow',
+				__( 'Preview', 'motored-core' ) => 'grow',
+				__( 'Active', 'motored-core' )  => 'xs',
+			)
+		);
+		echo '<tbody>';
 		foreach ( array_values( $rows ) as $index => $row ) {
-			$base = self::CARRIERS_KEY . '[' . $index . ']';
+			$base    = self::CARRIERS_KEY . '[' . $index . ']';
+			$preview = '' !== $row['url'] ? TrackingLink::preview( $row['url'] ) : '';
 			printf(
-				'<tr><td><input type="text" name="%1$s[id]" value="%2$s" maxlength="30" size="10" /></td><td><input type="text" name="%1$s[name]" value="%3$s" maxlength="60" /></td><td><input type="text" name="%1$s[url]" value="%4$s" maxlength="300" class="large-text" placeholder="https://" /></td><td><input type="checkbox" name="%1$s[active]" value="yes" %5$s /></td></tr>',
+				'<tr><td><input type="text" name="%1$s[name]" value="%2$s" maxlength="60" /></td><td class="motored-mono">%3$s</td><td><input type="text" name="%1$s[url]" value="%4$s" maxlength="300" placeholder="%5$s" /></td><td class="motored-mono">%6$s</td><td class="motored-cell-center"><input type="checkbox" name="%1$s[active]" value="yes" %7$s /></td></tr>',
 				esc_attr( $base ),
-				esc_attr( $row['id'] ),
 				esc_attr( $row['name'] ),
+				'' !== $row['id'] ? '<code>' . esc_html( $row['id'] ) . '</code><input type="hidden" name="' . esc_attr( $base ) . '[id]" value="' . esc_attr( $row['id'] ) . '" />' : '&mdash;', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped here.
 				esc_attr( $row['url'] ),
-				checked( $row['active'], true, false )
+				esc_attr( TrackingLink::EXAMPLE_TEMPLATE ),
+				'' !== $preview ? esc_html( $preview ) : '&mdash;', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped here.
+				checked( $row['active'], true, false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core helper.
 			);
 		}
-		echo '</tbody></table><p class="description">'
-			. esc_html__( 'The list starts empty: add your carriers and their tracking URL. "Other / manual link" is always available on the order. Leave the name empty to remove a row.', 'motored-core' )
+		echo '</tbody>';
+		Ui::table_close();
+		echo '<p class="description">'
+			. esc_html(
+				sprintf(
+					/* translators: %s: example URL template. */
+					__( 'Add your carriers with their tracking URL: it must be https and contain {code}. Example: %s. The id is generated from the name and cannot be changed. "Other / manual link" is always available on the order. Leave the name empty to remove a row.', 'motored-core' ),
+					TrackingLink::EXAMPLE_TEMPLATE
+				)
+			)
 			. '</p></td></tr>';
 	}
 
@@ -202,10 +220,23 @@ final class OrderTrackingAdmin {
 		check_admin_referer( self::SETTINGS_NONCE, self::SETTINGS_FIELD );
 
 		$raw = isset( $_POST[ self::CARRIERS_KEY ] ) && is_array( $_POST[ self::CARRIERS_KEY ] )
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by Config::sanitize_carriers().
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by Config::prepare_carriers().
 			? wp_unslash( $_POST[ self::CARRIERS_KEY ] )
 			: array();
-		Options::update( Config::OPTION_KEY, array( 'carriers' => Config::sanitize_carriers( $raw ) ) );
+		$result = Config::prepare_carriers( $raw, Config::carriers() );
+		Options::update( Config::OPTION_KEY, array( 'carriers' => $result['rows'] ) );
+		if ( class_exists( 'WC_Admin_Settings' ) ) {
+			foreach ( $result['rejected'] as $name ) {
+				\WC_Admin_Settings::add_error(
+					sprintf(
+						/* translators: 1: carrier name, 2: example URL template. */
+						__( 'Carrier "%1$s" was not saved: the URL template must start with https:// and contain {code}. Example: %2$s', 'motored-core' ),
+						$name,
+						TrackingLink::EXAMPLE_TEMPLATE
+					)
+				);
+			}
+		}
 	}
 
 	/**
@@ -240,26 +271,35 @@ final class OrderTrackingAdmin {
 		}
 
 		wp_nonce_field( self::BOX_NONCE, self::BOX_FIELD, false );
-		$name = self::BOX_KEY;
-		echo '<p><label for="motored-tracking-carrier"><strong>' . esc_html__( 'Carrier', 'motored-core' ) . '</strong></label><br><select id="motored-tracking-carrier" name="' . esc_attr( $name ) . '[carrier_id]" style="width:100%">';
+		$name   = self::BOX_KEY;
+		$select = '<select id="motored-tracking-carrier" name="' . esc_attr( $name ) . '[carrier_id]">';
 		foreach ( $options as $id => $label ) {
-			printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( (string) $id ), selected( $selected, (string) $id, false ), esc_html( $label ) );
+			$select .= sprintf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( (string) $id ), selected( $selected, (string) $id, false ), esc_html( $label ) );
 		}
-		echo '</select></p>';
-		printf(
-			'<p><label for="motored-tracking-code"><strong>%1$s</strong></label><br><input type="text" id="motored-tracking-code" name="%2$s[code]" value="%3$s" maxlength="%4$d" style="width:100%%" /></p>',
-			esc_html__( 'Tracking code', 'motored-core' ),
-			esc_attr( $name ),
-			esc_attr( $current->code ),
-			(int) TrackingLink::CODE_MAX
+		$select .= '</select>';
+
+		Ui::box_open( true );
+		Ui::field( __( 'Carrier', 'motored-core' ), 'motored-tracking-carrier', $select );
+		Ui::field(
+			__( 'Tracking code', 'motored-core' ),
+			'motored-tracking-code',
+			sprintf(
+				'<input type="text" id="motored-tracking-code" name="%1$s[code]" value="%2$s" maxlength="%3$d" />',
+				esc_attr( $name ),
+				esc_attr( $current->code ),
+				(int) TrackingLink::CODE_MAX
+			)
 		);
-		printf(
-			'<p><label for="motored-tracking-url"><strong>%1$s</strong></label><br><input type="url" id="motored-tracking-url" name="%2$s[url_override]" value="%3$s" maxlength="%4$d" placeholder="https://" style="width:100%%" /><span class="description">%5$s</span></p>',
-			esc_html__( 'Manual link (optional)', 'motored-core' ),
-			esc_attr( $name ),
-			esc_attr( $current->url_override ),
-			(int) TrackingLink::URL_MAX,
-			esc_html__( 'https only. It replaces the carrier link.', 'motored-core' )
+		Ui::field(
+			__( 'Manual link (optional)', 'motored-core' ),
+			'motored-tracking-url',
+			sprintf(
+				'<input type="url" id="motored-tracking-url" name="%1$s[url_override]" value="%2$s" maxlength="%3$d" placeholder="https://" />',
+				esc_attr( $name ),
+				esc_attr( $current->url_override ),
+				(int) TrackingLink::URL_MAX
+			),
+			__( 'https only. It replaces the carrier link.', 'motored-core' )
 		);
 
 		$data = Presenter::resolve( $current );
@@ -271,6 +311,7 @@ final class OrderTrackingAdmin {
 				esc_html__( 'Open', 'motored-core' )
 			);
 		}
+		Ui::box_close();
 	}
 
 	/**
