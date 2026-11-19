@@ -117,7 +117,7 @@ final class ReviewRequestsAdmin {
 				),
 				'id'       => 'motored_review_requests[text]',
 				'type'     => 'textarea',
-				'css'      => 'width:100%;min-height:150px',
+				'class'    => 'motored-input-wide motored-textarea',
 				'default'  => Config::DEFAULTS['text'],
 				'autoload' => false,
 			),
@@ -155,7 +155,7 @@ final class ReviewRequestsAdmin {
 		} else {
 			$label = __( 'Not scheduled.', 'motored-core' );
 		}
-		echo '<p>' . esc_html( $label ) . '</p>';
+		echo '<div class="motored-box motored-box--flush"><p>' . esc_html( $label ) . '</p>';
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD, false );
 		printf(
 			'<input type="hidden" name="%1$s" value="%2$d" /><p><button type="submit" class="button" name="action" value="%3$s" formmethod="post" formaction="%4$s">%5$s</button></p>',
@@ -165,6 +165,7 @@ final class ReviewRequestsAdmin {
 			esc_url( admin_url( 'admin-post.php?action=' . self::ACTION ) ),
 			esc_html__( 'Send now', 'motored-core' )
 		);
+		echo '</div>';
 	}
 
 	/**

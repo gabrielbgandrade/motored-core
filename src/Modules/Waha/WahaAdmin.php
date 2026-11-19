@@ -95,7 +95,7 @@ final class WahaAdmin {
 				'desc_tip' => true,
 				'id'       => 'motored_waha[test_numbers]',
 				'type'     => 'textarea',
-				'css'      => 'min-width:300px;height:80px;',
+				'class'    => 'motored-input-wide motored-textarea',
 				'default'  => Config::DEFAULTS['test_numbers'],
 				'autoload' => false,
 			),
@@ -196,7 +196,7 @@ final class WahaAdmin {
 	 */
 	public function render_tools(): void {
 		$notice = $this->pull_notice();
-		echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html__( 'Tests', 'motored-core' ) . '</th><td class="forminp"><div class="motored-tools">';
+		echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html__( 'Tests', 'motored-core' ) . '</th><td class="forminp"><div class="motored-box">';
 		if ( null !== $notice ) {
 			printf(
 				'<div class="notice notice-%1$s inline"><p>%2$s</p></div>',
@@ -208,13 +208,13 @@ final class WahaAdmin {
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD, false );
 		$action = esc_url( admin_url( 'admin-post.php' ) );
 		printf(
-			'<p><button type="submit" class="button" name="action" value="%1$s" formmethod="post" formaction="%2$s">%3$s</button></p>',
+			'<p class="motored-actions"><button type="submit" class="button" name="action" value="%1$s" formmethod="post" formaction="%2$s">%3$s</button></p>',
 			esc_attr( self::ACTION_CONNECTION ),
 			$action, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
 			esc_html__( 'Test connection', 'motored-core' )
 		);
 		printf(
-			'<p><input type="tel" name="%1$s" placeholder="%2$s" autocomplete="off" /> <button type="submit" class="button" name="action" value="%3$s" formmethod="post" formaction="%4$s">%5$s</button></p>',
+			'<p class="motored-actions"><input type="tel" name="%1$s" placeholder="%2$s" autocomplete="off" /> <button type="submit" class="button" name="action" value="%3$s" formmethod="post" formaction="%4$s">%5$s</button></p>',
 			esc_attr( self::PHONE_FIELD ),
 			esc_attr( '011 5555-1234' ),
 			esc_attr( self::ACTION_MESSAGE ),
@@ -233,7 +233,7 @@ final class WahaAdmin {
 			return;
 		}
 		$source = Config::api_key_source();
-		echo '<tr valign="top"><th scope="row" class="titledesc"><label for="' . esc_attr( self::NEW_KEY_FIELD ) . '">' . esc_html__( 'API key', 'motored-core' ) . '</label></th><td class="forminp motored-secret">';
+		echo '<tr valign="top"><th scope="row" class="titledesc"><label for="' . esc_attr( self::NEW_KEY_FIELD ) . '">' . esc_html__( 'API key', 'motored-core' ) . '</label></th><td class="forminp">';
 
 		if ( Config::SOURCE_CONSTANT === $source ) {
 			echo '<p><strong>' . esc_html__( 'Key defined', 'motored-core' ) . '</strong> &mdash; ';

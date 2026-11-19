@@ -8,6 +8,7 @@
 namespace Motored\Core\Modules\Recovery;
 
 use Motored\Core\Admin\SectionRegistry;
+use Motored\Core\Admin\Ui;
 use Motored\Core\Integration\Waha\WahaClient;
 use Motored\Core\Integration\WooCommerce\OrderHooks;
 use Motored\Core\Integration\WooCommerce\ProductLookup;
@@ -133,7 +134,7 @@ final class RecoveryAdmin {
 				'desc_tip' => true,
 				'id'       => 'motored_recovery[order_cancelled_text]',
 				'type'     => 'textarea',
-				'css'      => 'width:450px; height: 110px;',
+				'class'    => 'motored-input-wide motored-textarea',
 				'default'  => Config::DEFAULTS['order_cancelled_text'],
 				'autoload' => false,
 			),
@@ -274,12 +275,16 @@ final class RecoveryAdmin {
 	private function render_steps_table( string $title, string $description, array $rows, string $footer ): void {
 		echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html( $title ) . '</th><td class="forminp">';
 		echo '<p class="description">' . esc_html( $description ) . '</p>';
-		echo '<div class="motored-table-wrap"><table class="widefat striped motored-steps-table"><thead><tr>';
-		echo '<th class="motored-col-step">' . esc_html__( 'Step', 'motored-core' ) . '</th>';
-		echo '<th class="motored-col-channel">' . esc_html__( 'Channel', 'motored-core' ) . '</th>';
-		echo '<th class="motored-col-delay">' . esc_html__( 'Delay (minutes)', 'motored-core' ) . '</th>';
-		echo '<th class="motored-col-text">' . esc_html__( 'Message text', 'motored-core' ) . '</th>';
-		echo '</tr></thead><tbody>';
+		Ui::table_open();
+		Ui::table_head(
+			array(
+				__( 'Step', 'motored-core' )            => 'xs',
+				__( 'Channel', 'motored-core' )         => 'md',
+				__( 'Delay (minutes)', 'motored-core' ) => 'md',
+				__( 'Message text', 'motored-core' )    => 'grow',
+			)
+		);
+		echo '<tbody>';
 
 		foreach ( $rows as $row ) {
 			$cfg = $row['cfg'];
@@ -291,11 +296,12 @@ final class RecoveryAdmin {
 			printf( '<option value="off"%s>%s</option>', selected( $cfg['channel'], 'off', false ), esc_html__( 'Off', 'motored-core' ) );
 			echo '</select></td>';
 			echo '<td><input type="number" name="' . esc_attr( $row['name'] . '[delay]' ) . '" value="' . absint( $cfg['delay'] ) . '" min="1" step="1" /></td>';
-			echo '<td><textarea name="' . esc_attr( $row['name'] . '[text]' ) . '" rows="4" class="motored-step-text">' . esc_textarea( $cfg['text'] ) . '</textarea></td>';
+			echo '<td><textarea name="' . esc_attr( $row['name'] . '[text]' ) . '" rows="4">' . esc_textarea( $cfg['text'] ) . '</textarea></td>';
 			echo '</tr>';
 		}
-		echo '</tbody></table></div>';
-		echo '<p class="description motored-steps-footer">' . esc_html( $footer ) . '</p>';
+		echo '</tbody>';
+		Ui::table_close();
+		echo '<p class="description">' . esc_html( $footer ) . '</p>';
 		echo '</td></tr>';
 	}
 
@@ -904,21 +910,20 @@ final class RecoveryAdmin {
 			'motored_recovery_open_wa_' . $id
 		);
 
-		echo '<div style="margin: 15px 0; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">';
+		echo '<div class="motored-actions">';
 		echo '<a href="' . esc_url( $send_wa_url ) . '" class="button button-primary">' . esc_html__( 'Send WhatsApp now', 'motored-core' ) . '</a>';
 		echo '<a href="' . esc_url( $send_email_url ) . '" class="button button-secondary">' . esc_html__( 'Send email now', 'motored-core' ) . '</a>';
 		echo '<a href="' . esc_url( $open_wa_url ) . '" class="button button-secondary" target="_blank">' . esc_html__( 'Open in WhatsApp Web', 'motored-core' ) . '</a>';
 		echo '</div>';
 
-		echo '<div style="margin: 15px 0; max-width:720px; background:#fff; padding:12px; border:1px solid #ccd0d4;">';
-		echo '<label for="motored-recovery-link-input"><strong>' . esc_html( $is_order ? __( 'Payment link:', 'motored-core' ) : __( 'Recovery link:', 'motored-core' ) ) . '</strong></label><br />';
-		echo '<div style="display:flex; gap:8px; margin-top:4px;">';
-		echo '<input id="motored-recovery-link-input" type="text" readonly value="' . esc_attr( $link_url ) . '" style="width:100%; font-family:monospace;" onfocus="this.select()" />';
+		echo '<div class="motored-box motored-narrow"><div class="motored-field"><label class="motored-field__label" for="motored-recovery-link-input">' . esc_html( $is_order ? __( 'Payment link:', 'motored-core' ) : __( 'Recovery link:', 'motored-core' ) ) . '</label>';
+		echo '<div class="motored-actions motored-field__control">';
+		echo '<input id="motored-recovery-link-input" type="text" readonly value="' . esc_attr( $link_url ) . '" class="motored-mono" onfocus="this.select()" />';
 		echo '<button type="button" class="button" onclick="navigator.clipboard.writeText(document.getElementById(\'motored-recovery-link-input\').value); alert(\'' . esc_js( __( 'Link copied to clipboard!', 'motored-core' ) ) . '\');">' . esc_html__( 'Copy link', 'motored-core' ) . '</button>';
-		echo '</div>';
-		echo '</div>';
+		echo '</div></div></div>';
 
-		echo '<table class="widefat striped" style="max-width:720px"><tbody>';
+		Ui::table_open( true );
+		echo '<tbody>';
 		$this->detail_row( __( 'Status', 'motored-core' ), esc_html( Status::label( $status ) ) );
 		$this->detail_row( __( 'Type', 'motored-core' ), esc_html( 'order' === $row['type'] ? __( 'Order', 'motored-core' ) : __( 'Cart', 'motored-core' ) ) );
 		$this->detail_row( __( 'Customer', 'motored-core' ), wp_kses_post( $user ) );
@@ -932,10 +937,11 @@ final class RecoveryAdmin {
 		if ( $is_order ) {
 			$this->render_order_rows( $row, $order_details );
 		}
-		echo '</tbody></table>';
+		echo '</tbody>';
+		Ui::table_close();
 
 		if ( $is_order && null !== $order_details && array() !== $order_details['notes'] ) {
-			echo '<h3>' . esc_html__( 'Latest order notes', 'motored-core' ) . '</h3><ul style="max-width:720px;list-style:disc;margin-left:20px">';
+			echo '<h3>' . esc_html__( 'Latest order notes', 'motored-core' ) . '</h3><ul class="motored-notes">';
 			foreach ( $order_details['notes'] as $note ) {
 				echo '<li>' . esc_html( $note ) . '</li>';
 			}
@@ -944,7 +950,16 @@ final class RecoveryAdmin {
 
 		$lines = ProductLookup::resolve( Snapshot::decode( (string) $row['items'] ) );
 		echo '<h3>' . esc_html__( 'Products (current data)', 'motored-core' ) . '</h3>';
-		echo '<table class="widefat striped" style="max-width:720px"><thead><tr><th>' . esc_html__( 'Product', 'motored-core' ) . '</th><th>' . esc_html__( 'Qty', 'motored-core' ) . '</th><th>' . esc_html__( 'Subtotal', 'motored-core' ) . '</th><th>' . esc_html__( 'Stock', 'motored-core' ) . '</th></tr></thead><tbody>';
+		Ui::table_open();
+		Ui::table_head(
+			array(
+				__( 'Product', 'motored-core' )  => 'grow',
+				__( 'Qty', 'motored-core' )      => 'xs',
+				__( 'Subtotal', 'motored-core' ) => 'md',
+				__( 'Stock', 'motored-core' )    => 'md',
+			)
+		);
+		echo '<tbody>';
 		foreach ( $lines as $line ) {
 			printf(
 				'<tr><td>%1$s</td><td>%2$d</td><td>%3$s</td><td>%4$s</td></tr>',
@@ -954,7 +969,8 @@ final class RecoveryAdmin {
 				esc_html( self::stock_label( $line['stock'] ) )
 			);
 		}
-		echo '</tbody></table>';
+		echo '</tbody>';
+		Ui::table_close();
 		echo '<p><strong>' . esc_html__( 'Current total:', 'motored-core' ) . '</strong> ' . wp_kses_post( self::money( ProductLookup::total( $lines ), (string) $row['currency'] ) ) . '</p>';
 
 		$this->render_timeline( $id );
@@ -990,18 +1006,20 @@ final class RecoveryAdmin {
 			echo '<p>' . esc_html__( 'No events yet.', 'motored-core' ) . '</p>';
 			return;
 		}
-		echo '<table class="widefat striped" style="max-width:720px"><tbody>';
+		Ui::table_open();
+		echo '<tbody>';
 		foreach ( $events['rows'] as $event ) {
 			$line = History::format( $event );
 			printf(
-				'<tr><td style="white-space:nowrap">%1$s</td><td><strong>%2$s</strong>%3$s%4$s</td></tr>',
+				'<tr><td class="motored-col-md">%1$s</td><td><strong>%2$s</strong>%3$s%4$s</td></tr>',
 				esc_html( RecoveryListTable::local_date( $line['date'] ) ),
 				esc_html( $line['label'] ),
 				'' !== $line['meta'] ? ' <span class="description">(' . esc_html( $line['meta'] ) . ')</span>' : '',
 				'' !== $line['detail'] ? '<br />' . esc_html( $line['detail'] ) : ''
 			);
 		}
-		echo '</tbody></table>';
+		echo '</tbody>';
+		Ui::table_close();
 	}
 
 	/**
@@ -1028,7 +1046,7 @@ final class RecoveryAdmin {
 	 * @param string $html  Escaped HTML.
 	 */
 	private function detail_row( string $label, string $html ): void {
-		echo '<tr><th scope="row" style="width:180px">' . esc_html( $label ) . '</th><td>' . $html . '</td></tr>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the caller.
+		echo '<tr><th scope="row">' . esc_html( $label ) . '</th><td>' . $html . '</td></tr>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the caller.
 	}
 
 	/**

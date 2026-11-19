@@ -1,0 +1,72 @@
+/*
+ * Motored admin: ONE shared stylesheet. Spacing and alignment only, no colors or fonts of our own
+ * (everything is inherited from the WordPress admin; borders derive from currentColor).
+ * Loaded on WooCommerce > Settings > Motored, the order edit screen and the Recovery screen, nowhere else.
+ * Every admin UI uses these classes (see Admin\Ui); per-module CSS is not allowed.
+ */
+
+/* Settings rows rendered by WooCommerce */
+.motored-admin .form-table th { padding: 20px 12px 20px 0; }
+.motored-admin .form-table td { padding: 16px 10px; }
+
+/* .motored-field: label + control + description */
+.motored-field { margin: 0 0 14px; }
+.motored-field:last-child { margin-bottom: 0; }
+.motored-field__label { display: block; margin: 0 0 4px; font-weight: 600; }
+.motored-field__control input[type="text"],
+.motored-field__control input[type="url"],
+.motored-field__control input[type="tel"],
+.motored-field__control input[type="number"],
+.motored-field__control input[type="password"],
+.motored-field__control select,
+.motored-field__control textarea { display: block; width: 100%; max-width: none; min-height: 30px; box-sizing: border-box; }
+.motored-field__desc { margin: 4px 0 0; }
+
+/* .motored-box: card with inner padding and space between boxes */
+.motored-box { margin: 0 0 16px; padding: 16px 20px; border: 1px solid color-mix(in srgb, currentColor 22%, transparent); border-radius: 4px; }
+.motored-box:last-child { margin-bottom: 0; }
+.motored-box--flush { padding: 0; border: 0; border-radius: 0; }
+.motored-box__title { margin: 0 0 8px; }
+.motored-box__footer { margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed color-mix(in srgb, currentColor 22%, transparent); line-height: 1.9; }
+.motored-box > p:first-child { margin-top: 0; }
+.motored-box > p:last-child { margin-bottom: 0; }
+
+/* .motored-table: th and td share the SAME padding; wide tables scroll sideways */
+.motored-table-wrap { max-width: 100%; margin: 8px 0 0; overflow-x: auto; }
+.motored-table-wrap > .motored-table { margin: 0; }
+.motored-table { width: 100%; min-width: 720px; table-layout: fixed; }
+.motored-table th,
+.motored-table td { padding: 10px 12px; text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
+.motored-table th { line-height: 1.3; vertical-align: bottom; overflow-wrap: normal; }
+.motored-table input[type="text"],
+.motored-table input[type="url"],
+.motored-table input[type="tel"],
+.motored-table input[type="number"],
+.motored-table input[type="password"],
+.motored-table select,
+.motored-table textarea { display: block; width: 100%; max-width: none; min-height: 32px; box-sizing: border-box; }
+.motored-table textarea { min-height: 96px; }
+.motored-table input[type="checkbox"] { margin: 0; }
+.motored-table--compact { min-width: 0; max-width: 720px; table-layout: auto; }
+.motored-table--compact th { width: 40%; vertical-align: middle; }
+.motored-col-xs { width: 90px; }
+.motored-col-sm { width: 110px; }
+.motored-col-md { width: 160px; }
+.motored-col-lg { width: 210px; }
+.motored-col-grow { min-width: 260px; }
+.motored-cell-center { text-align: center; }
+
+/* Small helpers */
+.motored-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+.motored-notes { max-width: 720px; margin: 8px 0 0 20px; list-style: disc; }
+.motored-mono { overflow-wrap: anywhere; }
+.motored-narrow { max-width: 720px; }
+
+@media (max-width: 782px) {
+	.motored-admin .form-table td { padding: 12px 0; }
+	.motored-box { padding: 14px; }
+}
+
+/* Wide WooCommerce textarea fields (replaces the "css" option of the settings API) */
+.motored-input-wide { width: 100%; max-width: none; box-sizing: border-box; }
+.motored-textarea { min-height: 110px; }

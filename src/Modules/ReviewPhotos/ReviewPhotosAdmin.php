@@ -116,13 +116,13 @@ final class ReviewPhotosAdmin {
 		if ( ! is_object( $comment ) ) {
 			return;
 		}
-		echo '<p>';
+		echo '<div class="motored-box motored-box--flush"><p>';
 		foreach ( PhotoMeta::ids( (int) $comment->comment_ID ) as $id ) {
 			$url = wp_get_attachment_url( $id );
 			if ( is_string( $url ) && '' !== $url ) {
 				echo '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . wp_get_attachment_image( $id, 'thumbnail' ) . '</a> '; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core markup.
 			}
 		}
-		echo '</p><p class="description">' . esc_html__( 'The photos are deleted together with the comment.', 'motored-core' ) . '</p>';
+		echo '</p><p class="description">' . esc_html__( 'The photos are deleted together with the comment.', 'motored-core' ) . '</p></div>';
 	}
 }

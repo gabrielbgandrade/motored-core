@@ -85,7 +85,7 @@ final class SettingsTab extends \WC_Settings_Page {
 		$section    = $this->canonical( is_string( $current_section ) ? $current_section : '' );
 		$definition = SectionRegistry::get( $section );
 
-		// Scope for assets/css/motored-admin.css (every rule starts with .motored-admin).
+		// Scope for assets/admin/motored-admin.css.
 		echo '<div class="motored-admin motored-section-' . esc_attr( sanitize_html_class( $section ) ) . '">';
 		if ( null !== $definition && ! SectionRegistry::allowed( $section ) ) {
 			// Direct URL without the capability: nothing is rendered or read.
@@ -207,7 +207,8 @@ final class SettingsTab extends \WC_Settings_Page {
 		$rows = apply_filters( 'motored_status_rows', $rows );
 
 		echo '<h2>' . esc_html__( 'Status', 'motored-core' ) . '</h2>';
-		echo '<table class="widefat striped motored-status-table"><tbody>';
+		Ui::table_open( true );
+		echo '<tbody>';
 		foreach ( $rows as $label => $value ) {
 			printf(
 				'<tr><th scope="row">%1$s</th><td>%2$s</td></tr>',
@@ -215,6 +216,7 @@ final class SettingsTab extends \WC_Settings_Page {
 				esc_html( (string) $value )
 			);
 		}
-		echo '</tbody></table>';
+		echo '</tbody>';
+		Ui::table_close();
 	}
 }

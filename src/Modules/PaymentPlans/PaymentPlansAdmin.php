@@ -8,6 +8,7 @@
 namespace Motored\Core\Modules\PaymentPlans;
 
 use Motored\Core\Admin\SectionRegistry;
+use Motored\Core\Admin\Ui;
 use Motored\Core\Integration\MercadoPago\CheckoutPro;
 use Motored\Core\Support\Options;
 
@@ -140,19 +141,20 @@ final class PaymentPlansAdmin {
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD, false );
 
 		echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html__( 'Plans', 'motored-core' ) . '</th><td class="forminp">';
-		echo '<div class="motored-table-wrap"><table class="widefat striped motored-plans-table"><thead><tr>';
-		foreach ( array(
-			'id'     => __( 'ID', 'motored-core' ),
-			'name'   => __( 'Name', 'motored-core' ),
-			'pct'    => __( 'Adjustment %', 'motored-core' ),
-			'max'    => __( 'Max. installments', 'motored-core' ),
-			'type'   => __( 'Type', 'motored-core' ),
-			'active' => __( 'Active', 'motored-core' ),
-			'credit' => __( 'Exclude Cuotas sin Tarjeta (consumer_credits)', 'motored-core' ),
-			'remove' => __( 'Remove', 'motored-core' ),
-		) as $col => $heading ) {
-			echo '<th class="motored-col-' . esc_attr( $col ) . '">' . esc_html( $heading ) . '</th>';
-		}
+		Ui::table_open();
+		Ui::table_head(
+			array(
+				__( 'ID', 'motored-core' )                => 'sm',
+				__( 'Name', 'motored-core' )              => 'grow',
+				__( 'Adjustment %', 'motored-core' )      => 'sm',
+				__( 'Max. installments', 'motored-core' ) => 'sm',
+				__( 'Type', 'motored-core' )              => 'lg',
+				__( 'Active', 'motored-core' )            => 'xs',
+				__( 'Exclude Cuotas sin Tarjeta (consumer_credits)', 'motored-core' ) => 'md',
+				__( 'Remove', 'motored-core' )            => 'xs',
+			)
+		);
+		echo '<tbody>';
 		echo '</tr></thead><tbody>';
 
 		foreach ( $rows as $index => $row ) {
@@ -177,20 +179,22 @@ final class PaymentPlansAdmin {
 				esc_html__( 'Cash / transfer', 'motored-core' )
 			);
 			printf(
-				'<td class="motored-cell-check"><input type="checkbox" name="%1$s" value="1"%2$s></td>',
+				'<td class="motored-cell-center"><input type="checkbox" name="%1$s" value="1"%2$s></td>',
 				esc_attr( $name( 'active' ) ),
 				checked( 'yes', $row['active'], false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core helper.
 			);
 			printf(
-				'<td class="motored-cell-check"><input type="hidden" name="%1$s" value="0"><input type="checkbox" name="%1$s" value="1"%2$s></td>',
+				'<td class="motored-cell-center"><input type="hidden" name="%1$s" value="0"><input type="checkbox" name="%1$s" value="1"%2$s></td>',
 				esc_attr( $name( 'credit' ) ),
 				checked( 'yes', $row['credit'] ?? 'yes', false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core helper.
 			);
-			printf( '<td class="motored-cell-check">%s</td>', $new ? '' : '<input type="checkbox" name="' . esc_attr( $name( 'remove' ) ) . '" value="1">' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+			printf( '<td class="motored-cell-center">%s</td>', $new ? '' : '<input type="checkbox" name="' . esc_attr( $name( 'remove' ) ) . '" value="1">' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
 			echo '</tr>';
 		}
 
-		echo '</tbody></table></div><p class="description">'
+		echo '</tbody>';
+		Ui::table_close();
+		echo '<p class="description">'
 			. esc_html__( 'Percentages: negative = discount, positive = surcharge (never shown to customers). Cash plans always have 1 installment. To add a plan fill the empty row (ID: lowercase letters, numbers and underscores).', 'motored-core' )
 			. '</p></td></tr>';
 	}

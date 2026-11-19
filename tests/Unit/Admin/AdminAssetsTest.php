@@ -22,28 +22,62 @@ final class AdminAssetsTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_stylesheet_loads_only_on_the_motored_tab(): void {
+	/**
+	 * @return list<array{string,string}>
+	 */
+	private function run_enqueue(): array {
 		$loaded = array();
 		Functions\when( 'wp_enqueue_style' )->alias(
 			function ( $handle, $src ) use ( &$loaded ) {
 				$loaded[] = array( $handle, $src );
 			}
 		);
-
-		$_GET = array( 'page' => 'wc-settings', 'tab' => 'general' );
 		AdminAssets::enqueue();
-		$_GET = array( 'page' => 'wc-orders' );
-		AdminAssets::enqueue();
-		AdminAssets::enqueue();
-		$this->assertSame( array(), $loaded );
-
-		$_GET = array( 'page' => 'wc-settings', 'tab' => 'motored', 'section' => 'messages' );
-		AdminAssets::enqueue();
-		$this->assertSame( array( array( 'motored-admin', 'https://example.test/wp-content/plugins/motored-core/assets/css/motored-admin.css' ) ), $loaded );
+		return $loaded;
 	}
 
-	public function test_every_css_rule_is_scoped_and_uses_no_own_colors_or_fonts(): void {
-		$css = (string) file_get_contents( dirname( __DIR__, 3 ) . '/assets/css/motored-admin.css' );
+	public function test_stylesheet_loads_only_on_motored_screens(): void {
+		$screen = null;
+		Functions\when( 'get_current_screen' )->alias(
+			static function () use ( &$screen ) {
+				return $screen;
+			}
+		);
+		$css = array( array( 'motored-admin', 'https://example.test/wp-content/plugins/motored-core/assets/admin/motored-admin.css' ) );
+
+		foreach ( array(
+			array( 'page' => 'wc-settings', 'tab' => 'general' ),
+			array( 'page' => 'wc-orders' ),
+			array( 'page' => 'wc-orders', 'action' => 'trash' ),
+			array( 'page' => 'woocommerce_page_other' ),
+		) as $get ) {
+			$_GET = $get;
+			$this->assertSame( array(), $this->run_enqueue(), json_encode( $get ) );
+		}
+
+		$_GET = array( 'page' => 'wc-settings', 'tab' => 'motored', 'section' => 'messages' );
+		$this->assertSame( $css, $this->run_enqueue() );
+		$_GET = array( 'page' => 'motored-recovery' );
+		$this->assertSame( $css, $this->run_enqueue() );
+
+		// Order edit screen (legacy post.php: no page param; HPOS: wc-orders + action=edit).
+		$screen = (object) array( 'id' => 'shop_order' );
+		$_GET   = array( 'post' => '5', 'action' => 'edit' );
+		$this->assertSame( $css, $this->run_enqueue() );
+		$_GET = array( 'page' => 'wc-orders', 'action' => 'edit', 'id' => '5' );
+		$this->assertSame( $css, $this->run_enqueue() );
+		$_GET = array( 'page' => 'wc-orders' );
+		$this->assertSame( array(), $this->run_enqueue(), 'HPOS order list' );
+
+		$screen = (object) array( 'id' => 'edit-shop_order' );
+		$_GET   = array();
+		$this->assertSame( array(), $this->run_enqueue(), 'legacy order list' );
+		$screen = (object) array( 'id' => 'dashboard' );
+		$this->assertSame( array(), $this->run_enqueue() );
+	}
+
+	public function test_every_css_rule_is_namespaced_and_uses_no_own_colors_or_fonts(): void {
+		$css = (string) file_get_contents( dirname( __DIR__, 3 ) . '/assets/admin/motored-admin.css' );
 		$css = (string) preg_replace( '#/\*.*?\*/#s', '', $css );
 		foreach ( (array) preg_split( '/\}/', $css ) as $block ) {
 			$selector = trim( (string) strstr( (string) $block, '{', true ) );
@@ -51,9 +85,12 @@ final class AdminAssetsTest extends TestCase {
 				continue;
 			}
 			foreach ( explode( ',', $selector ) as $one ) {
-				$this->assertStringStartsWith( '.motored-admin', trim( $one ), $one );
+				$this->assertStringStartsWith( '.motored-', trim( $one ), $one );
 			}
 		}
-		$this->assertDoesNotMatchRegularExpression( '/#[0-9a-f]{3,8}\b|rgba?\(|font-family|font-size|\bbackground/i', $css );
+		$this->assertDoesNotMatchRegularExpression( '/#[0-9a-f]{3,8}|rgba?\(|font-family|font-size|background/i', $css );
+		foreach ( array( '.motored-table', '.motored-box', '.motored-field' ) as $shared ) {
+			$this->assertStringContainsString( $shared, $css );
+		}
 	}
 }
