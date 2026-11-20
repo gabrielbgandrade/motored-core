@@ -7,6 +7,9 @@
 
 namespace Motored\Core\Modules\ReviewPhotos;
 
+use Motored\Core\Support\ImageProcessor;
+use Motored\Core\Support\Logger;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -27,7 +30,7 @@ final class PhotoProcessor {
 	}
 
 	/**
-	 * Re-encodes the photo (rotation fixed, max 1600 px, quality 82; GD re-encoding drops EXIF/GPS)
+	 * Re-encodes the photo (rotation fixed, max 1600 px, quality 82, prefers WebP when supported; drops EXIF/GPS)
 	 * under a random name and creates the attachment. Returns 0 on any failure.
 	 *
 	 * @param string $tmp_name   Temporary file.
@@ -39,52 +42,56 @@ final class PhotoProcessor {
 		if ( ! empty( $upload['error'] ) ) {
 			return 0;
 		}
-		$mime = FileRules::mime( $ext );
 
-		// GD always rewrites the pixels and never copies metadata; Imagick might keep EXIF.
-		$only_gd = static fn(): array => array( 'WP_Image_Editor_GD' );
-		add_filter( 'wp_image_editors', $only_gd );
-		$editor  = wp_get_image_editor( $tmp_name );
-		remove_filter( 'wp_image_editors', $only_gd );
-		if ( is_wp_error( $editor ) ) {
-			return 0;
-		}
-
-		if ( method_exists( $editor, 'maybe_exif_rotate' ) ) {
-			$editor->maybe_exif_rotate();
-		}
-		$size   = $editor->get_size();
-		$target = is_array( $size ) ? FileRules::target_size( (int) $size['width'], (int) $size['height'] ) : null;
-		if ( null !== $target && is_wp_error( $editor->resize( $target[0], $target[1], false ) ) ) {
-			return 0;
-		}
-		$editor->set_quality( FileRules::QUALITY );
-
-		$filename = wp_unique_filename( $upload['path'], 'review-' . bin2hex( random_bytes( 10 ) ) . '.' . $ext );
-		$saved    = $editor->save( trailingslashit( $upload['path'] ) . $filename, $mime );
-		if ( is_wp_error( $saved ) || empty( $saved['path'] ) ) {
+		$result = ImageProcessor::process_upload(
+			$tmp_name,
+			(string) $upload['path'],
+			'review-' . bin2hex( random_bytes( 10 ) ),
+			$ext,
+			array(
+				'max_side'    => FileRules::MAX_SIDE,
+				'quality'     => FileRules::QUALITY,
+				'prefer_webp' => true,
+				'prefer_gd'   => true,
+			)
+		);
+		if ( ! $result['ok'] ) {
+			Logger::warning( 'Review photo: image processing failed.', array( 'code' => $result['error'] ) );
 			return 0;
 		}
 
 		$id = wp_insert_attachment(
 			array(
-				'post_mime_type' => $mime,
+				'post_mime_type' => $result['mime'],
 				'post_title'     => 'review-photo',
 				'post_status'    => 'inherit',
 				'post_parent'    => $product_id,
 			),
-			$saved['path'],
+			$result['path'],
 			$product_id,
 			true
 		);
 		if ( is_wp_error( $id ) || (int) $id < 1 ) {
-			wp_delete_file( $saved['path'] );
+			wp_delete_file( $result['path'] );
 			return 0;
 		}
 		update_post_meta( (int) $id, PhotoMeta::FLAG, '1' );
 
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-		wp_update_attachment_metadata( (int) $id, wp_generate_attachment_metadata( (int) $id, $saved['path'] ) );
+		// The comment_post request is public: the admin image helpers are not loaded there.
+		// A failure while building thumbnails must never lose the attachment that already exists.
+		// Only the sizes the gallery uses are generated: less CPU in this request and far less disk.
+		$keep = array( FileRules::class, 'keep_sizes' );
+		add_filter( 'intermediate_image_sizes_advanced', $keep );
+		try {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			require_once ABSPATH . 'wp-admin/includes/media.php';
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+			wp_update_attachment_metadata( (int) $id, wp_generate_attachment_metadata( (int) $id, $result['path'] ) );
+		} catch ( \Throwable $e ) {
+			Logger::warning( 'Review photo thumbnails failed.', array( 'exception' => get_class( $e ) ) );
+		} finally {
+			remove_filter( 'intermediate_image_sizes_advanced', $keep );
+		}
 		return (int) $id;
 	}
 }

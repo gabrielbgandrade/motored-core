@@ -23,6 +23,33 @@ final class ReviewPhotosAdmin {
 		ReviewsSection::ensure();
 		add_filter( 'motored_reviews_section_fields', array( $this, 'add_fields' ), 10 );
 		add_action( 'add_meta_boxes_comment', array( $this, 'add_meta_box' ) );
+		add_filter( 'comment_text', array( $this, 'append_photos_to_list' ), 20, 2 );
+	}
+
+	/**
+	 * Shows the photos under the review text in the WooCommerce Reviews list and the Comments list
+	 * (core `comment_text` filter; the screen check keeps it out of every other admin screen).
+	 *
+	 * @param mixed $text    Comment text.
+	 * @param mixed $comment WP_Comment.
+	 * @return mixed
+	 */
+	public function append_photos_to_list( $text, $comment = null ) {
+		if ( ! is_string( $text ) || ! is_object( $comment ) || ! function_exists( 'get_current_screen' ) ) {
+			return $text;
+		}
+		$screen = get_current_screen();
+		if ( ! is_object( $screen ) || ! in_array( $screen->id, array( 'product_page_product-reviews', 'edit-comments' ), true ) ) {
+			return $text;
+		}
+		$html = '';
+		foreach ( PhotoMeta::ids( (int) ( $comment->comment_ID ?? 0 ) ) as $id ) {
+			$url = wp_get_attachment_url( $id );
+			if ( is_string( $url ) && '' !== $url ) {
+				$html .= '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . wp_get_attachment_image( $id, array( 48, 48 ) ) . '</a> ';
+			}
+		}
+		return '' === $html ? $text : $text . '<p>' . wp_kses_post( $html ) . '</p>';
 	}
 
 	/**

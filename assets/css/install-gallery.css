@@ -1,0 +1,258 @@
+/* Theme-agnostic storefront styles for InstallGallery ("Customer and installation photos"). */
+.motored-install-gallery {
+	clear: both;
+	margin: 1.5rem 0;
+	box-sizing: border-box;
+}
+
+.motored-install-gallery *,
+.motored-ig-dialog * {
+	box-sizing: border-box;
+}
+
+.motored-ig__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.85rem;
+}
+
+.motored-ig__title {
+	margin: 0;
+	font-size: 1.15rem;
+	font-weight: 700;
+}
+
+.motored-ig__filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.motored-ig__filter {
+	background: transparent;
+	border: 1px solid rgba(0, 0, 0, 0.22);
+	border-radius: 999px;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	font-size: 0.84rem;
+	font-weight: 600;
+	line-height: 1.2;
+	padding: 0.32rem 0.75rem;
+	min-height: 0;
+}
+
+.motored-ig__filter.is-active {
+	background: var(--motored-accent-color, #111);
+	border-color: var(--motored-accent-color, #111);
+	color: var(--motored-on-accent-color, #fff);
+}
+
+.motored-ig__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+	gap: 10px;
+}
+
+.motored-ig__item {
+	position: relative;
+	display: block;
+	aspect-ratio: 1;
+	overflow: hidden;
+	border-radius: 8px;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	background: rgba(0, 0, 0, 0.04);
+	text-decoration: none;
+	color: inherit;
+}
+
+.motored-ig__item[hidden] {
+	display: none;
+}
+
+.motored-ig__img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 0.2s ease;
+}
+
+.motored-ig__item:hover .motored-ig__img {
+	transform: scale(1.04);
+}
+
+.motored-ig__tag {
+	position: absolute;
+	left: 5px;
+	right: 5px;
+	bottom: 5px;
+	padding: 2px 6px;
+	border-radius: 4px;
+	background: rgba(0, 0, 0, 0.68);
+	color: #fff;
+	font-size: 0.72rem;
+	line-height: 1.3;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.motored-ig__more {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.56);
+	color: #fff;
+	font-size: 1.2rem;
+	font-weight: 700;
+}
+
+.motored-ig__item[data-f="1"] .motored-ig__more {
+	display: none;
+}
+
+/* Native <dialog> lightbox: never set position:relative on <dialog> itself */
+.motored-ig-dialog {
+	max-width: min(94vw, 960px);
+	width: 100%;
+	max-height: 92vh;
+	padding: 0;
+	border: 0;
+	border-radius: 10px;
+	background: #141414;
+	color: #fff;
+	overflow: visible;
+}
+
+.motored-ig-dialog::backdrop {
+	background: rgba(0, 0, 0, 0.78);
+}
+
+.motored-ig-dialog__inner {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	padding: 14px;
+}
+
+.motored-ig-dialog__stage {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 220px;
+	background: #000;
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.motored-ig-dialog__img {
+	display: block;
+	max-width: 100%;
+	max-height: 70vh;
+	width: auto;
+	height: auto;
+	object-fit: contain;
+	margin: 0 auto;
+}
+
+.motored-ig-dialog__btn {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 38px;
+	height: 38px;
+	padding: 0;
+	min-height: 0;
+	margin: 0;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.92);
+	color: #111;
+	font-size: 22px;
+	line-height: 1;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.motored-ig-dialog__btn--prev {
+	left: 10px;
+}
+
+.motored-ig-dialog__btn--next {
+	right: 10px;
+}
+
+.motored-ig-dialog__btn--close {
+	top: 8px;
+	right: 8px;
+	transform: none;
+	z-index: 2;
+}
+
+.motored-ig-dialog__btn[hidden] {
+	display: none;
+}
+
+.motored-ig-dialog__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 10px 4px 2px;
+	font-size: 0.92rem;
+	line-height: 1.4;
+}
+
+.motored-ig-dialog__cap {
+	margin: 0;
+	flex: 1 1 220px;
+}
+
+.motored-ig-dialog__stars {
+	color: #f5b301;
+	margin-right: 6px;
+}
+
+.motored-ig-dialog__count {
+	opacity: 0.72;
+	font-size: 0.84rem;
+}
+
+.motored-ig-dialog__rv {
+	color: #fff;
+	text-decoration: underline;
+	font-weight: 600;
+}
+
+.motored-ig-dialog__rv[hidden] {
+	display: none;
+}
+
+/* Keyboard focus (themes often remove outlines) and reduced motion. */
+.motored-ig__filter:focus-visible,
+.motored-ig__item:focus-visible,
+.motored-ig-dialog__btn:focus-visible,
+.motored-ig-dialog__rv:focus-visible {
+	outline: 2px solid var(--motored-accent-color, #1a5fb4);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.motored-ig__img {
+		transition: none;
+	}
+
+	.motored-ig__item:hover .motored-ig__img {
+		transform: none;
+	}
+}

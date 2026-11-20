@@ -56,7 +56,13 @@ final class ReviewUploads {
 		try {
 			$this->store( (int) $comment_id, FileRules::normalize( $files ), null === $ip ? self::remote_ip() : (string) $ip );
 		} catch ( \Throwable $e ) {
-			Logger::error( 'Review photos failed.', array( 'exception' => get_class( $e ) ) );
+			Logger::error(
+				'Review photos failed.',
+				array(
+					'exception' => get_class( $e ),
+					'where'     => basename( $e->getFile() ) . ':' . $e->getLine(),
+				)
+			);
 		}
 	}
 
@@ -90,9 +96,12 @@ final class ReviewUploads {
 			$id  = null === $ext ? 0 : (int) $process( $file['tmp_name'], $ext, (int) $comment->comment_post_ID );
 			if ( $id > 0 ) {
 				$ids[] = $id;
+				// Save after each photo: a later failure must not orphan the ones already stored.
+				PhotoMeta::save( $comment_id, $ids );
+			} else {
+				Logger::warning( 'Review photo skipped.', array( 'reason' => null === $ext ? 'type' : 'process' ) );
 			}
 		}
-		PhotoMeta::save( $comment_id, $ids );
 
 		Logger::info(
 			'Review photos processed.',

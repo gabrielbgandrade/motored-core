@@ -75,6 +75,8 @@ final class PluginTest extends TestCase {
 				\Motored\Core\Modules\OrderTracking\OrderTrackingModule::class,
 				\Motored\Core\Modules\Recovery\RecoveryModule::class,
 				\Motored\Core\Modules\ReviewPhotos\ReviewPhotosModule::class,
+				\Motored\Core\Modules\InstallGallery\InstallGalleryModule::class,
+				\Motored\Core\Modules\ImageOptimizer\ImageOptimizerModule::class,
 				\Motored\Core\Modules\ReviewRequests\ReviewRequestsModule::class,
 				\Motored\Core\Modules\PaymentPlans\PaymentPlansModule::class,
 				\Motored\Core\Modules\Compatibility\CompatibilityModule::class,
@@ -100,11 +102,13 @@ final class PluginTest extends TestCase {
 		$wpdb         = \Mockery::mock( 'wpdb_fake' );
 		$wpdb->prefix = 'wp_';
 		$wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET=utf8mb4' );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 		$GLOBALS['wpdb'] = $wpdb;
 		Functions\when( 'dbDelta' )->justReturn( array() );
+		Functions\when( 'get_comments' )->justReturn( array() );
 		Functions\expect( 'add_option' )->once()->with( 'motored_general', Plugin::GENERAL_DEFAULTS, '', false );
 		Plugin::activate();
-		$this->assertSame( '2026112101', $this->options['motored_schema_version'] );
+		$this->assertSame( '2026112401', $this->options['motored_schema_version'] );
 	}
 
 	public function test_deactivation_removes_every_scheduled_job_and_keeps_data(): void {

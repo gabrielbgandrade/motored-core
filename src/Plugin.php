@@ -32,6 +32,8 @@ final class Plugin {
 		Modules\OrderTracking\OrderTrackingModule::class,
 		Modules\Recovery\RecoveryModule::class,
 		Modules\ReviewPhotos\ReviewPhotosModule::class,
+		Modules\InstallGallery\InstallGalleryModule::class,
+		Modules\ImageOptimizer\ImageOptimizerModule::class,
 		Modules\ReviewRequests\ReviewRequestsModule::class,
 		Modules\PaymentPlans\PaymentPlansModule::class,
 		Modules\Compatibility\CompatibilityModule::class,
@@ -51,6 +53,7 @@ final class Plugin {
 		'motored_tracking_email',
 		'motored_compat_reindex',
 		'motored_compat_import',
+		'motored_image_opt_batch',
 	);
 
 	/**
@@ -142,6 +145,10 @@ final class Plugin {
 			'2026111901' => \Closure::fromCallable( array( Modules\Recovery\SuppressionMigration::class, 'up' ) ),
 			'2026112001' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up' ) ),
 			'2026112101' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up_2026112101' ) ),
+			'2026112201' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up' ) ),
+			'2026112301' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up_2026112301' ) ),
+			'2026112302' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up' ) ),
+			'2026112401' => \Closure::fromCallable( array( Modules\InstallGallery\GalleryStore::class, 'rebuild_all' ) ),
 		);
 	}
 

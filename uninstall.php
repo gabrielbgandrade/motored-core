@@ -11,7 +11,7 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 // Jobs are not data: always remove them, or Action Scheduler keeps running hooks with no listener.
 if ( function_exists( 'as_unschedule_all_actions' ) ) {
-	foreach ( array( 'motored_waha_send', 'motored_recovery_cleanup', 'motored_recovery_scan', 'motored_plans_reconcile', 'motored_tracking_email', 'motored_compat_reindex', 'motored_compat_import' ) as $motored_hook ) {
+	foreach ( array( 'motored_waha_send', 'motored_recovery_cleanup', 'motored_recovery_scan', 'motored_plans_reconcile', 'motored_tracking_email', 'motored_compat_reindex', 'motored_compat_import', 'motored_image_opt_batch' ) as $motored_hook ) {
 		as_unschedule_all_actions( $motored_hook, array(), 'motored-core' );
 	}
 }
@@ -68,6 +68,9 @@ foreach ( array(
 
 if ( function_exists( 'delete_metadata' ) ) {
 	delete_metadata( 'user', 0, '_motored_garage', '', true );
+	delete_metadata( 'post', 0, '_motored_install_photos', '', true );
+	delete_metadata( 'post', 0, '_motored_review_gallery', '', true );
+	delete_metadata( 'post', 0, '_motored_img_opt', '', true );
 }
 
 // Persistent object cache entries expire by TTL. Order meta (_motored_*) is kept on purpose: it is part of the order history.

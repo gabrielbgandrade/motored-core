@@ -56,6 +56,8 @@ final class ReviewPhotosModule implements Module {
 			$script = new FormScript( $form );
 			add_action( 'wp_enqueue_scripts', array( $script, 'enqueue' ) );
 			add_action( 'wp_footer', array( $script, 'add_fallback' ), 5 );
+		}
+		if ( $context->is_frontend() || $context->is_ajax() ) {
 			add_action( 'comment_post', array( new ReviewUploads(), 'handle' ), 10, 2 );
 		}
 		if ( $context->is_admin() ) {

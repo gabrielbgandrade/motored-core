@@ -24,6 +24,12 @@ final class FileRulesTest extends TestCase {
 		$this->assertSame( array(), FileRules::normalize( array( 'name' => 'x' ) ) );
 	}
 
+	public function test_keep_sizes_leaves_only_the_gallery_sizes(): void {
+		$sizes = array( 'thumbnail' => 1, 'medium' => 2, 'large' => 3, 'woocommerce_single' => 4, '1536x1536' => 5 );
+		$this->assertSame( array( 'thumbnail' => 1, 'medium' => 2, 'large' => 3 ), FileRules::keep_sizes( $sizes ) );
+		$this->assertSame( array(), FileRules::keep_sizes( null ) );
+	}
+
 	public function test_select_limits_count_and_size_and_errors(): void {
 		$files  = array( $this->file(), $this->file( 6000 ), $this->file( 1000, UPLOAD_ERR_INI_SIZE ), $this->file( 0 ), $this->file(), $this->file(), $this->file() );
 		$result = FileRules::select( $files, 2, 5000, 10 );

@@ -7,6 +7,8 @@
 
 namespace Motored\Core\Modules\ReviewPhotos;
 
+use Motored\Core\Support\ImageProcessor;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -22,6 +24,12 @@ final class FileRules {
 	public const MAX_PIXELS = 40000000;
 	public const MAX_SIDE   = 1600;
 	public const QUALITY    = 82;
+
+	/**
+	 * Sub-sizes generated for review photos (strip thumbnail, medium, dialog). WordPress would otherwise create
+	 * every registered size (often 8+ files) for each customer photo.
+	 */
+	public const KEEP_SIZES = array( 'thumbnail', 'medium', 'large' );
 
 	/**
 	 * Detected image type => canonical extension and mime.
@@ -110,6 +118,16 @@ final class FileRules {
 	}
 
 	/**
+	 * Keeps only the sub-sizes of KEEP_SIZES (filter `intermediate_image_sizes_advanced`).
+	 *
+	 * @param mixed $sizes Registered sizes keyed by name.
+	 * @return array<string,mixed>
+	 */
+	public static function keep_sizes( $sizes ): array {
+		return ImageProcessor::keep_sizes( $sizes, self::KEEP_SIZES );
+	}
+
+	/**
 	 * Mime type of a canonical extension.
 	 *
 	 * @param string $ext jpg|png|webp.
@@ -131,11 +149,6 @@ final class FileRules {
 	 * @return array{0:int,1:int}|null
 	 */
 	public static function target_size( int $width, int $height ): ?array {
-		$longest = max( $width, $height );
-		if ( $longest <= self::MAX_SIDE || $width < 1 || $height < 1 ) {
-			return null;
-		}
-		$ratio = self::MAX_SIDE / $longest;
-		return array( max( 1, (int) round( $width * $ratio ) ), max( 1, (int) round( $height * $ratio ) ) );
+		return ImageProcessor::target_size( $width, $height, self::MAX_SIDE );
 	}
 }
