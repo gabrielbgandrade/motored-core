@@ -4,13 +4,14 @@ Theme-agnostic motorcycle tire search, faceted sidebar filters and smart suggest
 
 ## Features
 - **Home Search `[motored_buscador layout="tabs|split"]`** (default `tabs`):
-  - **By motorcycle:** reuses Compatibility REST endpoints (`/compat/brands`, `/models`, `/years`, `/bike/{slug}`) and saves to `Mi Garage`.
-  - **By tire size:** any-order `Width` / `Aspect ratio` / `Rim` cascade 100% client-side using a versioned JSON cached in `localStorage` (`GET /motored/v1/filters/sizes?v=...`); imperial widths (`4.10-18`) disable `Aspect ratio` (`— no profile`); rim-only search supported.
+  - **By motorcycle:** reuses Compatibility REST endpoints (`/compat/brands`, `/compat/brands/{id}/models`, `/compat/models/{id}/years`, `/compat/bike/{slug}`), shows loading/empty/error states inline, and saves to `Mi Garage`.
+  - **By tire size:** any-order `Width` / `Aspect ratio` / `Rim` cascade 100% client-side using a versioned JSON cached in `localStorage` (`GET /motored/v1/filters/sizes/{ver}` + legacy `/filters/sizes?v=...`); imperial widths (`4.10-18`) disable `Aspect ratio` (`— no profile`); rim-only search supported.
   - **Smart search:** 250 ms debounced autocomplete (`GET /motored/v1/filters/suggest?q=`, min 2 chars, max 8 items) over cached arrays (sizes via `SizeParser`, `"rodado 17"`/`"r17"`, motorcycles + aliases, brands); zero DB `LIKE` queries; pressing Enter submits native WooCommerce search (`/?s=...&post_type=product`).
+  - **Responsive layout:** container-query-driven `split` mode stacks cleanly under `780px`, renders 3-column field rows (`2x2` when a variant selector opens) without clipping or orphan inputs, and aligns styled action buttons.
 - **Sidebar Filters `[motored_filtros]` & Classic Widget (`Motored: Catalog Filters`):**
   - 11 disjunctive facets: `Posición`, `Marca`, `Ancho`, `Perfil`, `Rodado`, `Índice de carga`, `Índice de velocidad` (ETRTO order), `Construcción`, `Uso con cámara`, `Tipo de uso`, `Oferta`.
   - Native WooCommerce URLs (`?filter_{slug}=a,b&query_type_{slug}=or`, `?product_brand=a,b`, `?oferta=1`) combined with `?moto=` and `&pos=`.
-  - Active filter chips with `×`, result counter, collapsible accessible accordions (`aria-expanded`), real anchor links (works without JS), 700 ms click batching on desktop (`>= 768px`), `"Apply filters"` button on mobile (`< 768px`).
+  - Active filter chips with `×`, result counter, collapsible accessible accordions (`aria-expanded`), real anchor links (works without JS); with JS, ticks are batched and applied with a sticky `"Apply filters (N)"` button on every width (no reload per click).
 - **Upgraded Compatibility Product Tab & `[motored_compat_list]`:**
   - Server-side rendered HTML cached by tire specification (`MatchEngine::compatible_motos_for_product()`), grouped by brand in 2 columns, collapsed initially (6 brands), inline cap of 120 items with on-demand REST hydration, instant alias-aware search and client-side `Mi Garage` highlight.
 
@@ -25,3 +26,6 @@ Theme-agnostic motorcycle tire search, faceted sidebar filters and smart suggest
 - Pages without `[motored_buscador]`, `[motored_filtros]`, `FilterWidget` or `[motored_compat_list]` load 0 CSS and 0 JS.
 - `FacetEngine` uses `Support\Cache` ONLY when `Cache::is_persistent()` is true; on miss builds in 1 SQL query over parent products. `on_sale` is resolved live via `wc_get_product_ids_on_sale()`.
 - `SnapshotInvalidator` never invalidates on ERP price or stock-quantity updates; uses a dirty flag + 60-second cooldown + concurrency lock.
+
+## Changelog
+- 2026-11-20 — Storefront review fixes: lazy REST loading of the search panels (`IntersectionObserver` via `motored-ui.js`), stock counts in the size selects ("120 (14)"), keyboard tabs (arrows/Home/End, roving tabindex), WAI-ARIA combobox for smart search (arrow keys, `aria-activedescendant`, live count), smart Enter (exact size/rim/single motorcycle match goes straight to the filtered shop; otherwise native search), accent/spacing-insensitive suggestions (`Support\SearchText`, cache key `suggest_bikes_v2`), old `motored_sizes_*` localStorage keys cleaned. Sidebar: no reload per click — "Apply filters (N)" sticky button on every width, accordion state kept per session; facet counts follow the grid (category archives include child categories, search / brand / tag / attribute archives use the main query base set, out-of-stock follows `woocommerce_hide_out_of_stock_items`); filter links keep the current product taxonomy archive. Styles: `catalog-filters.css` depends on the shared `compat.css` tokens.

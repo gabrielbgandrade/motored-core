@@ -15,6 +15,14 @@ defined( 'ABSPATH' ) || exit;
 final class MatchEngine {
 
 	/**
+	 * Per-request memo of matching product id lists (never persisted; the cache bucket stays the source).
+	 *
+	 * @var array<string,list<int>>
+	 */
+	private static array $ids_memo = array();
+
+
+	/**
 	 * Loads a published motorcycle version's compact compatibility profile (cached in compat_catalog).
 	 *
 	 * @param string $slug Immutable version slug.
@@ -118,7 +126,7 @@ final class MatchEngine {
 	}
 
 	/**
-	 * Returns compatible product IDs for a motorcycle version slug and optional position filter.
+	 * Returns compatible product IDs for a motorcycle version slug and optional position filter, best fit first (OEM, alternative, equivalent).
 	 *
 	 * @param string $version_slug Published version slug.
 	 * @param string $pos_filter   Optional '' | 'front' | 'rear' | 'kit'.
@@ -131,9 +139,14 @@ final class MatchEngine {
 			return array();
 		}
 		$strict = Config::strict_specs();
-		$key    = 'mids_' . md5( $clean_slug . '|' . $clean_pos . '|' . ( $strict ? '1' : '0' ) );
+		$key    = 'mids2_' . md5( $clean_slug . '|' . $clean_pos . '|' . ( $strict ? '1' : '0' ) );
 
-		return CompatCache::remember(
+		// Per-request memo: the shop query, the facet sidebar and the active-bike bar ask for the same list.
+		if ( isset( self::$ids_memo[ $key ] ) ) {
+			return self::$ids_memo[ $key ];
+		}
+
+		self::$ids_memo[ $key ] = CompatCache::remember(
 			$key,
 			static function () use ( $clean_slug, $clean_pos, $strict ): array {
 				$profile = self::bike_profile( $clean_slug );
@@ -149,18 +162,21 @@ final class MatchEngine {
 					$rear_ids[] = (int) $item['size_id'];
 				}
 				$candidates = ProductIndexRepository::query_candidates_for_sizes( $front_ids, $rear_ids, $clean_pos );
-				$out        = array();
+				$ranked     = array();
 				foreach ( $candidates as $row ) {
 					$eval = self::evaluate_product( $row, $profile, $strict );
 					if ( $eval['compatible'] ) {
-						$out[] = (int) $row['product_id'];
+						$ranked[] = array( (int) $row['product_id'], self::match_priority( $eval['match'] ) );
 					}
 				}
-				return $out;
+				// Best fit first (OEM > alternative > equivalent); usort is stable, so ties keep index order.
+				usort( $ranked, static fn( array $a, array $b ): int => $b[1] <=> $a[1] );
+				return array_map( static fn( array $r ): int => $r[0], $ranked );
 			},
 			CompatCache::BUCKET_MATCHES,
 			CompatCache::TTL_MATCHES
 		);
+		return self::$ids_memo[ $key ];
 	}
 
 	/**
@@ -203,6 +219,21 @@ final class MatchEngine {
 			CompatCache::BUCKET_MATCHES,
 			CompatCache::TTL_MATCHES
 		);
+	}
+
+	/**
+	 * Single human label for a motorcycle version everywhere (selectors, Mi Garage, search, admin):
+	 * "Benelli TRK 502 2017–actualidad" or "Honda CBR900RR Fireblade SC28 1992–1995".
+	 *
+	 * @param string $brand     Brand name.
+	 * @param string $model     Model name.
+	 * @param string $variant   Optional real sub-version (ABS, Rally, chassis code).
+	 * @param int    $year_from Start year.
+	 * @param int    $year_to   End year (0 = present).
+	 */
+	public static function version_label( string $brand, string $model, string $variant, int $year_from, int $year_to ): string {
+		$variant = trim( $variant );
+		return trim( $brand . ' ' . $model . ( '' !== $variant ? ' ' . $variant : '' ) ) . ' ' . self::format_years( $year_from, $year_to );
 	}
 
 	/**
@@ -257,6 +288,7 @@ final class MatchEngine {
 				'min_load'  => $f['min_load'],
 				'min_speed' => $f['min_speed_rank'],
 				'req_const' => $f['req_construction'],
+				'desig'     => (string) ( $f['designation'] ?? $canon ),
 			);
 
 			// Direct OEM always takes priority over ALT.
@@ -299,16 +331,14 @@ final class MatchEngine {
 			}
 		}
 
-		$variant = trim( (string) $ver['variant'] );
-		$years   = self::format_years( (int) $ver['year_from'], (int) $ver['year_to'] );
-		$label   = trim( (string) $ver['brand_name'] . ' ' . (string) $ver['model_name'] . ( '' !== $variant ? ' ' . $variant : '' ) ) . ' (' . $years . ')';
+		$label = self::version_label( (string) $ver['brand_name'], (string) $ver['model_name'], (string) $ver['variant'], (int) $ver['year_from'], (int) $ver['year_to'] );
 
 		return array(
 			'slug'  => (string) $ver['slug'],
 			'label' => $label,
 			'brand' => (string) $ver['brand_name'],
 			'model' => (string) $ver['model_name'],
-			'years' => $years,
+			'years' => self::format_years( (int) $ver['year_from'], (int) $ver['year_to'] ),
 			'front' => $axes[ TireSpecs::POS_FRONT ],
 			'rear'  => $axes[ TireSpecs::POS_REAR ],
 		);

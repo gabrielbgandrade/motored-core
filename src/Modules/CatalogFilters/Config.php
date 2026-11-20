@@ -101,6 +101,13 @@ final class Config {
 	}
 
 	/**
+	 * Whether the WooCommerce catalog grid itself hides out-of-stock products (sidebar counts must follow the grid).
+	 */
+	public static function grid_hides_out_of_stock(): bool {
+		return 'yes' === (string) get_option( 'woocommerce_hide_out_of_stock_items', 'no' );
+	}
+
+	/**
 	 * Whether filtered catalog URLs emit `noindex, follow` via wp_robots.
 	 */
 	public static function noindex_filtered(): bool {

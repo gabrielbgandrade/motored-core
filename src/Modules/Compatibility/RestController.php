@@ -38,6 +38,15 @@ final class RestController {
 		);
 		register_rest_route(
 			self::NAMESPACE,
+			'/compat/brands/(?P<brand_id>\d+)/models',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_models' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+		register_rest_route(
+			self::NAMESPACE,
 			'/compat/models',
 			array(
 				'methods'             => 'GET',
@@ -45,10 +54,21 @@ final class RestController {
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'brand_id' => array(
-						'type'     => 'integer',
-						'required' => true,
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => static fn( $v ): bool => is_numeric( $v ) && (int) $v > 0,
 					),
 				),
+			)
+		);
+		register_rest_route(
+			self::NAMESPACE,
+			'/compat/models/(?P<model_id>\d+)/years',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_years' ),
+				'permission_callback' => '__return_true',
 			)
 		);
 		register_rest_route(
@@ -60,8 +80,10 @@ final class RestController {
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'model_id' => array(
-						'type'     => 'integer',
-						'required' => true,
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => static fn( $v ): bool => is_numeric( $v ) && (int) $v > 0,
 					),
 				),
 			)
@@ -192,14 +214,7 @@ final class RestController {
 		if ( null === $profile ) {
 			return new \WP_REST_Response( array( 'error' => __( 'Motorcycle not found.', 'motored-core' ) ), 404 );
 		}
-		return self::public_response(
-			array(
-				'slug'  => $profile['slug'],
-				'label' => $profile['label'],
-				'front' => self::compact_axis_map( $profile['front'] ),
-				'rear'  => self::compact_axis_map( $profile['rear'] ),
-			)
-		);
+		return self::public_response( self::client_profile( $profile ) );
 	}
 
 	/**
@@ -215,6 +230,7 @@ final class RestController {
 				array(
 					'position' => '',
 					'motos'    => array(),
+					'rows'     => array(),
 				)
 			);
 		}
@@ -222,6 +238,7 @@ final class RestController {
 			array(
 				'position' => $data['position'],
 				'motos'    => $data['items'],
+				'rows'     => CompatListRenderer::build_rows( $data['items'], (string) $data['position'] ),
 			)
 		);
 	}
@@ -247,6 +264,8 @@ final class RestController {
 
 		if ( 'merge' === $action ) {
 			$guest_bikes = isset( $params['bikes'] ) && is_array( $params['bikes'] ) ? $params['bikes'] : array();
+			// Never validate more entries than the garage can hold (each one costs a profile lookup).
+			$guest_bikes = array_slice( array_values( $guest_bikes ), -1 * Config::max_garage_bikes() );
 			$prefer      = sanitize_title( (string) ( $params['active'] ?? '' ) );
 			$valid_guest = array();
 			foreach ( $guest_bikes as $gb ) {
@@ -327,16 +346,50 @@ final class RestController {
 		foreach ( $garage['bikes'] as $bike ) {
 			$prof = MatchEngine::bike_profile( $bike['slug'] );
 			if ( null !== $prof ) {
-				$profiles[ $bike['slug'] ] = array(
-					'slug'  => $prof['slug'],
-					'label' => $prof['label'],
-					'front' => self::compact_axis_map( $prof['front'] ),
-					'rear'  => self::compact_axis_map( $prof['rear'] ),
-				);
+				$profiles[ $bike['slug'] ] = self::client_profile( $prof );
 			}
 		}
 		$garage['profiles'] = $profiles;
 		return $garage;
+	}
+
+	/**
+	 * Extracts factory (OEM) tire designations for front and rear axles from a bike profile.
+	 *
+	 * @param array<string,mixed> $profile Output of MatchEngine::bike_profile().
+	 * @return array{f:string,r:string}
+	 */
+	private static function extract_oem_sizes( array $profile ): array {
+		$out = array();
+		foreach ( array(
+			'f' => TireSpecs::POS_FRONT,
+			'r' => TireSpecs::POS_REAR,
+		) as $key => $axis ) {
+			$oem = array();
+			foreach ( is_array( $profile[ $axis ] ?? null ) ? $profile[ $axis ] : array() as $canon => $entry ) {
+				if ( is_array( $entry ) && TireSpecs::FIT_OEM === ( $entry['type'] ?? '' ) ) {
+					$oem[] = (string) ( $entry['desig'] ?? $canon );
+				}
+			}
+			$out[ $key ] = implode( ' / ', array_unique( array_filter( $oem ) ) );
+		}
+		return $out;
+	}
+
+	/**
+	 * Compact client-side profile consumed by compat-garage.js (`ev()` mirrors MatchEngine::evaluate_product()).
+	 *
+	 * @param array<string,mixed> $profile Output of MatchEngine::bike_profile().
+	 * @return array{slug:string,label:string,oem:array{f:string,r:string},front:array<string,array{t:string,f:string,l:int|null,s:int|null,c:string|null}>,rear:array<string,array{t:string,f:string,l:int|null,s:int|null,c:string|null}>}
+	 */
+	public static function client_profile( array $profile ): array {
+		return array(
+			'slug'  => (string) ( $profile['slug'] ?? '' ),
+			'label' => (string) ( $profile['label'] ?? '' ),
+			'oem'   => self::extract_oem_sizes( $profile ),
+			'front' => self::compact_axis_map( is_array( $profile['front'] ?? null ) ? $profile['front'] : array() ),
+			'rear'  => self::compact_axis_map( is_array( $profile['rear'] ?? null ) ? $profile['rear'] : array() ),
+		);
 	}
 
 	/**

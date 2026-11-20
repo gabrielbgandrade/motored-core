@@ -30,10 +30,10 @@ final class ImportRunner {
 	}
 
 	/**
-	 * Starts a JSON import immediately (<= 50 versions) or via Action Scheduler batches (> 50 versions).
+	 * Starts a JSON import immediately (<= 50 versions or sync=true) or via Action Scheduler batches (> 50 versions).
 	 *
-	 * @param string                                                                      $raw_json Raw JSON string.
-	 * @param array{default_status?:string,import_constraints?:bool,allow_overlaps?:bool} $options  Import options.
+	 * @param string                                                                                                   $raw_json Raw JSON string.
+	 * @param array{default_status?:string,import_constraints?:bool,allow_overlaps?:bool,force_draft?:bool,sync?:bool} $options Import options.
 	 * @return array{ok:bool,mode:string,message:string,stats:array<string,int>}
 	 */
 	public static function start( string $raw_json, array $options = array() ): array {
@@ -64,7 +64,7 @@ final class ImportRunner {
 		);
 
 		$total_versions = count( $flat['versions'] );
-		if ( $total_versions > self::BATCH_SIZE && ActionScheduler::available() ) {
+		if ( empty( $options['sync'] ) && $total_versions > self::BATCH_SIZE && ActionScheduler::available() ) {
 			$job_id = substr( md5( wp_json_encode( $flat ) . microtime() ), 0, 12 );
 			$job    = array(
 				'versions'     => $flat['versions'],

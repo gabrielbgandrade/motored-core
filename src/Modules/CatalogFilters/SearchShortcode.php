@@ -98,6 +98,7 @@ final class SearchShortcode {
 						<button type="submit" class="button motored-search__btn" data-role="size-submit" disabled>
 							<?php esc_html_e( 'Search', 'motored-core' ); ?>
 						</button>
+						<p class="motored-search__msg" data-role="size-msg" aria-live="polite" hidden></p>
 					</form>
 				</div>
 
@@ -105,7 +106,7 @@ final class SearchShortcode {
 					<div class="motored-search__panel is-active" id="<?php echo esc_attr( $uid ); ?>-p-moto" role="tabpanel" data-panel="moto">
 						<h3 class="motored-search__title"><?php esc_html_e( 'Search tires by motorcycle', 'motored-core' ); ?></h3>
 						<form class="motored-search__form" data-role="moto-form">
-							<div class="motored-search__fields">
+							<div class="motored-search__fields" data-role="moto-fields">
 								<div class="motored-search__field">
 									<label for="<?php echo esc_attr( $uid ); ?>-b"><?php esc_html_e( 'Brand', 'motored-core' ); ?></label>
 									<select id="<?php echo esc_attr( $uid ); ?>-b" data-role="brand" required>
@@ -134,6 +135,7 @@ final class SearchShortcode {
 							<button type="submit" class="button motored-search__btn" data-role="moto-submit" disabled>
 								<?php esc_html_e( 'Search', 'motored-core' ); ?>
 							</button>
+							<p class="motored-search__msg" data-role="moto-msg" aria-live="polite" hidden></p>
 						</form>
 					</div>
 				<?php endif; ?>
@@ -144,8 +146,9 @@ final class SearchShortcode {
 						<input type="hidden" name="post_type" value="product" />
 						<div class="motored-search__smart-wrap">
 							<label class="screen-reader-text" for="<?php echo esc_attr( $uid ); ?>-q"><?php esc_html_e( 'Search by size, rim, motorcycle or brand', 'motored-core' ); ?></label>
-							<input id="<?php echo esc_attr( $uid ); ?>-q" class="motored-search__input" type="search" name="s" autocomplete="off" data-role="smart-input" placeholder="<?php esc_attr_e( 'Search by size (120/70-17), rim, motorcycle or brand...', 'motored-core' ); ?>" aria-autocomplete="list" aria-expanded="false" aria-controls="<?php echo esc_attr( $uid ); ?>-sug" />
-							<ul id="<?php echo esc_attr( $uid ); ?>-sug" class="motored-search__suggest" role="listbox" data-role="smart-list" hidden></ul>
+							<input id="<?php echo esc_attr( $uid ); ?>-q" class="motored-search__input" type="search" name="s" autocomplete="off" data-role="smart-input" role="combobox" placeholder="<?php esc_attr_e( 'Search by size (120/70-17), rim, motorcycle or brand...', 'motored-core' ); ?>" aria-autocomplete="list" aria-expanded="false" aria-controls="<?php echo esc_attr( $uid ); ?>-sug" />
+							<ul id="<?php echo esc_attr( $uid ); ?>-sug" class="motored-search__suggest" role="listbox" aria-label="<?php esc_attr_e( 'Suggestions', 'motored-core' ); ?>" data-role="smart-list" hidden></ul>
+							<p class="screen-reader-text" data-role="smart-live" aria-live="polite"></p>
 						</div>
 						<button type="submit" class="button motored-search__btn">
 							<?php esc_html_e( 'Search', 'motored-core' ); ?>

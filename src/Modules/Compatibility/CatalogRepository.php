@@ -62,6 +62,45 @@ final class CatalogRepository {
 	}
 
 	/**
+	 * Returns high-level admin catalog counts for overview cards and settings status.
+	 *
+	 * @return array{brands:int,models:int,versions_published:int,versions_draft:int,versions_verified:int,sizes:int,equivalences_approved:int,equivalences_pending:int}
+	 */
+	public static function summary_counts(): array {
+		global $wpdb;
+		$b  = self::brands_table();
+		$m  = self::models_table();
+		$v  = self::versions_table();
+		$s  = self::sizes_table();
+		$e  = self::equivalences_table();
+		$vr = $wpdb->get_row(
+			"SELECT
+				SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) AS pub,
+				SUM(CASE WHEN status != 'published' THEN 1 ELSE 0 END) AS drf,
+				SUM(CASE WHEN verified = 1 THEN 1 ELSE 0 END) AS ver
+			FROM {$v}",
+			ARRAY_A
+		);
+		$er = $wpdb->get_row(
+			"SELECT
+				SUM(CASE WHEN is_approved = 1 THEN 1 ELSE 0 END) AS app,
+				SUM(CASE WHEN is_approved = 0 THEN 1 ELSE 0 END) AS pen
+			FROM {$e}",
+			ARRAY_A
+		);
+		return array(
+			'brands'                => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$b}" ),
+			'models'                => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$m}" ),
+			'versions_published'    => is_array( $vr ) ? (int) ( $vr['pub'] ?? 0 ) : 0,
+			'versions_draft'        => is_array( $vr ) ? (int) ( $vr['drf'] ?? 0 ) : 0,
+			'versions_verified'     => is_array( $vr ) ? (int) ( $vr['ver'] ?? 0 ) : 0,
+			'sizes'                 => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$s}" ),
+			'equivalences_approved' => is_array( $er ) ? (int) ( $er['app'] ?? 0 ) : 0,
+			'equivalences_pending'  => is_array( $er ) ? (int) ( $er['pen'] ?? 0 ) : 0,
+		);
+	}
+
+	/**
 	 * Lists all brands (optionally only those having published versions).
 	 *
 	 * @param bool $published_only Filter to brands with at least one published version.
@@ -160,6 +199,48 @@ final class CatalogRepository {
 	}
 
 	/**
+	 * Finds a brand by ID.
+	 *
+	 * @param int $brand_id Brand ID.
+	 * @return array{id:int,name:string,slug:string}|null
+	 */
+	public static function find_brand_by_id( int $brand_id ): ?array {
+		if ( $brand_id <= 0 ) {
+			return null;
+		}
+		global $wpdb;
+		$b   = self::brands_table();
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, name, slug FROM {$b} WHERE id = %d LIMIT 1", $brand_id ), ARRAY_A );
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
+		return array(
+			'id'   => (int) $row['id'],
+			'name' => (string) $row['name'],
+			'slug' => (string) $row['slug'],
+		);
+	}
+
+	/**
+	 * Updates a brand's display name while keeping its immutable slug intact.
+	 *
+	 * @param int    $brand_id Brand ID.
+	 * @param string $name     New brand display name.
+	 */
+	public static function update_brand( int $brand_id, string $name ): bool {
+		$name = self::truncate( trim( $name ), 120 );
+		if ( $brand_id <= 0 || '' === $name ) {
+			return false;
+		}
+		global $wpdb;
+		$ok = false !== $wpdb->update( self::brands_table(), array( 'name' => $name ), array( 'id' => $brand_id ), array( '%s' ), array( '%d' ) );
+		if ( $ok ) {
+			CompatCache::bump_catalog();
+		}
+		return $ok;
+	}
+
+	/**
 	 * Creates or updates a brand by slug (returns brand ID).
 	 *
 	 * @param string $name Brand display name.
@@ -167,8 +248,8 @@ final class CatalogRepository {
 	 */
 	public static function upsert_brand( string $name, string $slug = '' ): int {
 		global $wpdb;
-		$name = trim( $name );
-		$slug = sanitize_title( '' !== $slug ? $slug : $name );
+		$name = self::truncate( trim( $name ), 120 );
+		$slug = self::truncate( sanitize_title( '' !== $slug ? $slug : $name ), 120 );
 		if ( '' === $name || '' === $slug ) {
 			return 0;
 		}
@@ -351,6 +432,69 @@ final class CatalogRepository {
 	}
 
 	/**
+	 * Finds a model by ID.
+	 *
+	 * @param int $model_id Model ID.
+	 * @return array{id:int,brand_id:int,name:string,slug:string,cc:int|null,aliases:string}|null
+	 */
+	public static function find_model_by_id( int $model_id ): ?array {
+		if ( $model_id <= 0 ) {
+			return null;
+		}
+		global $wpdb;
+		$m   = self::models_table();
+		$row = $wpdb->get_row(
+			$wpdb->prepare( "SELECT id, brand_id, name, slug, cc, aliases FROM {$m} WHERE id = %d LIMIT 1", $model_id ),
+			ARRAY_A
+		);
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
+		return array(
+			'id'       => (int) $row['id'],
+			'brand_id' => (int) $row['brand_id'],
+			'name'     => (string) $row['name'],
+			'slug'     => (string) $row['slug'],
+			'cc'       => null !== $row['cc'] ? (int) $row['cc'] : null,
+			'aliases'  => (string) $row['aliases'],
+		);
+	}
+
+	/**
+	 * Updates a model's name, displacement and aliases while keeping brand and slug intact.
+	 *
+	 * @param int      $model_id Model ID.
+	 * @param string   $name     Model name.
+	 * @param int|null $cc       Engine displacement in cc.
+	 * @param string   $aliases  Comma-separated search aliases.
+	 */
+	public static function update_model( int $model_id, string $name, ?int $cc, string $aliases ): bool {
+		$name    = self::truncate( trim( $name ), 160 );
+		$aliases = self::truncate( trim( $aliases ), 255 );
+		if ( $model_id <= 0 || '' === $name ) {
+			return false;
+		}
+		global $wpdb;
+		$m  = self::models_table();
+		$ok = false !== $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$m} SET name = %s, cc = %d, aliases = %s WHERE id = %d",
+				$name,
+				null !== $cc ? $cc : 0,
+				$aliases,
+				$model_id
+			)
+		);
+		if ( $ok && null === $cc ) {
+			$wpdb->query( $wpdb->prepare( "UPDATE {$m} SET cc = NULL WHERE id = %d", $model_id ) );
+		}
+		if ( $ok ) {
+			CompatCache::bump_catalog();
+		}
+		return $ok;
+	}
+
+	/**
 	 * Creates or updates a model by (brand_id, slug).
 	 *
 	 * @param int      $brand_id Brand ID.
@@ -361,9 +505,9 @@ final class CatalogRepository {
 	 */
 	public static function upsert_model( int $brand_id, string $name, string $slug = '', ?int $cc = null, string $aliases = '' ): int {
 		global $wpdb;
-		$name    = trim( $name );
-		$slug    = sanitize_title( '' !== $slug ? $slug : $name );
-		$aliases = trim( $aliases );
+		$name    = self::truncate( trim( $name ), 160 );
+		$slug    = self::truncate( sanitize_title( '' !== $slug ? $slug : $name ), 160 );
+		$aliases = self::truncate( trim( $aliases ), 255 );
 		if ( $brand_id <= 0 || '' === $name || '' === $slug ) {
 			return 0;
 		}
@@ -654,7 +798,8 @@ final class CatalogRepository {
 		}
 		if ( ! empty( $filters['search'] ) ) {
 			$like     = '%' . $wpdb->esc_like( trim( (string) $filters['search'] ) ) . '%';
-			$where[]  = '(b.name LIKE %s OR m.name LIKE %s OR v.variant LIKE %s OR v.slug LIKE %s)';
+			$where[]  = '(b.name LIKE %s OR m.name LIKE %s OR m.aliases LIKE %s OR v.variant LIKE %s OR v.slug LIKE %s)';
+			$params[] = $like;
 			$params[] = $like;
 			$params[] = $like;
 			$params[] = $like;
@@ -694,6 +839,17 @@ final class CatalogRepository {
 	}
 
 	/**
+	 * Normalizes a version label. A variant is only a real sub-version of the model (ABS, Rally, chassis code SC28...).
+	 * Model-year labels such as "MY2017+" duplicate the year range, so they are dropped.
+	 *
+	 * @param string $variant Raw variant text.
+	 */
+	public static function clean_variant( string $variant ): string {
+		$variant = trim( $variant );
+		return 1 === preg_match( '/^MY\s*\d{4}\s*\+?$/i', $variant ) ? '' : $variant;
+	}
+
+	/**
 	 * Creates or updates a version by natural key (model_id, year_from, year_to, variant_slug).
 	 * Slug is immutable once created.
 	 *
@@ -701,16 +857,17 @@ final class CatalogRepository {
 	 */
 	public static function upsert_version( array $data ): int {
 		global $wpdb;
-		$model_id     = (int) $data['model_id'];
-		$year_from    = (int) $data['year_from'];
-		$year_to      = (int) $data['year_to'];
-		$variant      = trim( (string) $data['variant'] );
-		$variant_slug = '' !== $variant ? sanitize_title( $variant ) : '';
-		$status       = 'published' === $data['status'] ? 'published' : 'draft';
-		$verified     = ! empty( $data['verified'] ) ? 1 : 0;
-		$notes        = trim( (string) $data['notes'] );
-		$now          = gmdate( 'Y-m-d H:i:s' );
-		$v            = self::versions_table();
+		$data['variant'] = self::clean_variant( (string) $data['variant'] );
+		$model_id        = (int) $data['model_id'];
+		$year_from       = (int) $data['year_from'];
+		$year_to         = (int) $data['year_to'];
+		$variant         = self::truncate( trim( (string) $data['variant'] ), 120 );
+		$variant_slug    = self::truncate( '' !== $variant ? sanitize_title( $variant ) : '', 120 );
+		$status          = 'published' === $data['status'] ? 'published' : 'draft';
+		$verified        = ! empty( $data['verified'] ) ? 1 : 0;
+		$notes           = self::truncate( trim( (string) $data['notes'] ), 2000 );
+		$now             = gmdate( 'Y-m-d H:i:s' );
+		$v               = self::versions_table();
 
 		$existing = self::find_version_by_natural_key( $model_id, $year_from, $year_to, $variant_slug );
 		if ( null !== $existing ) {
@@ -765,8 +922,8 @@ final class CatalogRepository {
 	 */
 	public static function update_version( int $id, array $data ): bool {
 		global $wpdb;
-		$variant      = trim( $data['variant'] );
-		$variant_slug = '' !== $variant ? sanitize_title( $variant ) : '';
+		$variant      = self::truncate( self::clean_variant( $data['variant'] ), 120 );
+		$variant_slug = self::truncate( '' !== $variant ? sanitize_title( $variant ) : '', 120 );
 		$status       = 'published' === $data['status'] ? 'published' : 'draft';
 		$ok           = false !== $wpdb->update(
 			self::versions_table(),
@@ -777,13 +934,42 @@ final class CatalogRepository {
 				'variant_slug' => $variant_slug,
 				'status'       => $status,
 				'verified'     => ! empty( $data['verified'] ) ? 1 : 0,
-				'notes'        => trim( $data['notes'] ),
+				'notes'        => self::truncate( trim( $data['notes'] ), 2000 ),
 				'updated_gmt'  => gmdate( 'Y-m-d H:i:s' ),
 			),
 			array( 'id' => $id ),
 			array( '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s' ),
 			array( '%d' )
 		);
+		if ( $ok ) {
+			CompatCache::bump_catalog();
+		}
+		return $ok;
+	}
+
+	/**
+	 * Updates a version's publication status (and optionally verified flag).
+	 *
+	 * @param int      $version_id Version ID.
+	 * @param string   $status     'published' or 'draft'.
+	 * @param int|null $verified   Optional verified flag (0 or 1); null keeps current value.
+	 */
+	public static function set_version_status( int $version_id, string $status, ?int $verified = null ): bool {
+		if ( $version_id <= 0 ) {
+			return false;
+		}
+		global $wpdb;
+		$clean_status = 'published' === $status ? 'published' : 'draft';
+		$fields       = array(
+			'status'      => $clean_status,
+			'updated_gmt' => gmdate( 'Y-m-d H:i:s' ),
+		);
+		$formats      = array( '%s', '%s' );
+		if ( null !== $verified ) {
+			$fields['verified'] = 0 !== $verified ? 1 : 0;
+			$formats[]          = '%d';
+		}
+		$ok = false !== $wpdb->update( self::versions_table(), $fields, array( 'id' => $version_id ), $formats, array( '%d' ) );
 		if ( $ok ) {
 			CompatCache::bump_catalog();
 		}
@@ -949,7 +1135,7 @@ final class CatalogRepository {
 	 * Returns fitments for a motorcycle version joined with canonical size data.
 	 *
 	 * @param int $version_id Version ID.
-	 * @return list<array{id:int,version_id:int,position:string,size_id:int,canonical:string,fit_type:string,min_load:int|null,min_speed_rank:int|null,req_construction:string|null,source:string,note:string}>
+	 * @return list<array{id:int,version_id:int,position:string,size_id:int,canonical:string,fit_type:string,min_load:int|null,min_speed_rank:int|null,req_construction:string|null,designation:string,source:string,note:string}>
 	 */
 	public static function fitments_for_version( int $version_id ): array {
 		global $wpdb;
@@ -957,7 +1143,7 @@ final class CatalogRepository {
 		$s    = self::sizes_table();
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT f.id, f.version_id, f.position, f.size_id, s.canonical, f.fit_type, f.min_load, f.min_speed_rank, f.req_construction, f.source, f.note
+				"SELECT f.id, f.version_id, f.position, f.size_id, s.canonical, f.fit_type, f.min_load, f.min_speed_rank, f.req_construction, f.designation, f.source, f.note
 				FROM {$f} f
 				INNER JOIN {$s} s ON s.id = f.size_id
 				WHERE f.version_id = %d
@@ -978,6 +1164,7 @@ final class CatalogRepository {
 				'min_load'         => null !== $row['min_load'] ? (int) $row['min_load'] : null,
 				'min_speed_rank'   => null !== $row['min_speed_rank'] ? (int) $row['min_speed_rank'] : null,
 				'req_construction' => null !== $row['req_construction'] ? (string) $row['req_construction'] : null,
+				'designation'      => '' !== (string) ( $row['designation'] ?? '' ) ? (string) $row['designation'] : (string) $row['canonical'],
 				'source'           => (string) $row['source'],
 				'note'             => (string) $row['note'],
 			);
@@ -986,9 +1173,45 @@ final class CatalogRepository {
 	}
 
 	/**
+	 * Batch-loads fitment summaries for multiple version IDs in one SQL query.
+	 *
+	 * @param array<int,int> $version_ids Version IDs.
+	 * @return array<int,list<array{position:string,canonical:string,designation:string,fit_type:string}>>
+	 */
+	public static function fitments_for_versions( array $version_ids ): array {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $version_ids ), static fn( int $id ): bool => $id > 0 ) ) );
+		if ( empty( $ids ) ) {
+			return array();
+		}
+		global $wpdb;
+		$f    = self::fitments_table();
+		$s    = self::sizes_table();
+		$in   = implode( ',', $ids );
+		$rows = $wpdb->get_results(
+			"SELECT f.version_id, f.position, s.canonical, f.designation, f.fit_type
+			FROM {$f} f
+			INNER JOIN {$s} s ON s.id = f.size_id
+			WHERE f.version_id IN ({$in})
+			ORDER BY f.position ASC, f.fit_type DESC, s.canonical ASC",
+			ARRAY_A
+		);
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$vid           = (int) $row['version_id'];
+			$out[ $vid ][] = array(
+				'position'    => (string) $row['position'],
+				'canonical'   => (string) $row['canonical'],
+				'designation' => '' !== (string) ( $row['designation'] ?? '' ) ? (string) $row['designation'] : (string) $row['canonical'],
+				'fit_type'    => (string) $row['fit_type'],
+			);
+		}
+		return $out;
+	}
+
+	/**
 	 * Upserts a fitment row by (version_id, position, size_id).
 	 *
-	 * @param array{version_id:int,position:string,size_id:int,fit_type:string,min_load:int|null,min_speed_rank:int|null,req_construction:string|null,source:string,note:string} $data Fitment payload.
+	 * @param array{version_id:int,position:string,size_id:int,fit_type:string,min_load:int|null,min_speed_rank:int|null,req_construction:string|null,source:string,note:string,designation?:string|null} $data Fitment payload.
 	 */
 	public static function upsert_fitment( array $data ): int {
 		global $wpdb;
@@ -998,11 +1221,12 @@ final class CatalogRepository {
 		$size_id    = (int) $data['size_id'];
 		$fit_type   = TireSpecs::FIT_ALT === $data['fit_type'] ? TireSpecs::FIT_ALT : TireSpecs::FIT_OEM;
 		$source     = in_array( $data['source'], array( 'manual', 'manufacturer', 'third_party' ), true ) ? $data['source'] : 'manual';
-		$note       = substr( trim( $data['note'] ), 0, 190 );
+		$note       = self::truncate( trim( $data['note'] ), 190 );
 
 		$min_load         = null !== $data['min_load'] && $data['min_load'] > 0 ? (int) $data['min_load'] : null;
 		$min_speed_rank   = null !== $data['min_speed_rank'] && $data['min_speed_rank'] > 0 ? (int) $data['min_speed_rank'] : null;
 		$req_construction = null !== $data['req_construction'] && '' !== $data['req_construction'] ? (string) $data['req_construction'] : null;
+		$designation      = isset( $data['designation'] ) && is_string( $data['designation'] ) && '' !== $data['designation'] ? self::truncate( $data['designation'], 24 ) : null;
 
 		$existing_id = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -1016,12 +1240,13 @@ final class CatalogRepository {
 		$load_sql  = null === $min_load ? 'NULL' : $wpdb->prepare( '%d', $min_load );
 		$speed_sql = null === $min_speed_rank ? 'NULL' : $wpdb->prepare( '%d', $min_speed_rank );
 		$const_sql = null === $req_construction ? 'NULL' : $wpdb->prepare( '%s', $req_construction );
+		$desig_sql = null === $designation ? 'NULL' : $wpdb->prepare( '%s', $designation );
 
 		if ( $existing_id > 0 ) {
 			$wpdb->query(
 				$wpdb->prepare(
 					"UPDATE {$f}
-					SET fit_type = %s, min_load = {$load_sql}, min_speed_rank = {$speed_sql}, req_construction = {$const_sql}, source = %s, note = %s
+					SET fit_type = %s, min_load = {$load_sql}, min_speed_rank = {$speed_sql}, req_construction = {$const_sql}, designation = {$desig_sql}, source = %s, note = %s
 					WHERE id = %d",
 					$fit_type,
 					$source,
@@ -1035,8 +1260,8 @@ final class CatalogRepository {
 
 		$ok = $wpdb->query(
 			$wpdb->prepare(
-				"INSERT INTO {$f} (version_id, position, size_id, fit_type, min_load, min_speed_rank, req_construction, source, note)
-				VALUES (%d, %s, %d, %s, {$load_sql}, {$speed_sql}, {$const_sql}, %s, %s)",
+				"INSERT INTO {$f} (version_id, position, size_id, fit_type, min_load, min_speed_rank, req_construction, designation, source, note)
+				VALUES (%d, %s, %d, %s, {$load_sql}, {$speed_sql}, {$const_sql}, {$desig_sql}, %s, %s)",
 				$version_id,
 				$position,
 				$size_id,
@@ -1209,6 +1434,30 @@ final class CatalogRepository {
 	}
 
 	/**
+	 * Updates whether an equivalence rule is approved for storefront matching.
+	 *
+	 * @param int  $id       Equivalence ID.
+	 * @param bool $approved Approved flag.
+	 */
+	public static function set_equivalence_approved( int $id, bool $approved ): bool {
+		if ( $id <= 0 ) {
+			return false;
+		}
+		global $wpdb;
+		$ok = false !== $wpdb->update(
+			self::equivalences_table(),
+			array( 'is_approved' => $approved ? 1 : 0 ),
+			array( 'id' => $id ),
+			array( '%d' ),
+			array( '%d' )
+		);
+		if ( $ok ) {
+			CompatCache::bump_catalog();
+		}
+		return $ok;
+	}
+
+	/**
 	 * Deletes an equivalence row.
 	 *
 	 * @param int $id Equivalence ID.
@@ -1240,7 +1489,7 @@ final class CatalogRepository {
 		$models   = $wpdb->get_results( "SELECT id, brand_id, name, slug, cc, aliases FROM {$m} ORDER BY name ASC", ARRAY_A );
 		$versions = $wpdb->get_results( "SELECT id, model_id, slug, year_from, year_to, variant, status, verified, notes FROM {$v} ORDER BY year_from ASC", ARRAY_A );
 		$fitments = $wpdb->get_results(
-			"SELECT f.version_id, f.position, s.canonical, f.fit_type, f.min_load, f.min_speed_rank, f.req_construction, f.source, f.note
+			"SELECT f.version_id, f.position, s.canonical, f.designation, f.fit_type, f.min_load, f.min_speed_rank, f.req_construction, f.source, f.note
 			FROM {$f} f
 			INNER JOIN {$s} s ON s.id = f.size_id
 			ORDER BY f.version_id ASC, f.position ASC, f.fit_type DESC",
@@ -1288,7 +1537,7 @@ final class CatalogRepository {
 		);
 		$approved = ! empty( $data['is_approved'] ) ? 1 : 0;
 		$approx   = ! empty( $data['is_approximate'] ) ? 1 : 0;
-		$note     = substr( trim( $data['note'] ), 0, 190 );
+		$note     = self::truncate( trim( $data['note'] ), 190 );
 
 		if ( $existing > 0 ) {
 			$wpdb->update(
@@ -1358,5 +1607,17 @@ final class CatalogRepository {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * Safely truncates a UTF-8 string to fit DB column limits without splitting multibyte chars.
+	 *
+	 * @param string $value     Raw string.
+	 * @param int    $max_chars Max character length.
+	 */
+	private static function truncate( string $value, int $max_chars ): string {
+		return function_exists( 'mb_substr' )
+			? mb_substr( $value, 0, $max_chars, 'UTF-8' )
+			: substr( $value, 0, $max_chars );
 	}
 }

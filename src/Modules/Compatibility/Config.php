@@ -27,12 +27,16 @@ final class Config {
 		'enabled'                 => 'no',
 		'max_garage_bikes'        => '5',
 		'strict_specs'            => 'no',
-		'show_incompatible_badge' => 'no',
+		'show_incompatible_badge' => 'yes',
+		'garage_cta'              => 'yes',
+		'oem_first_sort'          => 'yes',
+		'analytics_events'        => 'no',
 		'rename_tech_tab'         => 'yes',
 		'show_compat_tab'         => 'yes',
 		'auto_fill_dimensions'    => 'no',
 		'disclaimer'              => '',
 		'shop_url'                => '',
+		'selector_url'            => '',
 	);
 
 	/**
@@ -58,10 +62,31 @@ final class Config {
 	}
 
 	/**
-	 * Whether single product page may show an incompatible notice when a bike is active.
+	 * Whether catalog cards show a "does not match" badge for the active bike (the product page always does).
 	 */
 	public static function show_incompatible_badge(): bool {
-		return 'yes' === (string) Options::get( self::OPTION_KEY, 'show_incompatible_badge', 'no' );
+		return 'yes' === (string) Options::get( self::OPTION_KEY, 'show_incompatible_badge', 'yes' );
+	}
+
+	/**
+	 * Whether catalog pages invite shoppers with an active Mi Garage bike to filter by it.
+	 */
+	public static function garage_cta(): bool {
+		return 'yes' === (string) Options::get( self::OPTION_KEY, 'garage_cta', 'yes' );
+	}
+
+	/**
+	 * Whether ?moto= results are sorted best fit first (OEM, alternative, equivalent) when no sorting was chosen.
+	 */
+	public static function oem_first_sort(): bool {
+		return 'yes' === (string) Options::get( self::OPTION_KEY, 'oem_first_sort', 'yes' );
+	}
+
+	/**
+	 * Whether storefront scripts push anonymous interaction events to window.dataLayer (when it exists).
+	 */
+	public static function analytics_events(): bool {
+		return 'yes' === (string) Options::get( self::OPTION_KEY, 'analytics_events', 'no' );
 	}
 
 	/**
@@ -94,6 +119,14 @@ final class Config {
 			return $custom;
 		}
 		return __( "Always verify the size, load index and speed rating in your motorcycle's manual.", 'motored-core' );
+	}
+
+	/**
+	 * Page where customers pick their motorcycle (the one holding [motored_buscador]); defaults to the home page.
+	 */
+	public static function selector_url(): string {
+		$custom = trim( (string) Options::get( self::OPTION_KEY, 'selector_url', '' ) );
+		return '' !== $custom ? $custom : home_url( '/' );
 	}
 
 	/**

@@ -377,6 +377,15 @@ final class ProductIndexSync {
 		}
 
 		$construction = self::single_construction( $raw[ TireSpecs::ATTR_CONSTRUCTION ] ?? array() );
+		if ( null === $construction && TireSpecs::POS_KIT !== $position ) {
+			// No Construction attribute: fall back to the printed size ("120/70ZR17" = radial; "120/70-17" says nothing).
+			$size_attr  = ( TireSpecs::POS_REAR === $position || ( TireSpecs::POS_BOTH === $position && null === $front_parsed ) ) ? TireSpecs::ATTR_REAR_SIZE : TireSpecs::ATTR_FRONT_SIZE;
+			$size_terms = $raw[ $size_attr ] ?? array();
+			$desig      = 1 === count( $size_terms ) ? SizeParser::designation( $size_terms[0]['name'] ) : null;
+			if ( null !== $desig && '' !== $desig['construction'] ) {
+				$construction = $desig['construction'];
+			}
+		}
 
 		return array(
 			'row'           => array(

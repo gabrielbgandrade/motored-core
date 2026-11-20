@@ -38,8 +38,24 @@ final class CompatibilityHooks {
 	public static function register_display_hooks( callable $prime_cb, callable $shop_bar_cb, callable $loop_item_cb, callable $single_cb ): void {
 		add_filter( 'the_posts', $prime_cb, 20, 2 );
 		add_action( 'woocommerce_before_shop_loop', $shop_bar_cb, 15 );
+		// before_shop_loop does not fire when the query is empty; the bar must still offer "Clear filter".
+		add_action( 'woocommerce_no_products_found', $shop_bar_cb, 5 );
 		add_action( 'woocommerce_after_shop_loop_item_title', $loop_item_cb, 12 );
 		add_action( 'woocommerce_single_product_summary', $single_cb, 12 );
+	}
+
+	/**
+	 * Registers block-theme equivalents of the classic loop/single hooks (Product Collection + Product Price blocks).
+	 *
+	 * Unverified assumption (docs/VERIFY.md #115): WooCommerce block names `woocommerce/product-collection`
+	 * and `woocommerce/product-price`, plus core's dynamic filter render_block_{name}( $content, $block, $instance ).
+	 *
+	 * @param callable $collection_cb Filter callback on render_block_woocommerce/product-collection( string, array ).
+	 * @param callable $price_cb      Filter callback on render_block_woocommerce/product-price( string, array, WP_Block ).
+	 */
+	public static function register_block_hooks( callable $collection_cb, callable $price_cb ): void {
+		add_filter( 'render_block_woocommerce/product-collection', $collection_cb, 10, 2 );
+		add_filter( 'render_block_woocommerce/product-price', $price_cb, 10, 3 );
 	}
 
 	/**

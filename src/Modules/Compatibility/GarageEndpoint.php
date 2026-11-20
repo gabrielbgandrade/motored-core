@@ -7,6 +7,8 @@
 
 namespace Motored\Core\Modules\Compatibility;
 
+use Motored\Core\Modules\CatalogFilters\StorefrontAssets;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -70,6 +72,7 @@ final class GarageEndpoint {
 			echo '<p>' . esc_html__( 'Vehicle compatibility is currently disabled.', 'motored-core' ) . '</p>';
 			return;
 		}
+		StorefrontAssets::enqueue_compat_css();
 		Storefront::enqueue_garage_script();
 		wp_enqueue_script(
 			'motored-compat-garage-page',
@@ -83,11 +86,16 @@ final class GarageEndpoint {
 		);
 		$shop_url = Config::shop_url();
 		echo '<div class="motored-garage-page" data-shop-url="' . esc_url( $shop_url ) . '">';
+		echo '<div class="motored-garage-page__head">';
 		echo '<h2>' . esc_html__( 'My Garage', 'motored-core' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Save your motorcycles to filter tires and verify compatibility automatically across the store.', 'motored-core' ) . '</p>';
+		echo '</div>';
+		echo '<p class="motored-garage-notice" role="status" aria-live="polite" hidden></p>';
 		echo '<div class="motored-garage-list" aria-live="polite"></div>';
+		echo '<div class="motored-garage-add">';
 		echo '<h3>' . esc_html__( 'Add a motorcycle', 'motored-core' ) . '</h3>';
 		echo do_shortcode( '[' . Storefront::SELECTOR_SHORTCODE . ' mode="garage"]' );
+		echo '</div>';
 		echo '<p class="motored-compat-disclaimer"><small>' . esc_html( Config::disclaimer() ) . '</small></p>';
 		echo '</div>';
 	}

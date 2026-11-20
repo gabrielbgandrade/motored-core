@@ -215,16 +215,25 @@ final class FacetEngine {
 	/**
 	 * Computes exact disjunctive facet counts across all 11 filter groups in a single O(N) pass.
 	 *
-	 * @param array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>}                  $snapshot Compact snapshot.
-	 * @param FilterState                                                                                          $state    Active URL filter state.
-	 * @param array{only_in_stock?:bool,moto_ids?:array<int,true>|null,cat_slug?:string,sale_ids?:array<int,true>} $context Request context.
+	 * Context: `cat_slugs` = archive category plus its descendants (WooCommerce lists child-category products on the
+	 * parent archive); `universe_ids` = base product set of the main query on search / other taxonomy archives.
+	 *
+	 * @param array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>} $snapshot Compact snapshot.
+	 * @param FilterState                                                                         $state    Active URL filter state.
+	 * @param array<string,mixed>                                                                 $context  Request context (only_in_stock, moto_ids, cat_slug, cat_slugs, universe_ids, sale_ids).
 	 * @return array{total:int,facets:array<string,list<array{slug:string,label:string,count:int,active:bool}>>}
 	 */
 	public static function compute_facets( array $snapshot, FilterState $state, array $context = array() ): array {
 		$only_in_stock = ! array_key_exists( 'only_in_stock', $context ) || ! empty( $context['only_in_stock'] );
-		$moto_ids      = $context['moto_ids'] ?? null;
-		$cat_slug      = (string) ( $context['cat_slug'] ?? '' );
-		$sale_ids      = isset( $context['sale_ids'] ) && is_array( $context['sale_ids'] ) ? $context['sale_ids'] : array();
+		$moto_ids      = isset( $context['moto_ids'] ) && is_array( $context['moto_ids'] ) ? $context['moto_ids'] : null;
+		$universe      = isset( $context['universe_ids'] ) && is_array( $context['universe_ids'] ) ? $context['universe_ids'] : null;
+		$cat_set       = array();
+		foreach ( array_merge( array( (string) ( $context['cat_slug'] ?? '' ) ), (array) ( $context['cat_slugs'] ?? array() ) ) as $cs ) {
+			if ( '' !== (string) $cs ) {
+				$cat_set[ (string) $cs ] = true;
+			}
+		}
+		$sale_ids = isset( $context['sale_ids'] ) && is_array( $context['sale_ids'] ) ? $context['sale_ids'] : array();
 
 		// Precompute active filter groups as lookup sets for O(1) checks inside the loop.
 		$active_groups = array();
@@ -255,7 +264,10 @@ final class FacetEngine {
 			if ( null !== $moto_ids && ! isset( $moto_ids[ $pid ] ) ) {
 				continue;
 			}
-			if ( '' !== $cat_slug && ! in_array( $cat_slug, $p['cats'], true ) ) {
+			if ( null !== $universe && ! isset( $universe[ $pid ] ) ) {
+				continue;
+			}
+			if ( ! empty( $cat_set ) && empty( array_intersect_key( $cat_set, array_flip( $p['cats'] ) ) ) ) {
 				continue;
 			}
 

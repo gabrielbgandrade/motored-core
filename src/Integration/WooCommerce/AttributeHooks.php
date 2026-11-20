@@ -193,6 +193,58 @@ final class AttributeHooks {
 	}
 
 	/**
+	 * Updates an existing global attribute label (optionally only when matching legacy names).
+	 *
+	 * @param int           $id           Global attribute ID.
+	 * @param string        $new_name     New translated label.
+	 * @param array<string> $legacy_names Optional previous labels allowed for automatic migration.
+	 */
+	public static function update_attribute_label( int $id, string $new_name, array $legacy_names = array() ): bool {
+		if ( $id <= 0 || '' === trim( $new_name ) || ! function_exists( 'wc_get_attribute' ) || ! function_exists( 'wc_update_attribute' ) ) {
+			return false;
+		}
+		$attr = wc_get_attribute( $id );
+		if ( ! is_object( $attr ) || ! isset( $attr->name, $attr->slug ) ) {
+			return false;
+		}
+		$current_name = (string) $attr->name;
+		if ( ! empty( $legacy_names ) && ! in_array( $current_name, $legacy_names, true ) ) {
+			return false;
+		}
+		$res = wc_update_attribute(
+			$id,
+			array(
+				'name'         => $new_name,
+				'slug'         => (string) $attr->slug,
+				'type'         => isset( $attr->type ) ? (string) $attr->type : 'select',
+				'order_by'     => isset( $attr->order_by ) ? (string) $attr->order_by : 'menu_order',
+				'has_archives' => isset( $attr->has_archives ) ? (bool) $attr->has_archives : false,
+			)
+		);
+		return ! is_wp_error( $res );
+	}
+
+	/**
+	 * Reads native WooCommerce brand names attached to a product.
+	 *
+	 * @param int $product_id Product ID.
+	 * @return list<string>
+	 */
+	public static function product_brand_names( int $product_id ): array {
+		if ( $product_id <= 0 || ! function_exists( 'taxonomy_exists' ) || ! taxonomy_exists( 'product_brand' ) ) {
+			return array();
+		}
+		$terms = self::product_terms( $product_id, 'product_brand' );
+		$names = array();
+		foreach ( $terms as $term ) {
+			if ( '' !== $term['name'] ) {
+				$names[] = $term['name'];
+			}
+		}
+		return $names;
+	}
+
+	/**
 	 * Attaches a global taxonomy attribute term to a WC_Product if not already assigned.
 	 *
 	 * @param \WC_Product $product  Product object.
@@ -222,13 +274,13 @@ final class AttributeHooks {
 	}
 
 	/**
-	 * Registers product data hooks for the optional _motored_full_size meta input.
+	 * Registers the product edit screen meta box and its save handler.
 	 *
-	 * @param callable $render_callback Hooked on woocommerce_product_options_general_product_data.
-	 * @param callable $save_callback   Hooked on woocommerce_admin_process_product_object.
+	 * @param callable $box_callback  Hooked on add_meta_boxes (registers the box).
+	 * @param callable $save_callback Hooked on woocommerce_admin_process_product_object.
 	 */
-	public static function register_product_meta_hooks( callable $render_callback, callable $save_callback ): void {
-		add_action( 'woocommerce_product_options_general_product_data', $render_callback );
+	public static function register_product_box_hooks( callable $box_callback, callable $save_callback ): void {
+		add_action( 'add_meta_boxes_product', $box_callback );
 		add_action( 'woocommerce_admin_process_product_object', $save_callback );
 	}
 }

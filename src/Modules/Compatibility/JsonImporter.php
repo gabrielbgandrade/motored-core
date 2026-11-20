@@ -65,8 +65,8 @@ final class JsonImporter {
 	/**
 	 * Performs a dry-run simulation without mutating any database tables.
 	 *
-	 * @param string                                                 $raw_json Raw JSON string.
-	 * @param array{default_status?:string,import_constraints?:bool} $options  Import options.
+	 * @param string                                                                   $raw_json Raw JSON string.
+	 * @param array{default_status?:string,import_constraints?:bool,force_draft?:bool} $options  Import options.
 	 * @return array<string,mixed>
 	 */
 	public static function dry_run( string $raw_json, array $options = array() ): array {
@@ -79,6 +79,7 @@ final class JsonImporter {
 		}
 
 		$default_status     = ( isset( $options['default_status'] ) && 'published' === $options['default_status'] ) ? 'published' : 'draft';
+		$force_draft        = ! empty( $options['force_draft'] );
 		$import_constraints = ! empty( $options['import_constraints'] );
 		$seen_sizes         = array();
 		$seen_ranges        = array(); // key: brand_slug|model_slug|variant_slug => list of [from, to].
@@ -131,11 +132,18 @@ final class JsonImporter {
 						self::add_msg( $counts, sprintf( '%s %s skipped: invalid years %d-%d.', $b_name, $m_name, $year_from, $year_to ) );
 						continue;
 					}
-					$variant      = trim( (string) ( $v['variant'] ?? '' ) );
+					$variant      = CatalogRepository::clean_variant( (string) ( $v['variant'] ?? '' ) );
 					$variant_slug = '' !== $variant ? sanitize_title( $variant ) : '';
-					$status       = isset( $v['status'] ) && in_array( $v['status'], array( 'draft', 'published' ), true ) ? (string) $v['status'] : $default_status;
+					$status       = $force_draft
+						? 'draft'
+						: ( isset( $v['status'] ) && in_array( $v['status'], array( 'draft', 'published' ), true ) ? (string) $v['status'] : $default_status );
 					$verified     = ! empty( $v['verified'] ) ? 1 : 0;
 					$notes        = trim( (string) ( $v['notes'] ?? '' ) );
+					if ( 'published' === $status ) {
+						++$counts['versions_published'];
+					} else {
+						++$counts['versions_draft'];
+					}
 
 					$existing_ver = null !== $existing_model
 						? CatalogRepository::find_version_by_natural_key( $existing_model['id'], $year_from, $year_to, $variant_slug )
@@ -214,6 +222,11 @@ final class JsonImporter {
 				self::add_msg( $counts, sprintf( 'Invalid equivalence: %s -> %s.', (string) ( $eq['source'] ?? '' ), (string) ( $eq['target'] ?? '' ) ) );
 				continue;
 			}
+			if ( $src['rim'] !== $dst['rim'] ) {
+				++$counts['rejected'];
+				self::add_msg( $counts, sprintf( 'Invalid equivalence (rim mismatch): %s -> %s.', (string) ( $eq['source'] ?? '' ), (string) ( $eq['target'] ?? '' ) ) );
+				continue;
+			}
 			if ( SizeParser::is_suspicious_rim( $src['rim'] ) || SizeParser::is_suspicious_rim( $dst['rim'] ) ) {
 				++$counts['suspicious'];
 			}
@@ -290,13 +303,14 @@ final class JsonImporter {
 	/**
 	 * Imports a flattened chunk of versions and/or equivalences via idempotent UPSERT.
 	 *
-	 * @param list<array<string,mixed>>                                                   $versions_chunk Version items from flatten_items().
-	 * @param list<array<string,mixed>>                                                   $equivs_chunk   Equivalences list.
-	 * @param array{default_status?:string,import_constraints?:bool,allow_overlaps?:bool} $options        Import options.
+	 * @param list<array<string,mixed>>                                                                     $versions_chunk Version items from flatten_items().
+	 * @param list<array<string,mixed>>                                                                     $equivs_chunk Equivalences list.
+	 * @param array{default_status?:string,import_constraints?:bool,allow_overlaps?:bool,force_draft?:bool} $options Import options.
 	 * @return array{versions:int,fitments:int,equivalences:int,rejected:int}
 	 */
 	public static function import_chunk( array $versions_chunk, array $equivs_chunk = array(), array $options = array() ): array {
 		$default_status     = ( isset( $options['default_status'] ) && 'published' === $options['default_status'] ) ? 'published' : 'draft';
+		$force_draft        = ! empty( $options['force_draft'] );
 		$import_constraints = ! empty( $options['import_constraints'] );
 		$stats              = array(
 			'versions'     => 0,
@@ -330,7 +344,7 @@ final class JsonImporter {
 				continue;
 			}
 
-			$variant      = trim( (string) ( $v['variant'] ?? '' ) );
+			$variant      = CatalogRepository::clean_variant( (string) ( $v['variant'] ?? '' ) );
 			$variant_slug = '' !== $variant ? sanitize_title( $variant ) : '';
 			$existing_ver = CatalogRepository::find_version_by_natural_key( $model_id, $year_from, $year_to, $variant_slug );
 			if ( null === $existing_ver && empty( $options['allow_overlaps'] ) && CatalogRepository::has_year_overlap( $model_id, $variant_slug, $year_from, $year_to ) ) {
@@ -338,7 +352,9 @@ final class JsonImporter {
 				continue;
 			}
 
-			$status     = isset( $v['status'] ) && in_array( $v['status'], array( 'draft', 'published' ), true ) ? (string) $v['status'] : $default_status;
+			$status     = $force_draft
+				? 'draft'
+				: ( isset( $v['status'] ) && in_array( $v['status'], array( 'draft', 'published' ), true ) ? (string) $v['status'] : $default_status );
 			$version_id = CatalogRepository::upsert_version(
 				array(
 					'model_id'   => $model_id,
@@ -377,6 +393,7 @@ final class JsonImporter {
 						'min_load'         => $fit['min_load'],
 						'min_speed_rank'   => $fit['min_speed_rank'],
 						'req_construction' => $fit['req_construction'],
+						'designation'      => $fit['designation'],
 						'source'           => $fit['source'],
 						'note'             => $fit['note'],
 					)
@@ -394,7 +411,7 @@ final class JsonImporter {
 			}
 			$src = CatalogRepository::ensure_size( (string) ( $eq['source'] ?? '' ) );
 			$dst = CatalogRepository::ensure_size( (string) ( $eq['target'] ?? '' ) );
-			if ( null === $src || null === $dst || $src['id'] === $dst['id'] ) {
+			if ( null === $src || null === $dst || $src['id'] === $dst['id'] || $src['rim'] !== $dst['rim'] ) {
 				++$stats['rejected'];
 				continue;
 			}
@@ -425,7 +442,7 @@ final class JsonImporter {
 	 *
 	 * @param array<string,mixed> $version            Version JSON object.
 	 * @param bool                $import_constraints Whether optional load/speed/construction minimums are accepted.
-	 * @return list<array{valid:bool,raw_size:string,canonical:string,suspicious:bool,position:string,fit_type:string,min_load:int|null,min_speed_rank:int|null,req_construction:string|null,source:string,note:string}>
+	 * @return list<array{valid:bool,raw_size:string,canonical:string,suspicious:bool,position:string,fit_type:string,min_load:int|null,min_speed_rank:int|null,req_construction:string|null,designation:string|null,source:string,note:string}>
 	 */
 	private static function normalize_fitments( array $version, bool $import_constraints ): array {
 		$raw_list = array();
@@ -467,15 +484,20 @@ final class JsonImporter {
 				continue;
 			}
 
-			$fit_type = TireSpecs::FIT_ALT === (string) ( $f['fit_type'] ?? '' ) ? TireSpecs::FIT_ALT : TireSpecs::FIT_OEM;
+			// "compatible" (replacement-catalogue data, e.g. tire maker lists) is NOT first-equipment: store as alternative.
+			$fit_type = in_array( strtolower( (string) ( $f['fit_type'] ?? '' ) ), array( TireSpecs::FIT_ALT, 'compatible', 'alternative' ), true )
+				? TireSpecs::FIT_ALT
+				: TireSpecs::FIT_OEM;
 			$source   = in_array( (string) ( $f['source'] ?? '' ), array( 'manual', 'manufacturer', 'third_party' ), true )
 				? (string) $f['source']
 				: 'third_party';
 			$note     = trim( (string) ( $f['note'] ?? '' ) );
 
+			// The OEM designation ("120/70ZR17", "150/70R17") carries the construction rule; "-" states none.
+			$desig     = SizeParser::designation( $raw_size );
 			$min_load  = null;
 			$min_speed = null;
-			$req_const = null;
+			$req_const = ( null !== $desig && '' !== $desig['construction'] ) ? $desig['construction'] : null;
 			if ( $import_constraints ) {
 				if ( isset( $f['min_load'] ) && is_numeric( $f['min_load'] ) ) {
 					$min_load = TireSpecs::parse_load_index( (string) $f['min_load'] );
@@ -499,6 +521,7 @@ final class JsonImporter {
 				'min_load'         => $min_load,
 				'min_speed_rank'   => $min_speed,
 				'req_construction' => $req_const,
+				'designation'      => ( null !== $desig && $desig['designation'] !== $parsed['canonical'] ) ? $desig['designation'] : null,
 				'source'           => $source,
 				'note'             => $note,
 			);
@@ -510,7 +533,7 @@ final class JsonImporter {
 	 * Invalid fitment placeholder.
 	 *
 	 * @param string $raw Raw size text.
-	 * @return array{valid:bool,raw_size:string,canonical:string,suspicious:bool,position:string,fit_type:string,min_load:int|null,min_speed_rank:int|null,req_construction:string|null,source:string,note:string}
+	 * @return array{valid:bool,raw_size:string,canonical:string,suspicious:bool,position:string,fit_type:string,min_load:int|null,min_speed_rank:int|null,req_construction:string|null,designation:string|null,source:string,note:string}
 	 */
 	private static function invalid_fitment( string $raw ): array {
 		return array(
@@ -523,6 +546,7 @@ final class JsonImporter {
 			'min_load'         => null,
 			'min_speed_rank'   => null,
 			'req_construction' => null,
+			'designation'      => null,
 			'source'           => 'third_party',
 			'note'             => '',
 		);
@@ -559,6 +583,8 @@ final class JsonImporter {
 			'versions_new'         => 0,
 			'versions_updated'     => 0,
 			'versions_unchanged'   => 0,
+			'versions_published'   => 0,
+			'versions_draft'       => 0,
 			'sizes_new'            => 0,
 			'fitments_new'         => 0,
 			'fitments_updated'     => 0,

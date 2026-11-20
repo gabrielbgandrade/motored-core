@@ -1,6 +1,6 @@
 <?php
 /**
- * Lazy storefront asset loader for CatalogFilters (0 assets on pages without search/filters/compat list).
+ * Lazy storefront asset loader for CatalogFilters and Compatibility (0 assets on pages without our markup).
  *
  * @package Motored\Core
  */
@@ -10,68 +10,93 @@ namespace Motored\Core\Modules\CatalogFilters;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Enqueues theme-agnostic CSS and vanilla defer JS only when a shortcode, widget or product tab renders.
+ * Enqueues theme-agnostic CSS and vanilla defer JS only when a shortcode, widget, product banner or tab renders.
+ *
+ * Two stylesheets: `compat.css` (banner, badges, selector, bar, tab, Mi Garage — small, needed on product pages)
+ * and `catalog-filters.css` (home search + faceted sidebar).
  */
 final class StorefrontAssets {
 
-	public const HANDLE_CSS     = 'motored-catalog-filters';
-	public const HANDLE_SEARCH  = 'motored-catalog-search';
-	public const HANDLE_FILTERS = 'motored-catalog-filters-js';
+	public const HANDLE_CSS        = 'motored-catalog-filters';
+	public const HANDLE_COMPAT_CSS = 'motored-compat';
+	public const HANDLE_UI         = 'motored-ui';
+	public const HANDLE_SEARCH     = 'motored-catalog-search';
+	public const HANDLE_FILTERS    = 'motored-catalog-filters-js';
 
 	/**
-	 * Per-request guard for shared stylesheet.
+	 * Per-request guards keyed by handle.
 	 *
-	 * @var bool
+	 * @var array<string,bool>
 	 */
-	private static bool $css_enqueued = false;
+	private static array $done = array();
 
 	/**
-	 * Per-request guard for search script.
-	 *
-	 * @var bool
-	 */
-	private static bool $search_enqueued = false;
-
-	/**
-	 * Per-request guard for sidebar filters script.
-	 *
-	 * @var bool
-	 */
-	private static bool $filters_enqueued = false;
-
-	/**
-	 * Enqueues the shared theme-agnostic stylesheet once per request.
+	 * Enqueues the search/filters stylesheet (plus the shared compat stylesheet it builds on).
 	 */
 	public static function enqueue_css(): void {
-		if ( self::$css_enqueued ) {
+		self::enqueue_compat_css();
+		if ( self::once( self::HANDLE_CSS ) ) {
+			wp_enqueue_style(
+				self::HANDLE_CSS,
+				MOTORED_CORE_URL . 'assets/css/catalog-filters.css',
+				array( self::HANDLE_COMPAT_CSS ),
+				MOTORED_CORE_VERSION
+			);
+		}
+	}
+
+	/**
+	 * Enqueues the shared compat stylesheet (design tokens + Compatibility/Mi Garage components).
+	 */
+	public static function enqueue_compat_css(): void {
+		if ( ! self::once( self::HANDLE_COMPAT_CSS ) ) {
 			return;
 		}
-		self::$css_enqueued = true;
 		wp_enqueue_style(
-			self::HANDLE_CSS,
-			MOTORED_CORE_URL . 'assets/css/catalog-filters.css',
+			self::HANDLE_COMPAT_CSS,
+			MOTORED_CORE_URL . 'assets/css/compat.css',
 			array(),
 			MOTORED_CORE_VERSION
 		);
 		$accent = Config::accent_color();
 		if ( '' !== $accent ) {
-			wp_add_inline_style( self::HANDLE_CSS, ':root{--motored-accent:' . $accent . ';}' );
+			// Components read --motored-accent from --motored-accent-color, so a :root value is not shadowed.
+			wp_add_inline_style( self::HANDLE_COMPAT_CSS, ':root{--motored-accent-color:' . $accent . ';}' );
 		}
 	}
 
 	/**
-	 * Enqueues catalog-search.js (defer, vanilla JS) and its localized config once per request.
+	 * Enqueues the shared vanilla helpers (cascade, text normalization, optional analytics events).
+	 */
+	public static function enqueue_ui_js(): void {
+		if ( ! self::once( self::HANDLE_UI ) ) {
+			return;
+		}
+		wp_enqueue_script(
+			self::HANDLE_UI,
+			MOTORED_CORE_URL . 'assets/js/motored-ui.js',
+			array(),
+			MOTORED_CORE_VERSION,
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
+		);
+	}
+
+	/**
+	 * Enqueues home search JS + localized config.
 	 */
 	public static function enqueue_search_js(): void {
 		self::enqueue_css();
-		if ( self::$search_enqueued ) {
+		self::enqueue_ui_js();
+		if ( ! self::once( self::HANDLE_SEARCH ) ) {
 			return;
 		}
-		self::$search_enqueued = true;
 		wp_enqueue_script(
 			self::HANDLE_SEARCH,
 			MOTORED_CORE_URL . 'assets/js/catalog-search.js',
-			array(),
+			array( self::HANDLE_UI ),
 			MOTORED_CORE_VERSION,
 			array(
 				'strategy'  => 'defer',
@@ -83,6 +108,7 @@ final class StorefrontAssets {
 			'sizesVer'      => SnapshotInvalidator::version(),
 			'shopUrl'       => Config::shop_url(),
 			'compatEnabled' => \Motored\Core\Modules\Compatibility\Config::enabled(),
+			'events'        => \Motored\Core\Modules\Compatibility\Config::analytics_events(),
 			'i18n'          => array(
 				'widthPlaceholder'   => __( 'Width', 'motored-core' ),
 				'profilePlaceholder' => __( 'Aspect ratio', 'motored-core' ),
@@ -92,7 +118,13 @@ final class StorefrontAssets {
 				'modelPlaceholder'   => __( 'Select model...', 'motored-core' ),
 				'yearPlaceholder'    => __( 'Select year...', 'motored-core' ),
 				'varPlaceholder'     => __( 'Select version...', 'motored-core' ),
-				'noSuggestions'      => __( 'No direct matches — press Enter to search the store.', 'motored-core' ),
+				'filterList'         => __( 'Type to filter...', 'motored-core' ),
+				'loading'            => __( 'Loading...', 'motored-core' ),
+				'noModels'           => __( 'No models available', 'motored-core' ),
+				'noSizes'            => __( 'No tire sizes available yet.', 'motored-core' ),
+				'loadSelectErr'      => __( 'Could not load options. Please try again.', 'motored-core' ),
+				/* translators: %d: number of suggestions. */
+				'suggestCount'       => __( '%d suggestions available. Use the up and down arrows to browse.', 'motored-core' ),
 			),
 		);
 		wp_add_inline_script(
@@ -103,14 +135,13 @@ final class StorefrontAssets {
 	}
 
 	/**
-	 * Enqueues catalog-filters.js (defer, vanilla JS) once per request.
+	 * Enqueues faceted sidebar JS (+ its i18n).
 	 */
 	public static function enqueue_filters_js(): void {
 		self::enqueue_css();
-		if ( self::$filters_enqueued ) {
+		if ( ! self::once( self::HANDLE_FILTERS ) ) {
 			return;
 		}
-		self::$filters_enqueued = true;
 		wp_enqueue_script(
 			self::HANDLE_FILTERS,
 			MOTORED_CORE_URL . 'assets/js/catalog-filters.js',
@@ -121,14 +152,38 @@ final class StorefrontAssets {
 				'in_footer' => true,
 			)
 		);
+		$cfg = array(
+			'events' => \Motored\Core\Modules\Compatibility\Config::analytics_events(),
+			'i18n'   => array(
+				'apply'      => __( 'Apply filters', 'motored-core' ),
+				/* translators: %d: number of pending filter changes. */
+				'applyCount' => __( 'Apply filters (%d)', 'motored-core' ),
+			),
+		);
+		wp_add_inline_script(
+			self::HANDLE_FILTERS,
+			'window.motoredFacetCfg=' . wp_json_encode( $cfg ) . ';',
+			'before'
+		);
 	}
 
 	/**
-	 * Resets per-request guards (for unit tests).
+	 * Resets per-request guards (unit tests).
 	 */
 	public static function reset(): void {
-		self::$css_enqueued     = false;
-		self::$search_enqueued  = false;
-		self::$filters_enqueued = false;
+		self::$done = array();
+	}
+
+	/**
+	 * True the first time a handle is requested in this request.
+	 *
+	 * @param string $handle Asset handle.
+	 */
+	private static function once( string $handle ): bool {
+		if ( isset( self::$done[ $handle ] ) ) {
+			return false;
+		}
+		self::$done[ $handle ] = true;
+		return true;
 	}
 }

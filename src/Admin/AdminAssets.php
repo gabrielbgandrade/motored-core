@@ -28,6 +28,21 @@ final class AdminAssets {
 			return;
 		}
 		wp_enqueue_style( self::HANDLE, MOTORED_CORE_URL . 'assets/admin/motored-admin.css', array(), MOTORED_CORE_VERSION );
+
+		// Product edit screen only: tiny vanilla script of the "Technical information" box (position select + field groups).
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( is_object( $screen ) && 'product' === $screen->id && 'post' === $screen->base ) {
+			wp_enqueue_script(
+				'motored-tire-box',
+				MOTORED_CORE_URL . 'assets/admin/motored-tire-box.js',
+				array(),
+				MOTORED_CORE_VERSION,
+				array(
+					'in_footer' => true,
+					'strategy'  => 'defer',
+				)
+			);
+		}
 	}
 
 	/**
@@ -53,6 +68,9 @@ final class AdminAssets {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen detection.
 			$comment_id = isset( $_GET['c'] ) && is_scalar( $_GET['c'] ) ? absint( wp_unslash( $_GET['c'] ) ) : 0;
 			return $comment_id > 0 && array() !== PhotoMeta::ids( $comment_id );
+		}
+		if ( is_object( $screen ) && 'product' === $screen->id ) {
+			return true; // Product edit screen: "Motorcycle tire" meta box.
 		}
 		if ( ! is_object( $screen ) || OrderHooks::order_screen_id() !== $screen->id ) {
 			return false;

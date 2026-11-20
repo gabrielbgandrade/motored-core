@@ -1,63 +1,162 @@
-(function(){'use strict';
-var C=window.motoredCompatCfg||{},T=C.i18n||{};
-document.querySelectorAll('[data-compat-list]').forEach(function(root){
-var inp=root.querySelector('[data-role="compat-search"]'),grid=root.querySelector('[data-role="compat-grid"]'),tog=root.querySelector('[data-role="compat-toggle"]'),gar=root.querySelector('.motored-compat-tab__garage'),hasMore=root.dataset.hasMore==='1',url=root.dataset.url||'',exp=false,loaded=false;
-function rows(){return grid?Array.prototype.slice.call(grid.querySelectorAll('[data-brand-row]')):[];}
-function applyFilter(){
-var q=inp?inp.value.trim().toLowerCase():'';
-rows().forEach(function(li){
-if(q){li.hidden=(li.dataset.search||'').indexOf(q)<0;}
-else{li.hidden=!exp&&li.dataset.extra==='1';}
-});
-if(tog)tog.hidden=!!q;
-}
-function hydrateFull(){
-if(!hasMore||loaded||!url||!grid)return Promise.resolve();
-loaded=true;
-return fetch(url,{credentials:'same-origin'}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(d){
-var list=d&&d.motos||[],byB={},pm={front:T.front||'front',rear:T.rear||'rear'};
-list.forEach(function(m){(byB[m.brand]=byB[m.brand]||[]).push(m);});
-grid.textContent='';
-Object.keys(byB).sort().forEach(function(bn,idx){
-var li=document.createElement('li'),sp1=document.createElement('span'),sp2=document.createElement('span'),sTx=[bn.toLowerCase()],slg=[],pts=[];
-li.className='motored-compat-list__brand';li.dataset.brandRow='';li.dataset.extra=idx>=6?'1':'0';
-byB[bn].forEach(function(m){
-slg.push(m.slug||'');
-sTx.push((m.model+' '+(m.aliases||'')+' '+(m.variant||'')+' '+m.years).toLowerCase());
-var pt=(m.positions&&m.positions.length>=2&&T.kit)?T.kit:(m.positions||[]).map(function(x){return pm[x]||x;}).join(' / ');
-var ml=m.match==='equiv'?(T.equiv||'Equivalente')+(m.equiv_from?' ('+m.equiv_from+')':''):(T[m.match]||m.match);
-pts.push((m.model+(m.variant?' '+m.variant:''))+' ('+[m.years,pt,ml].filter(Boolean).join(' · ')+')');
-});
-li.dataset.search=sTx.join(' ');li.dataset.slugs=slg.join(',');
-sp1.className='motored-compat-list__brand-name';sp1.textContent=bn+': ';
-sp2.className='motored-compat-list__models';sp2.textContent=pts.join('; ');
-li.appendChild(sp1);li.appendChild(sp2);grid.appendChild(li);
-});
-hasMore=false;applyFilter();drawMine();
-}).catch(function(){loaded=false;});
-}
-function drawMine(){
-if(!gar)return;
-gar.textContent='';
-var pf=window.motoredGarageActive?window.motoredGarageActive():null;
-if(!pf)return;
-var hit=rows().some(function(li){return(','+(li.dataset.slugs||'')+',').indexOf(','+pf.slug+',')>-1;});
-var p=document.createElement('p');p.className='motored-compat-list__mine';
-p.textContent=(hit?(T.compatWith||''):(T.incompatWith||'')).replace('%s',pf.label);
-gar.appendChild(p);
-}
-if(tog){
-tog.addEventListener('click',function(){
-exp=!exp;tog.setAttribute('aria-expanded',exp?'true':'false');
-if(exp&&hasMore){hydrateFull();}else{applyFilter();}
-});
-}
-if(inp){
-inp.addEventListener('input',function(){
-if(hasMore&&inp.value.trim().length>=2){hydrateFull();}else{applyFilter();}
-});
-}
-drawMine();
-document.addEventListener('motored:garage',drawMine);
-});
+/**
+ * Compatibility tab / [motored_compat_list]: search (accent and spacing insensitive), expand/collapse,
+ * on-demand full list (rows pre-formatted by the server, identical to the inline HTML) and "your bike" line.
+ * Depends on compat-garage.js and motored-ui.js.
+ */
+(function () {
+	'use strict';
+	var c = window.motoredCompatCfg || {};
+	var t = c.i18n || {};
+	var ui = window.motoredUi;
+
+	document.querySelectorAll('[data-compat-list]').forEach(function (root) {
+		var input = root.querySelector('[data-role="compat-search"]');
+		var grid = root.querySelector('[data-role="compat-grid"]');
+		var toggle = root.querySelector('[data-role="compat-toggle"]');
+		var none = root.querySelector('[data-role="compat-none"]');
+		var errBox = root.querySelector('[data-role="compat-error"]');
+		var retry = root.querySelector('[data-role="compat-retry"]');
+		var mine = root.querySelector('.motored-compat-tab__garage');
+		var hasMore = root.dataset.hasMore === '1';
+		var url = root.dataset.url || '';
+		var expanded = false;
+		var loading = null;
+
+		function rows() {
+			return grid ? Array.prototype.slice.call(grid.querySelectorAll('[data-brand-row]')) : [];
+		}
+
+		function matches(hay, q) {
+			return ui ? ui.matches(hay, q) : hay.indexOf(q.toLowerCase()) > -1;
+		}
+
+		function apply() {
+			var q = input ? input.value.trim() : '';
+			var shown = 0;
+			rows().forEach(function (li) {
+				li.hidden = q ? !matches(li.dataset.search || '', q) : !expanded && li.dataset.extra === '1';
+				shown += li.hidden ? 0 : 1;
+			});
+			if (none) {
+				none.hidden = !q || shown > 0;
+			}
+			if (toggle) {
+				toggle.hidden = !!q;
+				toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+				toggle.textContent = expanded ? toggle.dataset.labelLess || '' : toggle.dataset.labelMore || '';
+			}
+		}
+
+		function render(list) {
+			grid.textContent = '';
+			list.forEach(function (row, idx) {
+				var li = document.createElement('li');
+				li.className = 'motored-compat-list__brand';
+				li.dataset.brandRow = '';
+				li.dataset.extra = idx >= 6 ? '1' : '0';
+				li.dataset.search = row.search || '';
+				li.dataset.slugs = (row.slugs || []).join(',');
+				var name = document.createElement('span');
+				name.className = 'motored-compat-list__brand-name';
+				name.textContent = row.brand + ': ';
+				var models = document.createElement('span');
+				models.className = 'motored-compat-list__models';
+				models.textContent = row.text;
+				li.appendChild(name);
+				li.appendChild(models);
+				grid.appendChild(li);
+			});
+		}
+
+		function hydrate() {
+			if (!hasMore || !url || !grid) {
+				return Promise.resolve();
+			}
+			if (loading) {
+				return loading;
+			}
+			if (errBox) {
+				errBox.hidden = true;
+			}
+			loading = fetch(url, { credentials: 'same-origin' })
+				.then(function (r) {
+					if (!r.ok) {
+						throw new Error('HTTP ' + r.status);
+					}
+					return r.json();
+				})
+				.then(function (d) {
+					render((d && d.rows) || []);
+					hasMore = false;
+					apply();
+					drawMine();
+				})
+				.catch(function () {
+					loading = null;
+					if (errBox) {
+						errBox.hidden = false;
+					}
+				});
+			return loading;
+		}
+
+		function drawMine() {
+			if (!mine) {
+				return;
+			}
+			mine.textContent = '';
+			var pf = window.motoredGarageActive ? window.motoredGarageActive() : null;
+			if (!pf) {
+				return;
+			}
+			var hit = false;
+			var marker = document.querySelector('.motored-fit-marker[data-ctx="single"]');
+			var ev = window.motoredGarageApi && window.motoredGarageApi.ev;
+			if (marker && ev) {
+				// Same evaluation as the product banner, so both always agree.
+				try {
+					hit = !!ev(JSON.parse(marker.dataset.motoredFit), pf).ok;
+				} catch (e) {
+					hit = false;
+				}
+			} else {
+				hit = rows().some(function (li) {
+					return (',' + (li.dataset.slugs || '') + ',').indexOf(',' + pf.slug + ',') > -1;
+				});
+				if (!hit && hasMore) {
+					hydrate();
+					return;
+				}
+			}
+			var p = document.createElement('p');
+			p.className = 'motored-compat-list__mine ' + (hit ? 'is-ok' : 'is-no');
+			p.textContent = String((hit ? t.compatWith : t.incompatWith) || '').replace('%s', pf.label);
+			mine.appendChild(p);
+		}
+
+		if (toggle) {
+			toggle.addEventListener('click', function () {
+				expanded = !expanded;
+				if (expanded && hasMore) {
+					hydrate().then(apply);
+				}
+				apply();
+			});
+		}
+		if (input) {
+			input.addEventListener('input', function () {
+				if (hasMore && input.value.trim().length >= 2) {
+					hydrate().then(apply);
+				}
+				apply();
+			});
+		}
+		if (retry) {
+			retry.addEventListener('click', function () {
+				hydrate().then(apply);
+			});
+		}
+		document.addEventListener('motored:garage', drawMine);
+		drawMine();
+	});
 })();

@@ -1,0 +1,96 @@
+{
+	"about": "Shared PHP/JS parity cases: MatchEngine::evaluate_product() (PHP) and ev() in assets/js/compat-garage.js MUST agree. Speed values are ranks (higher = faster).",
+	"cases": [
+		{
+			"name": "front OEM exact, specs ok",
+			"strict": false,
+			"profile": { "front": { "120/70-17": { "type": "oem", "from": "", "min_load": 58, "min_speed": 10, "req_const": "radial" } }, "rear": {} },
+			"fit": { "position": "front", "front_canonical": "120/70-17", "rear_canonical": null, "front_load": 58, "rear_load": null, "front_speed_rank": 12, "rear_speed_rank": null, "construction": "radial" },
+			"expect": { "ok": true, "positions": ["front"], "match": "oem", "caution": false, "from": "" }
+		},
+		{
+			"name": "load below minimum fails",
+			"strict": false,
+			"profile": { "front": { "120/70-17": { "type": "oem", "from": "", "min_load": 58, "min_speed": null, "req_const": "" } }, "rear": {} },
+			"fit": { "position": "front", "front_canonical": "120/70-17", "rear_canonical": null, "front_load": 55, "rear_load": null, "front_speed_rank": null, "rear_speed_rank": null, "construction": "" },
+			"expect": { "ok": false, "positions": [], "match": "", "caution": false, "from": "" }
+		},
+		{
+			"name": "speed below minimum fails",
+			"strict": false,
+			"profile": { "front": {}, "rear": { "160/60-17": { "type": "oem", "from": "", "min_load": null, "min_speed": 12, "req_const": "" } } },
+			"fit": { "position": "rear", "front_canonical": null, "rear_canonical": "160/60-17", "front_load": null, "rear_load": 69, "front_speed_rank": null, "rear_speed_rank": 11, "construction": "radial" },
+			"expect": { "ok": false, "positions": [], "match": "", "caution": false, "from": "" }
+		},
+		{
+			"name": "missing specs -> caution when not strict",
+			"strict": false,
+			"profile": { "front": {}, "rear": { "4.10-18": { "type": "oem", "from": "", "min_load": 59, "min_speed": 5, "req_const": "diagonal" } } },
+			"fit": { "position": "rear", "front_canonical": null, "rear_canonical": "4.10-18", "front_load": null, "rear_load": null, "front_speed_rank": null, "rear_speed_rank": null, "construction": "" },
+			"expect": { "ok": true, "positions": ["rear"], "match": "oem", "caution": true, "from": "" }
+		},
+		{
+			"name": "missing specs -> fail when strict",
+			"strict": true,
+			"profile": { "front": {}, "rear": { "4.10-18": { "type": "oem", "from": "", "min_load": 59, "min_speed": null, "req_const": "" } } },
+			"fit": { "position": "rear", "front_canonical": null, "rear_canonical": "4.10-18", "front_load": null, "rear_load": null, "front_speed_rank": null, "rear_speed_rank": null, "construction": "" },
+			"expect": { "ok": false, "positions": [], "match": "", "caution": false, "from": "" }
+		},
+		{
+			"name": "construction mismatch fails",
+			"strict": false,
+			"profile": { "front": { "110/70-17": { "type": "alt", "from": "", "min_load": null, "min_speed": null, "req_const": "radial" } }, "rear": {} },
+			"fit": { "position": "front", "front_canonical": "110/70-17", "rear_canonical": null, "front_load": 54, "rear_load": null, "front_speed_rank": 9, "rear_speed_rank": null, "construction": "diagonal" },
+			"expect": { "ok": false, "positions": [], "match": "", "caution": false, "from": "" }
+		},
+		{
+			"name": "equivalent keeps from size",
+			"strict": false,
+			"profile": { "front": {}, "rear": { "110/90-18": { "type": "equiv", "from": "4.10-18", "min_load": null, "min_speed": null, "req_const": "" } } },
+			"fit": { "position": "rear", "front_canonical": null, "rear_canonical": "110/90-18", "front_load": 61, "rear_load": 61, "front_speed_rank": 8, "rear_speed_rank": 8, "construction": "diagonal" },
+			"expect": { "ok": true, "positions": ["rear"], "match": "equiv", "caution": false, "from": "4.10-18" }
+		},
+		{
+			"name": "position mismatch: front tire never fits rear axle",
+			"strict": false,
+			"profile": { "front": {}, "rear": { "120/70-17": { "type": "oem", "from": "", "min_load": null, "min_speed": null, "req_const": "" } } },
+			"fit": { "position": "front", "front_canonical": "120/70-17", "rear_canonical": null, "front_load": 58, "rear_load": null, "front_speed_rank": 10, "rear_speed_rank": null, "construction": "radial" },
+			"expect": { "ok": false, "positions": [], "match": "", "caution": false, "from": "" }
+		},
+		{
+			"name": "both-position tire fitting both axles takes the BETTER match",
+			"strict": false,
+			"profile": { "front": { "2.75-18": { "type": "alt", "from": "", "min_load": null, "min_speed": null, "req_const": "" } }, "rear": { "2.75-18": { "type": "oem", "from": "", "min_load": null, "min_speed": null, "req_const": "" } } },
+			"fit": { "position": "both", "front_canonical": "2.75-18", "rear_canonical": "2.75-18", "front_load": 42, "rear_load": 42, "front_speed_rank": 5, "rear_speed_rank": 5, "construction": "diagonal" },
+			"expect": { "ok": true, "positions": ["front", "rear"], "match": "oem", "caution": false, "from": "" }
+		},
+		{
+			"name": "kit needs both axles and takes the WORSE match",
+			"strict": false,
+			"profile": { "front": { "100/80-17": { "type": "oem", "from": "", "min_load": null, "min_speed": null, "req_const": "" } }, "rear": { "130/70-17": { "type": "equiv", "from": "130/80-17", "min_load": null, "min_speed": null, "req_const": "" } } },
+			"fit": { "position": "kit", "front_canonical": "100/80-17", "rear_canonical": "130/70-17", "front_load": 52, "rear_load": 62, "front_speed_rank": 9, "rear_speed_rank": 9, "construction": "diagonal" },
+			"expect": { "ok": true, "positions": ["front", "rear"], "match": "equiv", "caution": false, "from": "130/80-17" }
+		},
+		{
+			"name": "kit with only one axle matching fails",
+			"strict": false,
+			"profile": { "front": { "100/80-17": { "type": "oem", "from": "", "min_load": null, "min_speed": null, "req_const": "" } }, "rear": {} },
+			"fit": { "position": "kit", "front_canonical": "100/80-17", "rear_canonical": "130/70-17", "front_load": 52, "rear_load": 62, "front_speed_rank": 9, "rear_speed_rank": 9, "construction": "diagonal" },
+			"expect": { "ok": false, "positions": [], "match": "", "caution": false, "from": "" }
+		},
+		{
+			"name": "kit joins two equivalent sources with a slash",
+			"strict": false,
+			"profile": { "front": { "90/90-19": { "type": "equiv", "from": "3.00-19", "min_load": null, "min_speed": null, "req_const": "" } }, "rear": { "120/80-17": { "type": "equiv", "from": "4.60-17", "min_load": null, "min_speed": null, "req_const": "" } } },
+			"fit": { "position": "kit", "front_canonical": "90/90-19", "rear_canonical": "120/80-17", "front_load": null, "rear_load": null, "front_speed_rank": null, "rear_speed_rank": null, "construction": "" },
+			"expect": { "ok": true, "positions": ["front", "rear"], "match": "equiv", "caution": false, "from": "3.00-19 / 4.60-17" }
+		},
+		{
+			"name": "size not in profile fails",
+			"strict": false,
+			"profile": { "front": { "90/90-21": { "type": "oem", "from": "", "min_load": null, "min_speed": null, "req_const": "" } }, "rear": {} },
+			"fit": { "position": "front", "front_canonical": "80/100-21", "rear_canonical": null, "front_load": null, "rear_load": null, "front_speed_rank": null, "rear_speed_rank": null, "construction": "" },
+			"expect": { "ok": false, "positions": [], "match": "", "caution": false, "from": "" }
+		}
+	]
+}

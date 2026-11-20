@@ -106,4 +106,25 @@ final class SizeParserTest extends TestCase {
 		$this->assertNotNull( $imp );
 		$this->assertSame( '4.10-18', SizeParser::format_full_size( $imp, TireSpecs::CONST_DIAGONAL, 'S' ) );
 	}
+
+	public function test_designation_keeps_manufacturer_notation_and_derives_construction(): void {
+		$cases = array(
+			'120/70ZR17'                   => array( '120/70ZR17', TireSpecs::CONST_RADIAL ),
+			'150/70 R17 (69V) TL'          => array( '150/70R17', TireSpecs::CONST_RADIAL ),
+			'110/80-19'                    => array( '110/80-19', '' ),
+			'150/80B16'                    => array( '150/80B16', TireSpecs::CONST_BELTED ),
+			'MT90B16'                      => array( 'MT90B16', TireSpecs::CONST_BELTED ),
+			'4.10-18'                      => array( '4.10-18', '' ),
+			'4,10R18'                      => array( '4.10R18', TireSpecs::CONST_RADIAL ),
+		);
+		foreach ( $cases as $raw => $expected ) {
+			$d = SizeParser::designation( $raw );
+			$this->assertIsArray( $d, $raw );
+			$this->assertSame( $expected[0], $d['designation'], $raw );
+			$this->assertSame( $expected[1], $d['construction'], $raw );
+		}
+		$this->assertNull( SizeParser::designation( 'garbage' ) );
+		// Matching key is unaffected by the designation.
+		$this->assertSame( '120/70-17', SizeParser::canonical( '120/70ZR17' ) );
+	}
 }

@@ -29,3 +29,12 @@ if ( ! class_exists( 'WP_Error' ) ) {
 		public function get_error_code(): string { return $this->code; }
 	}
 }
+
+// Minimal WP_Block (render_block_{name} third argument) for block-theme hook tests.
+if ( ! class_exists( 'WP_Block' ) ) {
+	// phpcs:ignore
+	class WP_Block {
+		/** @var array<string,mixed> */
+		public $context = array();
+	}
+}

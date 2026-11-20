@@ -12,6 +12,7 @@ use Motored\Core\Modules\Compatibility\CompatCache;
 use Motored\Core\Modules\Compatibility\MatchEngine;
 use Motored\Core\Modules\Compatibility\SizeParser;
 use Motored\Core\Modules\Compatibility\TireSpecs;
+use Motored\Core\Support\SearchText;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -37,6 +38,16 @@ final class RestController {
 		if ( ! Config::enabled() ) {
 			return;
 		}
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/filters/sizes/(?P<ver>[a-zA-Z0-9_-]+)',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_sizes' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 
 		register_rest_route(
 			self::NAMESPACE,
@@ -226,19 +237,12 @@ final class RestController {
 		// 4. Published motorcycles (brands, models, aliases, years) from cached array.
 		if ( count( $results ) < self::MAX_SUGGESTIONS ) {
 			$bike_list = null !== $bikes ? $bikes : self::cached_bike_index();
-			$tokens    = array_values( array_filter( explode( ' ', $q ), static fn( string $t ): bool => '' !== $t ) );
 			foreach ( $bike_list as $bk ) {
 				if ( count( $results ) >= self::MAX_SUGGESTIONS ) {
 					break;
 				}
-				$matched = true;
-				foreach ( $tokens as $tok ) {
-					if ( ! str_contains( $bk['haystack'], $tok ) ) {
-						$matched = false;
-						break;
-					}
-				}
-				if ( $matched ) {
+				// Accent/spacing insensitive: "cb 500", "CB-500" and "cb500" all match.
+				if ( SearchText::matches( $bk['haystack'], $raw_q ) ) {
 					$results[] = array(
 						'type'  => 'moto',
 						'label' => $bk['label'],
@@ -266,7 +270,7 @@ final class RestController {
 					break;
 				}
 				$b_label = (string) ( $snap['labels']['product_brand'][ $b_slug ] ?? $b_slug );
-				if ( str_contains( self::normalize_query( $b_label ), $q ) || str_contains( strtolower( (string) $b_slug ), $q ) ) {
+				if ( SearchText::matches( SearchText::haystack( $b_label . ' ' . (string) $b_slug ), $raw_q ) ) {
 					$results[] = array(
 						'type'  => 'brand',
 						'label' => $b_label,
@@ -291,7 +295,7 @@ final class RestController {
 			return array();
 		}
 		return CompatCache::remember(
-			'suggest_bikes_v1',
+			'suggest_bikes_v2',
 			static function (): array {
 				global $wpdb;
 				if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
@@ -315,8 +319,8 @@ final class RestController {
 				foreach ( is_array( $rows ) ? $rows : array() as $row ) {
 					$years = MatchEngine::format_years( (int) $row['year_from'], (int) $row['year_to'] );
 					$var   = trim( (string) $row['variant'] );
-					$label = trim( (string) $row['brand_name'] . ' ' . (string) $row['model_name'] . ( '' !== $var ? ' ' . $var : '' ) ) . ' (' . $years . ')';
-					$hay   = self::normalize_query(
+					$label = MatchEngine::version_label( (string) $row['brand_name'], (string) $row['model_name'], $var, (int) $row['year_from'], (int) $row['year_to'] );
+					$hay   = SearchText::haystack(
 						(string) $row['brand_name'] . ' ' . (string) $row['model_name'] . ' ' . (string) $row['aliases'] . ' ' . $var . ' ' . $years
 					);
 					$out[] = array(
@@ -338,8 +342,7 @@ final class RestController {
 	 * @param string $raw Raw input.
 	 */
 	public static function normalize_query( string $raw ): string {
-		$lower = function_exists( 'mb_strtolower' ) ? mb_strtolower( trim( $raw ), 'UTF-8' ) : strtolower( trim( $raw ) );
-		return (string) preg_replace( '/\s+/', ' ', $lower );
+		return SearchText::normalize( $raw );
 	}
 
 	/**

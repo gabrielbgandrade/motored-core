@@ -125,4 +125,21 @@ final class SuggestAndModuleTest extends TestCase {
 		$this->assertSame( array(), $qf->robots_noindex( array() ) );
 		$_GET = array();
 	}
+
+	public function test_rest_controller_registers_path_versioned_sizes_and_suggest_routes(): void {
+		Options::register_defaults( Config::OPTION_KEY, Config::DEFAULTS );
+		$this->options['motored_catalog_filters'] = array_merge( Config::DEFAULTS, array( 'enabled' => 'yes' ) );
+
+		$routes = array();
+		Functions\when( 'register_rest_route' )->alias(
+			static function ( $ns, $route ) use ( &$routes ): void {
+				$routes[] = $ns . $route;
+			}
+		);
+
+		( new RestController() )->register_routes();
+		$this->assertContains( 'motored/v1/filters/sizes/(?P<ver>[a-zA-Z0-9_-]+)', $routes );
+		$this->assertContains( 'motored/v1/filters/sizes', $routes );
+		$this->assertContains( 'motored/v1/filters/suggest', $routes );
+	}
 }

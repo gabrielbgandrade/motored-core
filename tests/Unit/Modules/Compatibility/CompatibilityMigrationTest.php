@@ -29,6 +29,7 @@ final class CompatibilityMigrationTest extends TestCase {
 		$this->assertStringContainsString( 'PRIMARY KEY  (product_id)', $statements[6] );
 		// year_to uses 0 sentinel instead of NULL so UNIQUE KEY natural_key deduplicates reliably.
 		$this->assertStringContainsString( 'year_to smallint(5) unsigned NOT NULL DEFAULT 0', $statements[2] );
+		$this->assertStringContainsString( 'notes text DEFAULT NULL', $statements[2] );
 	}
 
 	public function test_migration_up_runs_dbdelta_for_every_table(): void {

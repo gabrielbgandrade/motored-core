@@ -27,7 +27,7 @@ final class JsonExporter {
 			$vid                       = (int) $f['version_id'];
 			$fits_by_version[ $vid ][] = array(
 				'position'         => (string) $f['position'],
-				'size'             => (string) $f['canonical'],
+				'size'             => '' !== (string) ( $f['designation'] ?? '' ) ? (string) $f['designation'] : (string) $f['canonical'],
 				'fit_type'         => (string) $f['fit_type'],
 				'min_load'         => null !== $f['min_load'] ? (int) $f['min_load'] : null,
 				'min_speed'        => null !== $f['min_speed_rank'] ? TireSpecs::speed_code_for_rank( (int) $f['min_speed_rank'] ) : null,

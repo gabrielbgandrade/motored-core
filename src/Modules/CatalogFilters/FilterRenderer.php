@@ -82,21 +82,16 @@ final class FilterRenderer {
 			$moto_lbl = is_array( $prof ) && ! empty( $prof['label'] ) ? (string) $prof['label'] : $state->moto();
 		}
 
-		$cat_slug = '';
-		if ( function_exists( 'is_product_category' ) && is_product_category() ) {
-			$queried = get_queried_object();
-			if ( is_object( $queried ) && isset( $queried->slug ) ) {
-				$cat_slug = (string) $queried->slug;
-			}
-		}
-
+		$scope    = self::archive_scope();
 		$computed = FacetEngine::compute_facets(
 			$snapshot,
 			$state,
 			array(
-				'only_in_stock' => Config::only_in_stock(),
+				// Counts must match the grid, which only hides out-of-stock items when WooCommerce does.
+				'only_in_stock' => Config::grid_hides_out_of_stock(),
 				'moto_ids'      => $moto_ids,
-				'cat_slug'      => $cat_slug,
+				'cat_slugs'     => $scope['cat_slugs'],
+				'universe_ids'  => $scope['universe_ids'],
 				'sale_ids'      => FacetEngine::on_sale_id_map(),
 			)
 		);
@@ -262,10 +257,73 @@ final class FilterRenderer {
 	}
 
 	/**
-	 * Resolves the current shop/archive base URL cleanly.
+	 * Base product set of the current archive so facet counts match the grid.
+	 *
+	 * - Category archive: the category plus all descendants (WooCommerce includes child-category products).
+	 * - Other product taxonomy archive (brand, tag, attribute): products in that term (1 query).
+	 * - Product search: IDs of the search query without pagination (1 query, fields=ids).
+	 *
+	 * @return array{cat_slugs:list<string>,universe_ids:array<int,true>|null}
+	 */
+	private static function archive_scope(): array {
+		$out = array(
+			'cat_slugs'    => array(),
+			'universe_ids' => null,
+		);
+		if ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) {
+			$term = get_queried_object();
+			if ( ! $term instanceof \WP_Term ) {
+				return $out;
+			}
+			if ( 'product_cat' === $term->taxonomy ) {
+				$out['cat_slugs'][] = (string) $term->slug;
+				$children           = get_term_children( (int) $term->term_id, 'product_cat' );
+				if ( is_array( $children ) && ! empty( $children ) ) {
+					$slugs = get_terms(
+						array(
+							'taxonomy'   => 'product_cat',
+							'include'    => array_map( 'intval', $children ),
+							'hide_empty' => false,
+							'fields'     => 'id=>slug',
+						)
+					);
+					if ( is_array( $slugs ) ) {
+						foreach ( $slugs as $slug ) {
+							$out['cat_slugs'][] = (string) $slug;
+						}
+					}
+				}
+				return $out;
+			}
+			$ids = get_objects_in_term( (int) $term->term_id, (string) $term->taxonomy );
+			if ( is_array( $ids ) ) {
+				$out['universe_ids'] = array_fill_keys( array_map( 'intval', $ids ), true );
+			}
+			return $out;
+		}
+		if ( function_exists( 'is_search' ) && is_search() ) {
+			$query               = new \WP_Query(
+				array(
+					'post_type'              => 'product',
+					'post_status'            => 'publish',
+					's'                      => get_search_query( false ),
+					'fields'                 => 'ids',
+					'posts_per_page'         => -1,
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+				)
+			);
+			$out['universe_ids'] = array_fill_keys( array_map( 'intval', (array) $query->posts ), true );
+		}
+		return $out;
+	}
+
+	/**
+	 * Archive URL the filter links build on: the current product taxonomy term link, else the shop page.
 	 */
 	private static function current_base_url(): string {
-		if ( function_exists( 'is_product_category' ) && is_product_category() ) {
+		if ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) {
 			$term = get_queried_object();
 			if ( $term instanceof \WP_Term ) {
 				$link = get_term_link( $term );

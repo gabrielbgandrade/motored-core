@@ -30,6 +30,8 @@ final class ApiKeyTest extends TestCase {
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		// Default = no logged-in user (CLI/cron path). Explicit, because another test may have defined the function.
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'is_wp_error' )->alias( fn( $thing ) => $thing instanceof \WP_Error );
 		Functions\when( 'wp_remote_retrieve_response_code' )->alias( fn( $r ) => $r['response']['code'] ?? 0 );
 		Functions\when( 'wp_remote_retrieve_body' )->alias( fn( $r ) => $r['body'] ?? '' );

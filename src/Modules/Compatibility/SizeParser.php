@@ -87,6 +87,51 @@ final class SizeParser {
 	}
 
 	/**
+	 * Reads the manufacturer designation of a size: the printed form ("120/70ZR17", "150/70R17", "110/80-19")
+	 * and the construction it implies (R/ZR/VR = radial, B/VB = belted, D = diagonal, "-" = not stated).
+	 * Matching always uses the canonical key; this only adds the OEM construction rule.
+	 *
+	 * @param string $raw Raw size input.
+	 * @return array{designation:string,construction:string}|null Null when the size is invalid.
+	 */
+	public static function designation( string $raw ): ?array {
+		$parsed = self::parse( $raw );
+		if ( null === $parsed ) {
+			return null;
+		}
+		$norm   = self::preprocess( $raw );
+		$marker = '';
+		if ( self::NOTATION_METRIC === $parsed['notation'] ) {
+			preg_match( '/^\d{2,3}\s*\/\s*\d{2,3}\s*(ZR|VR|VB|R|B|D|-)\s*\d/', $norm, $m );
+		} elseif ( self::NOTATION_ALPHA === $parsed['notation'] ) {
+			preg_match( '/^M[HJMNPRSTUV]\d{2}\s*(ZR|R|B|D|-)?\s*\d/', $norm, $m );
+		} else {
+			preg_match( '/^\d+\.\d{1,2}\s*(R|B|X|-)\s*\d/', $norm, $m );
+		}
+		if ( isset( $m[1] ) ) {
+			$marker = $m[1];
+		}
+		$construction = '';
+		if ( in_array( $marker, array( 'ZR', 'VR', 'R' ), true ) ) {
+			$construction = TireSpecs::CONST_RADIAL;
+		} elseif ( in_array( $marker, array( 'B', 'VB' ), true ) ) {
+			$construction = TireSpecs::CONST_BELTED;
+		} elseif ( 'D' === $marker ) {
+			$construction = TireSpecs::CONST_DIAGONAL;
+		}
+		$sep = in_array( $marker, array( '', 'X', 'D' ), true ) ? '-' : $marker;
+		if ( self::NOTATION_METRIC === $parsed['notation'] ) {
+			$full = $parsed['width'] . '/' . $parsed['aspect'] . $sep . $parsed['rim'];
+		} else {
+			$full = $parsed['width'] . $sep . $parsed['rim'];
+		}
+		return array(
+			'designation'  => $full,
+			'construction' => $construction,
+		);
+	}
+
+	/**
 	 * Returns only the canonical key or null when invalid.
 	 *
 	 * @param string $raw Raw size input.

@@ -56,4 +56,23 @@ final class TireSpecsTest extends TestCase {
 		$this->assertSame( 58, TireSpecs::parse_load_index( '58' ) );
 		$this->assertNull( TireSpecs::parse_load_index( '5' ) );
 	}
+
+	public function test_load_kg_and_format_load_speed(): void {
+		Functions\when( '__' )->returnArg();
+
+		$this->assertSame( 325, TireSpecs::load_kg( 69 ) );
+		$this->assertSame( 82.5, TireSpecs::load_kg( 21 ) );
+		$this->assertNull( TireSpecs::load_kg( 19 ) );
+		$this->assertNull( TireSpecs::load_kg( 121 ) );
+
+		$this->assertSame( '69H (up to 325 kg · 210 km/h)', TireSpecs::format_load_speed( 69, 'H' ) );
+		$this->assertSame( '73(W) (up to 365 kg · +270 km/h)', TireSpecs::format_load_speed( 73, '(W)' ) );
+		$this->assertSame( '73(W) (up to 365 kg · +270 km/h)', TireSpecs::format_load_speed( 73, 'w-par' ) );
+		$this->assertSame( '69 (up to 325 kg)', TireSpecs::format_load_speed( 69, '' ) );
+		$this->assertSame( 'H (up to 210 km/h)', TireSpecs::format_load_speed( null, 'H' ) );
+		$this->assertSame( '(W) (+270 km/h)', TireSpecs::format_load_speed( null, '(W)' ) );
+		$this->assertSame( '21S (up to 82.5 kg · 180 km/h)', TireSpecs::format_load_speed( 21, 's' ) );
+		$this->assertSame( '', TireSpecs::format_load_speed( null, '' ) );
+		$this->assertSame( '', TireSpecs::format_load_speed( 10, 'INVALID' ) );
+	}
 }

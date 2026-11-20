@@ -5,6 +5,7 @@ use Brain\Monkey\Functions;
 use Motored\Core\Modules\Compatibility\ImportRunner;
 use Motored\Core\Modules\Compatibility\JsonExporter;
 use Motored\Core\Modules\Compatibility\JsonImporter;
+use Motored\Core\Modules\Compatibility\SizeParser;
 use Motored\Core\Tests\Unit\TestCase;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -210,5 +211,202 @@ final class JsonImporterTest extends TestCase {
 		$this->assertSame( 51, $res['stats']['rejected'] );
 		$this->assertStringContainsString( 'Partial import completed', $res['message'] );
 		$this->assertSame( 'partial', $this->options[ ImportRunner::LAST_STATUS_OPT ]['status'] );
+	}
+
+	public function test_rejects_cross_rim_equivalences_in_dry_run_and_import_chunk(): void {
+		$this->fake_storage();
+		$wpdb         = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn( $sql ) => $sql );
+		$wpdb->shouldReceive( 'get_row' )->andReturn(
+			array( 'id' => 10, 'canonical' => '3.50-10', 'notation' => 'imperial', 'width' => '3.50', 'aspect' => null, 'rim' => 10 ),
+			array( 'id' => 11, 'canonical' => '110/70-12', 'notation' => 'metric', 'width' => '110', 'aspect' => 70, 'rim' => 12 )
+		);
+		$wpdb->shouldReceive( 'insert' )->never();
+		$GLOBALS['wpdb'] = $wpdb;
+
+		$payload = (string) json_encode(
+			array(
+				'schema_version' => 1,
+				'brands'         => array(),
+				'equivalences'   => array(
+					array( 'source' => '3.50-10', 'target' => '110/70-12' ),
+				),
+			)
+		);
+
+		$dry = JsonImporter::dry_run( $payload );
+		$this->assertTrue( $dry['ok'] );
+		$this->assertSame( 1, $dry['rejected'] );
+		$this->assertSame( 0, $dry['equivalences_new'] );
+		$this->assertStringContainsString( 'rim mismatch', $dry['messages'][0] );
+
+		$stats = JsonImporter::import_chunk(
+			array(),
+			array(
+				array( 'source' => '3.50-10', 'target' => '110/70-12' ),
+			)
+		);
+		$this->assertSame( 0, $stats['equivalences'] );
+		$this->assertSame( 1, $stats['rejected'] );
+	}
+
+	public function test_force_draft_overrides_published_status_in_dry_run_and_import_chunk(): void {
+		$this->fake_storage();
+		$wpdb            = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->prefix    = 'wp_';
+		$wpdb->insert_id = 42;
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn( $sql ) => $sql );
+		$wpdb->shouldReceive( 'query' )->twice()->andReturn( 1 ); // Update model + NULL cc.
+		$wpdb->shouldReceive( 'get_row' )->andReturn(
+			null, // dry_run: find_brand_by_slug.
+			null, // dry_run 2: find_brand_by_slug.
+			array( 'id' => 1, 'name' => 'Honda', 'slug' => 'honda' ), // import_chunk: find_brand_by_slug.
+			array( 'id' => 2, 'brand_id' => 1, 'name' => 'Tornado', 'slug' => 'tornado', 'cc' => null, 'aliases' => '' ), // find_model.
+			null, // find_version_by_natural_key (overlap check).
+			null  // find_version_by_natural_key (upsert_version).
+		);
+		$wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() ); // has_year_overlap.
+		$wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' ); // unique_version_slug.
+		$wpdb->shouldReceive( 'insert' )->once()->withArgs(
+			static function ( $table, $data ): bool {
+				unset( $table );
+				return 'draft' === ( $data['status'] ?? '' );
+			}
+		)->andReturn( 1 );
+		$GLOBALS['wpdb'] = $wpdb;
+
+		$payload = (string) json_encode(
+			array(
+				'schema_version' => 1,
+				'brands'         => array(
+					array(
+						'name'   => 'Honda',
+						'models' => array(
+							array(
+								'name'     => 'Tornado',
+								'versions' => array(
+									array(
+										'year_from' => 2015,
+										'year_to'   => 0,
+										'status'    => 'published',
+										'verified'  => 1,
+									),
+								),
+							),
+						),
+					),
+				),
+			)
+		);
+
+		$dry_default = JsonImporter::dry_run( $payload );
+		$this->assertSame( 1, $dry_default['versions_published'] );
+		$this->assertSame( 0, $dry_default['versions_draft'] );
+
+		$dry_forced = JsonImporter::dry_run( $payload, array( 'force_draft' => true ) );
+		$this->assertSame( 0, $dry_forced['versions_published'] );
+		$this->assertSame( 1, $dry_forced['versions_draft'] );
+
+		$stats = JsonImporter::import_chunk(
+			array(
+				array(
+					'brand_name' => 'Honda',
+					'brand_slug' => 'honda',
+					'model_name' => 'Tornado',
+					'model_slug' => 'tornado',
+					'cc'         => null,
+					'aliases'    => '',
+					'version'    => array(
+						'year_from' => 2015,
+						'year_to'   => 0,
+						'status'    => 'published',
+						'verified'  => 1,
+					),
+				),
+			),
+			array(),
+			array( 'force_draft' => true )
+		);
+		$this->assertSame( 1, $stats['versions'] );
+		$this->assertSame( 0, $stats['rejected'] );
+	}
+
+	public function test_bundled_argentine_base_catalog_is_valid_schema_v1(): void {
+		$path = dirname( __DIR__, 4 ) . '/src/Modules/Compatibility/data/compat-base-ar.json';
+		$raw  = (string) file_get_contents( $path );
+		$this->assertNotSame( '', $raw );
+
+		$parsed = JsonImporter::parse_payload( $raw );
+		$this->assertTrue( $parsed['ok'], $parsed['error'] );
+		$this->assertGreaterThan( 100, $parsed['versions_count'] );
+
+		foreach ( $parsed['brands'] as $brand ) {
+			foreach ( $brand['models'] ?? array() as $model ) {
+				foreach ( $model['versions'] ?? array() as $ver ) {
+					foreach ( $ver['fitments'] ?? array() as $fit ) {
+						$this->assertNotNull(
+							SizeParser::parse( (string) ( $fit['size'] ?? '' ) ),
+							sprintf( 'Invalid size in base catalog for %s %s', (string) $brand['name'], (string) $model['name'] )
+						);
+					}
+				}
+			}
+		}
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_import_runner_sync_option_bypasses_action_scheduler_queueing(): void {
+		$this->fake_storage();
+		Functions\expect( 'as_schedule_single_action' )->never();
+
+		$versions = array();
+		for ( $i = 0; $i <= ImportRunner::BATCH_SIZE; $i++ ) {
+			$versions[] = array( 'year_from' => 1900 ); // Invalid year -> rejected synchronously without DB calls.
+		}
+		$payload = (string) json_encode(
+			array(
+				'schema_version' => 1,
+				'brands'         => array(
+					array(
+						'name'   => 'Test',
+						'models' => array(
+							array(
+								'name'     => 'M1',
+								'versions' => $versions,
+							),
+						),
+					),
+				),
+			)
+		);
+
+		$res = ImportRunner::start( $payload, array( 'sync' => true ) );
+		$this->assertTrue( $res['ok'] );
+		$this->assertSame( 'sync', $res['mode'] );
+		$this->assertSame( 51, $res['stats']['rejected'] );
+		$this->assertSame( 'sync', $this->options[ ImportRunner::LAST_STATUS_OPT ]['mode'] );
+	}
+
+	public function test_fitments_keep_oem_designation_and_derive_construction(): void {
+		$m   = new \ReflectionMethod( JsonImporter::class, 'normalize_fitments' );
+		$out = $m->invoke(
+			null,
+			array(
+				'fitments' => array(
+					array( 'position' => 'front', 'size' => '120/70ZR17', 'fit_type' => 'oem' ),
+					array( 'position' => 'rear', 'size' => '110/80-19', 'fit_type' => 'compatible' ),
+				),
+			),
+			false
+		);
+		$this->assertSame( '120/70-17', $out[0]['canonical'] );
+		$this->assertSame( '120/70ZR17', $out[0]['designation'] );
+		$this->assertSame( 'radial', $out[0]['req_construction'] );
+		$this->assertSame( 'oem', $out[0]['fit_type'] );
+		$this->assertNull( $out[1]['designation'] );
+		$this->assertNull( $out[1]['req_construction'] );
+		$this->assertSame( 'alt', $out[1]['fit_type'] );
 	}
 }

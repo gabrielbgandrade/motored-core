@@ -131,6 +131,115 @@ final class TireSpecs {
 	);
 
 	/**
+	 * ETRTO/ISO single-tire load index -> max weight capacity in kg (20..120).
+	 *
+	 * @var array<int,int|float>
+	 */
+	public const LOAD_KG = array(
+		20  => 80,
+		21  => 82.5,
+		22  => 85,
+		23  => 87.5,
+		24  => 90,
+		25  => 92.5,
+		26  => 95,
+		27  => 97.5,
+		28  => 100,
+		29  => 103,
+		30  => 106,
+		31  => 109,
+		32  => 112,
+		33  => 115,
+		34  => 118,
+		35  => 121,
+		36  => 125,
+		37  => 128,
+		38  => 132,
+		39  => 136,
+		40  => 140,
+		41  => 145,
+		42  => 150,
+		43  => 155,
+		44  => 160,
+		45  => 165,
+		46  => 170,
+		47  => 175,
+		48  => 180,
+		49  => 185,
+		50  => 190,
+		51  => 195,
+		52  => 200,
+		53  => 206,
+		54  => 212,
+		55  => 218,
+		56  => 224,
+		57  => 230,
+		58  => 236,
+		59  => 243,
+		60  => 250,
+		61  => 257,
+		62  => 265,
+		63  => 272,
+		64  => 280,
+		65  => 290,
+		66  => 300,
+		67  => 307,
+		68  => 315,
+		69  => 325,
+		70  => 335,
+		71  => 345,
+		72  => 355,
+		73  => 365,
+		74  => 375,
+		75  => 387,
+		76  => 400,
+		77  => 412,
+		78  => 425,
+		79  => 437,
+		80  => 450,
+		81  => 462,
+		82  => 475,
+		83  => 487,
+		84  => 500,
+		85  => 515,
+		86  => 530,
+		87  => 545,
+		88  => 560,
+		89  => 580,
+		90  => 600,
+		91  => 615,
+		92  => 630,
+		93  => 650,
+		94  => 670,
+		95  => 690,
+		96  => 710,
+		97  => 730,
+		98  => 750,
+		99  => 775,
+		100 => 800,
+		101 => 825,
+		102 => 850,
+		103 => 875,
+		104 => 900,
+		105 => 925,
+		106 => 950,
+		107 => 975,
+		108 => 1000,
+		109 => 1030,
+		110 => 1060,
+		111 => 1090,
+		112 => 1120,
+		113 => 1150,
+		114 => 1180,
+		115 => 1215,
+		116 => 1250,
+		117 => 1285,
+		118 => 1320,
+		119 => 1360,
+		120 => 1400,
+	);
+
+	/**
 	 * Global attribute definitions: slug (<= 28 chars) and order_by strategy.
 	 * Labels are resolved on demand inside AttributeInstaller after init.
 	 *
@@ -216,6 +325,75 @@ final class TireSpecs {
 		}
 		$val = (int) $m[1];
 		return ( $val >= 20 && $val <= 120 ) ? $val : null;
+	}
+
+	/**
+	 * Returns the single-tire max load in kg for a load index (20..120), or null when unknown.
+	 *
+	 * @param int $load Load index.
+	 * @return int|float|null
+	 */
+	public static function load_kg( int $load ) {
+		return self::LOAD_KG[ $load ] ?? null;
+	}
+
+	/**
+	 * Formats combined load index and speed rating with kg / km/h context (call after init).
+	 *
+	 * @param int|null $load       Numeric load index (20..120) or null.
+	 * @param string   $speed_code ETRTO speed rating code (e.g. "H", "(W)") or slug ("w-par").
+	 */
+	public static function format_load_speed( ?int $load, string $speed_code ): string {
+		$speed = strtoupper( trim( $speed_code ) );
+		if ( 'W-PAR' === $speed ) {
+			$speed = '(W)';
+		}
+		if ( '' !== $speed && ! isset( self::SPEED_RANKS[ $speed ] ) ) {
+			$speed = '';
+		}
+
+		$valid_load = ( null !== $load && $load >= 20 && $load <= 120 ) ? $load : null;
+		$code       = ( null !== $valid_load ? (string) $valid_load : '' ) . $speed;
+		if ( '' === $code ) {
+			return '';
+		}
+
+		$parts = array();
+		if ( null !== $valid_load ) {
+			$kg = self::load_kg( $valid_load );
+			if ( null !== $kg ) {
+				$parts[] = sprintf(
+					/* translators: %s: maximum weight in kilograms per tire. */
+					__( 'up to %s kg', 'motored-core' ),
+					(string) $kg
+				);
+			}
+		}
+
+		if ( '' !== $speed ) {
+			$kmh = self::SPEED_KMH[ $speed ];
+			if ( '(W)' === $speed ) {
+				$parts[] = sprintf(
+					/* translators: %d: speed threshold in km/h above 270. */
+					__( '+%d km/h', 'motored-core' ),
+					$kmh
+				);
+			} elseif ( null !== $valid_load ) {
+				$parts[] = sprintf(
+					/* translators: %d: maximum rated speed in km/h. */
+					__( '%d km/h', 'motored-core' ),
+					$kmh
+				);
+			} else {
+				$parts[] = sprintf(
+					/* translators: %d: maximum rated speed in km/h. */
+					__( 'up to %d km/h', 'motored-core' ),
+					$kmh
+				);
+			}
+		}
+
+		return empty( $parts ) ? $code : $code . ' (' . implode( ' · ', $parts ) . ')';
 	}
 
 	/**

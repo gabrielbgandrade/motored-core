@@ -27,6 +27,15 @@ final class ProductIndexRepository {
 	}
 
 	/**
+	 * Counts all indexed tire products.
+	 */
+	public static function count_indexed(): int {
+		global $wpdb;
+		$idx = self::table();
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$idx}" );
+	}
+
+	/**
 	 * Reads a single product's index row joined with canonical sizes.
 	 *
 	 * @param int $product_id Product ID.

@@ -50,6 +50,58 @@ final class CompatibilityMigration {
 	}
 
 	/**
+	 * Migration 2026112301: drops model-year variants ("MY2017+") duplicated by the year range and rebuilds the
+	 * version slug when no other version collides (catalog is not public yet, so slugs are safe to refresh).
+	 */
+	public static function up_2026112301(): bool {
+		self::up();
+		global $wpdb;
+		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
+			return true;
+		}
+		$v = Db::table( 'compat_versions' );
+		$m = Db::table( 'compat_models' );
+		$b = Db::table( 'compat_brands' );
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- One-time migration over fixed tables.
+		$rows = $wpdb->get_results(
+			"SELECT v.id, v.model_id, v.year_from, v.year_to, v.variant, b.slug AS brand_slug, m.slug AS model_slug
+			FROM {$v} v INNER JOIN {$m} m ON m.id = v.model_id INNER JOIN {$b} b ON b.id = m.brand_id
+			WHERE v.variant <> ''",
+			ARRAY_A
+		);
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( '' !== CatalogRepository::clean_variant( (string) $row['variant'] ) ) {
+				continue;
+			}
+			$taken = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$v} WHERE model_id = %d AND year_from = %d AND year_to = %d AND variant_slug = '' AND id <> %d",
+					(int) $row['model_id'],
+					(int) $row['year_from'],
+					(int) $row['year_to'],
+					(int) $row['id']
+				)
+			);
+			if ( $taken > 0 ) {
+				continue;
+			}
+			$slug = CatalogRepository::build_version_slug( (string) $row['brand_slug'], (string) $row['model_slug'], (int) $row['year_from'], (int) $row['year_to'] );
+			$free = 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$v} WHERE slug = %s AND id <> %d", $slug, (int) $row['id'] ) );
+			$data = array(
+				'variant'      => '',
+				'variant_slug' => '',
+			);
+			if ( $free ) {
+				$data['slug'] = $slug;
+			}
+			$wpdb->update( $v, $data, array( 'id' => (int) $row['id'] ) );
+		}
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		CompatCache::bump_catalog();
+		return true;
+	}
+
+	/**
 	 * CREATE TABLE statements in dbDelta format.
 	 *
 	 * @param string $prefix  Table prefix including "motored_" (e.g. "wp_motored_").
@@ -88,7 +140,7 @@ final class CompatibilityMigration {
   variant_slug varchar(120) NOT NULL DEFAULT '',
   status varchar(20) NOT NULL DEFAULT 'draft',
   verified tinyint(1) unsigned NOT NULL DEFAULT 0,
-  notes varchar(255) NOT NULL DEFAULT '',
+  notes text DEFAULT NULL,
   updated_gmt datetime NOT NULL,
   PRIMARY KEY  (id),
   UNIQUE KEY slug (slug),
@@ -117,6 +169,7 @@ final class CompatibilityMigration {
   min_load smallint(5) unsigned DEFAULT NULL,
   min_speed_rank tinyint(3) unsigned DEFAULT NULL,
   req_construction varchar(20) DEFAULT NULL,
+  designation varchar(24) DEFAULT NULL,
   source varchar(30) NOT NULL DEFAULT 'manual',
   note varchar(190) NOT NULL DEFAULT '',
   PRIMARY KEY  (id),

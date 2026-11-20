@@ -147,9 +147,14 @@ final class GarageRepository {
 				continue;
 			}
 			if ( isset( $by_key[ $slug ] ) ) {
+				// Re-added bikes become the most recent (same rule as compat-garage.js put()), so the
+				// entry dropped at capacity is always the oldest one on every device.
+				$existing = $by_key[ $slug ];
+				unset( $by_key[ $slug ] );
 				if ( '' !== $label ) {
-					$by_key[ $slug ]['label'] = $label;
+					$existing['label'] = $label;
 				}
+				$by_key[ $slug ] = $existing;
 				continue;
 			}
 			$by_key[ $slug ] = array(

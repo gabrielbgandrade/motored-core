@@ -36,6 +36,9 @@ final class AttributeInstaller {
 			}
 			$id = AttributeHooks::attribute_id_by_slug( $slug );
 			if ( $id > 0 ) {
+				if ( TireSpecs::ATTR_LINE === $slug ) {
+					AttributeHooks::update_attribute_label( $id, $labels[ $slug ], array( 'Línea', 'Model line' ) );
+				}
 				++$exists;
 				continue;
 			}
@@ -146,7 +149,7 @@ final class AttributeInstaller {
 			TireSpecs::ATTR_CONSTRUCTION => __( 'Construction', 'motored-core' ),
 			TireSpecs::ATTR_TUBE         => __( 'Tube type', 'motored-core' ),
 			TireSpecs::ATTR_USAGE        => __( 'Riding style', 'motored-core' ),
-			TireSpecs::ATTR_LINE         => __( 'Model line', 'motored-core' ),
+			TireSpecs::ATTR_LINE         => __( 'Model', 'motored-core' ),
 		);
 	}
 
