@@ -93,6 +93,22 @@ Tick each item; record failures in `PROJECT.md` (Review log).
 - [ ] Approved review shows thumbnails (new tab); pending review does not; layout OK in every theme of the matrix.
 - [ ] Delete the review: photos removed from the Media Library; privacy eraser removes them by e-mail.
 
+## Photo gallery (InstallGallery)
+- [ ] Product edit screen: box "Fotos de colocación" in the side column (`media-views` loaded cleanly, no JS console errors on add/upload); add 3 photos, reorder with `←`/`→`, edit captions (motorcycle), remove one, Update: 2 stay in the saved order; Quick Edit price afterwards keeps `_motored_install_photos` intact.
+- [ ] Settings > Motored > Reseñas > Galería de fotos: test placements (`before_tabs` default, `after_tabs`, `tab`, `shortcode`), toggle show/include reviews, confirm `motored_install_gallery` `autoload=no`, and click "Sincronizar ahora" to backfill existing approved review photos into `_motored_review_gallery`.
+- [ ] Product page with photos: ONE gallery in the configured placement with `install-gallery.css` and `install-gallery.js` (`defer`, ~3 KB); filter pills ("Todas", "Colocaciones", "Reseñas") reveal hidden thumbnails lazily; a product without photos renders nothing with 0 extra queries / 0 assets (Query Monitor + Network).
+- [ ] Dialog lightbox & theme isolation: clicking a strip thumbnail or `+N` opens the native `<dialog>` centered over backdrop (never opening Flatsome Magnific Popup or theme lightbox); image loads `large` (never full original), star rating shows for reviews, arrows / Esc / swipe navigate, "Ver reseña" opens/scrolls to `#reviews` tab, and JS-disabled opens the photo directly.
+- [ ] Review with photos: approve it, its photos join the gallery (with rating) without page-view rebuilds; unapprove/spam/trash/delete: they leave; pending review: hidden.
+- [ ] New review photos: `ImageProcessor::process_upload()` stores stripped WebP (when supported) or JPEG/PNG with only `thumbnail`, `medium`, `large` sub-sizes in uploads.
+- [ ] Shortcode `[motored_install_gallery]` inside a block-theme or page-builder product template prints the gallery once.
+
+## Image optimizer (ImageOptimizer)
+- [ ] Motored > Imágenes & Motored > Estado show the active server editor (`GD` or `Imagick`), WebP support status, Media Library pending/optimized counts, and cumulative MB saved; `motored_image_optimizer` has `autoload=no`.
+- [ ] Public storefront pages add **0** hooks, queries, and assets from `ImageOptimizerModule`.
+- [ ] Enable upload optimization and upload a large photo with EXIF metadata: longest side scales to `max_side`, quality drops to configured `quality`, EXIF/GPS strips when enabled, and WebP sub-sizes generate for JPEG (PNG only if `convert_png_webp` enabled).
+- [ ] Run **Escanear sin modificar (prueba)** (dry-run scan): finishes through Action Scheduler `motored_image_opt_batch` (or sync resume) with byte stats and 0 modified files.
+- [ ] Run **Optimizar imágenes pendientes** with `bulk_webp_subsizes` OFF (ERP-safe default): file sizes decrease on disk while attachment URLs/filenames remain identical; resume and cancel buttons behave cleanly, and re-running skips `_motored_img_opt` items.
+
 ## Review requests
 - [ ] Settings > Motored > Reseñas: enable, status, days, store URL, max products saved (`motored_review_requests`, autoload no); ReviewPhotos fields still there.
 - [ ] Complete an order: one Scheduled Action (`motored_waha_send`, kind `review_request`, low); order meta `_motored_review_req` set; complete again: no second action.
@@ -162,4 +178,28 @@ Prerequisites: MP plugin 8.10.2, sandbox credentials, Checkout Pro enabled, plug
 - [ ] Sidebar `[motored_filtros]` / `Motored: Filtros de catálogo` widget (desktop + mobile off-canvas drawer): active chips with `×` (including `?moto=`), 11 collapsible sections with exact disjunctive counts (kits excluded from Ancho/Perfil/Rodado/Carga/Velocidad; speed sorted in ETRTO order), real `<a>` links work with JS disabled, desktop batches clicks (~700 ms), mobile (`< 768px`) shows `"Aplicar filtros"`.
 - [ ] Upgraded Compatibility product tab & `[motored_compat_list]`: SSR HTML grouped by brand in 2 columns (collapsed to 6 brands), heading `"Motos compatibles con {medida}"`, instant alias search, Mi Garage highlight client-side, cap at 120 items with on-demand REST hydration. VERIFY #104–#109.
 
+## Storefront review fixes (2026-11-20) — Compatibility + Mi Garage + Filtros
+Run on a classic theme (Flatsome or a fork) AND a block theme; see `docs/REVIEW-FRONTEND-COMPAT.md`.
+- [ ] `?moto=` of a bike without tires: bar with factory sizes, empty message and "Quitar filtro" (VERIFY #116). Position buttons without tires are hidden.
+- [ ] Tire that fits front AND rear of a bike (e.g. 2.75-18): Compatibility tab says "Delantero / Trasero", never "Kit completo"; a kit product says "Kit completo".
+- [ ] Active bike that does NOT fit: product banner says "No coincide con tu …" with factory sizes (never "Elegí tu moto"); the tab line agrees. Turning `show_incompatible_badge` off hides only the red badges on shop cards.
+- [ ] Compatibility tab with > 120 bikes: "Ver todas" keeps the same wording/order, toggles "Ver menos"; with the network offline shows the error + "Reintentar"; searching "cb 500" finds "CB500F".
+- [ ] Mi Garage: add 6 bikes with max 5 → "Mi Garage estaba lleno, así que se quitó …"; remove → "… eliminada. Deshacer" restores it; two open tabs stay in sync; logout clears local data.
+- [ ] Shop without `?moto=` and an active bike: "Tu moto: … Ver solo las cubiertas que le quedan" (off with `garage_cta = no`); with `?moto=` the bar lists the other saved bikes.
+- [ ] `?moto=` results: OEM sizes first unless the shopper picks a sorting (`oem_first_sort`).
+- [ ] Block theme: badges under prices, bar above the Product Collection, banner once on the block single product (VERIFY #115).
+- [ ] Home search: no REST request until a panel is visible (Network tab); size selects show counts; tabs work with arrow keys; smart search works with ↑/↓/Enter/Esc and a screen reader announces the count; typing "120/70-17" + Enter goes straight to the size filter.
+- [ ] Sidebar filters: ticking options does not reload; "Aplicar filtros (N)" applies all; counts match the grid on a parent category, a brand archive and a search.
+- [ ] Accent color setting changes buttons/borders (was ignored before); keyboard focus is visible on tabs, filters, chips and selector.
+- [ ] With `analytics_events = yes` and GTM: `motored_moto_select`, `motored_filter_apply`, `motored_suggest_click`, `motored_size_search`, `motored_garage_cta` reach `dataLayer` without personal data.
 
+## InstallGallery + ImageOptimizer review (2026-11-20)
+- [ ] Product with photos on a block theme: placement "above tabs" and "below tabs" print the gallery once (VERIFY #122); Flatsome (or the fork) and Storefront unchanged.
+- [ ] Approve a review with a photo while the page cache and Redis are on: the product page shows the photo without a manual purge (VERIFY #121).
+- [ ] Empty the spam with hundreds of comments: no slowdown (Query Monitor on the cron/admin request: no `get_comments` per deleted comment).
+- [ ] View source of a product with gallery photos: `alt` uses the Media Library alt text, else the caption, else "<producto> — foto de cliente"; thumbnails have `srcset` + `sizes`.
+- [ ] Keyboard: Tab to a thumbnail, Enter opens the viewer, arrows navigate, Esc closes and focus returns to the thumbnail; Ctrl/middle click opens the image in a new tab.
+- [ ] ImageOptimizer with "Convert new JPEG sub-sizes to WebP" ON: run "Optimize pending images" on JPEGs → every file keeps its `.jpg` URL AND is still a real JPEG (`file` command / response `Content-Type`).
+- [ ] Bulk run with `bulk_resize` OFF (default): a 2400 px banner keeps 2400 px; ON: it becomes `max_side`.
+- [ ] Cancel a running bulk job: it stays "cancelada" (no new Action Scheduler action appears afterwards).
+- [ ] Large originals: each `motored_image_opt_batch` action finishes in < 30 s (Action Scheduler log); the job still completes.

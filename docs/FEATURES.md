@@ -76,6 +76,18 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
   mídia e na avaliação. Avaliação em spam não guarda fotos. Ao excluir a avaliação, as fotos são excluídas.
 - **Limites:** 5 fotos por hora por IP; sem JavaScript a avaliação sai sem fotos; a exclusão por privacidade é feita pelo e-mail do autor.
 
+## Galeria de fotos do produto (InstallGallery)
+- **O que faz:** uma segunda galeria na página do produto, separada da nativa: fotos de pneus colocados em motos (escolhidas por produto) mais as fotos das avaliações aprovadas (com estrelas e filtros por origem).
+- **Onde:** na edição do produto, caixa "Fotos de colocación" (seletor nativo da Biblioteca de mídia, reordenação com setas e prévia da legenda); ajustes em Motored > Reseñas > Galería de fotos (posição: antes das abas por padrão, abaixo das abas, como aba ou `[motored_install_gallery]`, quantidade de miniaturas e botão para sincronizar avaliações antigas).
+- **Fluxo:** mostra filtros rápidos ("Todas", "Instalaciones", "Reseñas"), miniaturas com "+N" e abre um `<dialog>` nativo centralizado em tamaño `large` (nunca o original), bloqueando lightboxes do tema, com setas, swipe e atalho para a avaliação.
+- **Desempenho:** produto sem fotos = 0 consultas, 0 opções lidas e 0 arquivos; com fotos = 1 CSS dedicado + 1 script (`defer`, ~3 KB). As fotos novas de avaliações passam pelo `ImageProcessor` compartido (WebP quando suportado, EXIF removido e apenas 3 sub-tamanhos).
+
+## Otimizador de imagens (ImageOptimizer)
+- **O que faz:** comprime, redimensiona, remove metadados EXIF/IPTC e gera sub-tamanhos WebP nos novos uploads usando filtros nativos do WordPress, além de otimizar a Biblioteca de mídia existente em lotes em segundo plano (Action Scheduler).
+- **Onde:** WooCommerce > Motored > Imágenes (estatísticas da biblioteca, limites, conversão WebP, exclusão de tamanhos 1536/2048 e controles de escaneamento/prueba, iniciar, retomar e cancelar) + linha de estado em Motored > Estado.
+- **Fluxo seguro para ERP:** por padrão otimiza os arquivos existentes in-place mantendo nomes e URLs intactos (não quebra links sincronizados com o ERP), nunca substitui uma imagem por um arquivo maior e oferece modo de teste (dry-run) antes de alterar arquivos em disco.
+- **Desempenho:** não carrega nem registra nada nas páginas públicas da loja (0 consultas, 0 hooks e 0 arquivos para visitantes).
+
 ## Pedido de avaliação (ReviewRequests)
 - **O que faz:** um único WhatsApp após a compra pedindo para avaliar os produtos ainda não avaliados (e, opcional, a loja).
 - **Onde:** Motored > Reseñas (status gatilho, dias, link da loja, máx. de produtos) e a caixa "Review request" no pedido (enviar agora).
@@ -90,6 +102,13 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
 - **Regras:** descontos mostram "% OFF"; acréscimos nunca mostram a porcentagem. A base no checkout é produtos após cupons + impostos, sem frete. O plano fica gravado no pedido (`_motored_plan_*`).
 - **Limite no Mercado Pago (parte B):** ao criar a preferência do Checkout Pro, o plugin limita as parcelas ao máximo do plano (plano 3 nunca oferece 6; plano cash sem cartão de crédito/débito; dinero en cuenta sempre permitido; "Cuotas sin Tarjeta" (`consumer_credits`) é excluído nos planos com o ajuste "Excluir Cuotas sin Tarjeta (consumer_credits)" ligado (padrão LIGADO, coluna da tabela de planos; desligado, o id não é enviado e a reconciliação não o trata como divergência) — id e aceitação pelo MP ainda por verificar, VERIFY #86). Se o limite não puder ser aplicado ou o total dos itens não bater com o pedido, o pagamento é **bloqueado** (mensagem ao cliente, nota privada e log) — nunca sai uma preferência sem limite. Depois do pagamento, confere parcelas, crédito do MP (em plano com menos de 12 parcelas) e valor com o plano; se divergir, o pedido vai para *on-hold* e recebe a marca `_motored_plan_mismatch`: só há nota privada e e-mail ao administrador — o cliente NÃO recebe os avisos de OrderNotifications e a Recovery do pedido é parada (nota "Recuperación pausada por revisión de plan"). Nada é cancelado nem reembolsado. Motored > Status mostra "Integración con Mercado Pago: OK / Revisar integración" (versão validada: 8.10.2).
 - **Padrões / limites:** desligado; Checkout de Blocos fica para depois. Avisa se o Mercado Pago tem desconto/comissão ou menos parcelas que o maior plano.
+
+## Compatibilidade, Mi Garage e filtros (vitrine)
+- **O que faz:** o cliente escolhe a moto (marca → modelo → ano → versão) e a loja mostra quais pneus servem: selo nos cards, banner na ficha do produto, aba "Compatibilidad", barra `?moto=` com as medidas de fábrica e filtro por posição. Mi Garage guarda até 5 motos (local para visitante, na conta para logado) e permite trocar a moto ativa.
+- **Onde:** Motored > Compatibilidad (ajustes) e Productos > Compatibilidad (catálogo de motos). Shortcodes `[motored_compat_selector]`, `[motored_compat_list]`, `[motored_buscador]`, `[motored_filtros]`; Minha conta > Mi Garage.
+- **Regras (revisão 2026-11-20):** a ficha do produto sempre diz a verdade sobre a moto ativa ("No coincide con tu …" com as medidas de fábrica); "Kit completo" só para produtos kit (pneu que serve nas duas rodas = "Delantero / Trasero"); com `?moto=` sem resultados aparece a barra com "Quitar filtro"; resultados ordenados do melhor encaixe (original → alternativa → equivalente) quando o cliente não escolheu outra ordenação; convite "Ver solo las cubiertas que le quedan" na loja; trocar de moto direto na barra; sugestão do par (dianteiro ↔ traseiro); remover moto com "Deshacer"; filtros laterais aplicados com "Aplicar filtros (N)" (sem recarregar a cada clique); busca ignora acentos, espaços e hífens.
+- **Independente do tema:** só hooks e blocos nativos do WordPress/WooCommerce (tema clássico como Flatsome/fork e temas de bloco); cor de destaque via ajuste ou variável CSS `--motored-accent-color`.
+- **Padrões / limites:** desligado por padrão; produtos simples (incluindo kits). Eventos de analítica (`dataLayer`) desligados por padrão. Suporte a tema de bloco ainda por verificar na staging (VERIFY #115).
 
 ## Estado por funcionalidade
 | Funcionalidade | Estado |
@@ -112,6 +131,8 @@ Estado: código e testes automáticos prontos; **nada foi testado ainda numa loj
 | Planos de pagamento: cálculo, validação, taxa | implementado + coberto por testes |
 | Planos de pagamento: vitrine, seletor no checkout clássico | implementado, depende de staging |
 | Planos x Mercado Pago: limite de parcelas, bloqueio, reconciliação | implementado + coberto por testes; depende da sandbox do MP |
+| Galeria de instalações + fotos de avaliações (`InstallGallery`) | implementado + corrigido (posicionamento, lightbox isolado, filtros e backfill); depende de staging |
+| Otimizador de imagens (`ImageOptimizer` + `ImageProcessor`) | implementado + coberto por testes; depende de staging |
 | Receber respostas dos clientes; WhatsApp com imagem/botões | pendente |
 | Caixa de consentimento (decisão: não nesta fase) | pendente |
 

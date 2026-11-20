@@ -35,3 +35,6 @@ the real by-reference `$found` signature (Brain Monkey cannot propagate by-ref a
 - Real Redis behavior (atomicity, eviction, outage), HPOS on/off, the theme matrix (Storefront, Twenty Twenty-Five, Flatsome) in STAGING-CHECKLIST.
 - `uninstall.php`, translations loading in the admin, `.mo` rendering.
 - Anything in `docs/VERIFY.md` marked `unverified`/`partial`.
+
+## PHP/JS parity (Compatibility)
+`node tests/js/compat-parity.test.js` runs `ev()` from `assets/js/compat-garage.js` over `tests/fixtures/compat-cases.json`; `FrontendFixesTest` runs `MatchEngine::evaluate_product()` over the same fixture (and the node script itself when `node` is installed, otherwise it is skipped). Add a case to the fixture whenever matching rules change.

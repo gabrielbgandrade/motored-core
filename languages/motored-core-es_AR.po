@@ -2177,7 +2177,6 @@ msgstr "El transportista puede tardar unas horas en mostrar el primer movimiento
 msgid "You can now track your order #%s:"
 msgstr "Ya podés seguir tu pedido #%s:"
 
-
 #: src/Modules/OrderTracking/OrderTrackingAdmin.php
 msgid "Delay before sending (minutes)"
 msgstr "Demora antes de enviar (minutos)"
@@ -3323,3 +3322,1251 @@ msgid "%d result"
 msgid_plural "%d results"
 msgstr[0] "%d resultado"
 msgstr[1] "%d resultados"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Catalog status: %1$d published · %2$d draft motorcycles · %3$d indexed tire products."
+msgstr "Estado del catálogo: %1$d motos publicadas · %2$d en borrador · %3$d productos indexados."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "3. Prefill base catalog (Argentina)"
+msgstr "3. Precargar catálogo inicial (Argentina)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "4. Reindex tire products"
+msgstr "4. Reindexar cubiertas"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Run step 1 before step 2 so WooCommerce registers global taxonomies. Saving tire products auto-indexes them; step 4 is only needed after bulk imports."
+msgstr "Ejecutá el paso 1 antes del paso 2 para que WooCommerce registre las taxonomías globales. Al guardar un producto se indexa solo; el paso 4 solo hace falta tras importaciones masivas."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Bundled base catalog file could not be read or contains invalid JSON."
+msgstr "No se pudo leer el archivo de catálogo inicial o tiene JSON inválido."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Base catalog validation failed."
+msgstr "Falló la validación del catálogo inicial."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Preview session expired or base catalog file is missing. Run step 3 again."
+msgstr "La vista previa venció o falta el archivo base. Ejecutá el paso 3 de nuevo."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Could not start base catalog import."
+msgstr "No se pudo iniciar la importación del catálogo inicial."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Base catalog preview (Argentina):"
+msgstr "Vista previa del catálogo inicial (Argentina):"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Brands: +%1$d new / %2$d existing"
+msgstr "Marcas: +%1$d nuevas / %2$d existentes"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Models: +%1$d new / %2$d existing"
+msgstr "Modelos: +%1$d nuevos / %2$d existentes"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Versions: +%1$d new / %2$d updated / %3$d unchanged"
+msgstr "Versiones: +%1$d nuevas / %2$d actualizadas / %3$d sin cambios"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Status in file: %1$d verified (published) · %2$d draft (pending review)"
+msgstr "Estado en el archivo: %1$d verificadas (publicadas) · %2$d en borrador (a revisar)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Fitments: +%1$d new / %2$d updated · Equivalences: +%3$d · New sizes: +%4$d"
+msgstr "Medidas aplicadas: +%1$d nuevas / %2$d actualizadas · Equivalencias: +%3$d · Medidas nuevas: +%4$d"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Rejected: %1$d · Year overlaps: %2$d"
+msgstr "Rechazados: %1$d · Años superpuestos: %2$d"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Import all versions as draft (ignore verified/published flags in file)"
+msgstr "Importar todas las versiones como borrador (ignorar estado publicado/verificado del archivo)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Confirm import"
+msgstr "Confirmar importación"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Could not load or import the base catalog."
+msgstr "No se pudo cargar o importar el catálogo inicial."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Could not load or import the base catalog. Check the Compatibility catalog logs."
+msgstr "No se pudo cargar o importar el catálogo inicial. Revisá el registro de Compatibilidad."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "An import is already in progress. Open the Compatibility catalog to run the next batch or cancel it."
+msgstr "Ya hay una importación en curso. Abrí el catálogo de Compatibilidad para procesar el próximo lote o cancelarla."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Open Import / Export"
+msgstr "Abrir Importar / Exportar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Base catalog import queued in Action Scheduler."
+msgstr "Importación del catálogo inicial encolada en Action Scheduler."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Base catalog imported: %1$d versions, %2$d fitments, %3$d equivalences, %4$d rejected."
+msgstr "Catálogo inicial importado: %1$d versiones, %2$d medidas aplicadas, %3$d equivalencias, %4$d rechazados."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Compatibility index"
+msgstr "Índice de compatibilidad"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Not indexed yet. Assign global attributes Position (pa_posicion) and Front/Rear size (pa_medida-delantera / pa_medida-trasera) to match motorcycles."
+msgstr "Todavía no está indexado. Asigná los atributos globales Posición (pa_posicion) y Medida delantera/trasera (pa_medida-delantera / pa_medida-trasera) para que coincida con motos."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Motorcycles"
+msgstr "Motos"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Import / Export"
+msgstr "Importar / Exportar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Product Index"
+msgstr "Índice de productos"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Compatibility overview"
+msgstr "Resumen de compatibilidad"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Storefront: Active"
+msgstr "Tienda: Activa"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Storefront: Disabled"
+msgstr "Tienda: Desactivada"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Settings & setup tools"
+msgstr "Ajustes y herramientas"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Published motorcycles"
+msgstr "Motos publicadas"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Drafts to review"
+msgstr "Borradores a revisar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Indexed tire products"
+msgstr "Cubiertas indexadas"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Approved equivalences"
+msgstr "Equivalencias aprobadas"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Background import in progress: %1$d / %2$d versions processed."
+msgstr "Importación en segundo plano en curso: %1$d / %2$d versiones procesadas."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "How compatibility works (4-step setup)"
+msgstr "Cómo funciona la compatibilidad (configuración en 4 pasos)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Install global attributes and fixed terms once in WooCommerce > Settings > Motored > Compatibility."
+msgstr "Instalá los atributos globales y términos fijos una vez en WooCommerce > Ajustes > Motored > Compatibilidad."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Load the base catalog or add motorcycles here with their front and rear OEM tire sizes."
+msgstr "Cargá el catálogo inicial o agregá motos acá con sus medidas originales delantera y trasera."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Review draft motorcycles and publish them so customers can select them in the store and My Garage."
+msgstr "Revisá las motos en borrador y publicalas para que los clientes puedan elegirlas en la tienda y Mi Garage."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Assign Position and Front/Rear size attributes on tire products — WooCommerce auto-indexes them on save."
+msgstr "Asigná Posición y Medida delantera/trasera en los productos — WooCommerce los indexa automáticamente al guardar."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "+ Quick add motorcycle (Brand, Model, Years & Tire Sizes in 1 step)"
+msgstr "+ Carga rápida de moto (Marca, Modelo, Años y Medidas en 1 paso)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Front tire size (OEM)"
+msgstr "Medida delantera (OEM)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Rear tire size (OEM)"
+msgstr "Medida trasera (OEM)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Displacement cc (new model)"
+msgstr "Cilindrada cc (modelo nuevo)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Search aliases (new model)"
+msgstr "Alias de búsqueda (modelo nuevo)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Published (visible now)"
+msgstr "Publicada (visible ahora)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Draft (review first)"
+msgstr "Borrador (revisar antes)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Notes (optional)"
+msgstr "Notas (opcional)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Checked against manual or OEM catalog"
+msgstr "Verificado con manual o catálogo oficial"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Save motorcycle"
+msgstr "Guardar moto"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Existing brand and model names are matched automatically. After saving, you can add alternative sizes or inspect matching products."
+msgstr "Las marcas y modelos existentes se vinculan automáticamente. Después de guardar podés sumar medidas alternativas o ver qué productos coinciden."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Edit brand"
+msgstr "Editar marca"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Update brand"
+msgstr "Actualizar marca"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "+ Add brand"
+msgstr "+ Agregar marca"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Edit"
+msgstr "Editar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Edit model"
+msgstr "Editar modelo"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Update model"
+msgstr "Actualizar modelo"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "+ Add model"
+msgstr "+ Agregar modelo"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "All brands"
+msgstr "Todas las marcas"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Search model or alias..."
+msgstr "Buscar modelo o alias..."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Reset"
+msgstr "Limpiar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "cc"
+msgstr "cc"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Verified: Any"
+msgstr "Verificado: Todos"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Verified only"
+msgstr "Solo verificadas"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Pending review"
+msgstr "Pendientes de revisión"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Search brand, model, alias..."
+msgstr "Buscar marca, modelo, alias..."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Bulk actions..."
+msgstr "Acciones en lote..."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Publish & verify"
+msgstr "Publicar y verificar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Publish"
+msgstr "Publicar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Set as draft"
+msgstr "Pasar a borrador"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Apply"
+msgstr "Aplicar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Select"
+msgstr "Seleccionar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Tire sizes"
+msgstr "Medidas de cubierta"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "No motorcycles match the current filters."
+msgstr "No hay motos que coincidan con los filtros actuales."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Alt"
+msgstr "Alt."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "No sizes yet"
+msgstr "Sin medidas cargadas"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "F:"
+msgstr "Del.:"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "R:"
+msgstr "Tras.:"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Set draft"
+msgstr "Borrador"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Back to motorcycles"
+msgstr "Volver a motos"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Publish & verify now"
+msgstr "Publicar y verificar ahora"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Store matching preview"
+msgstr "Vista previa de coincidencias en la tienda"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Matching indexed products in store right now: Front: %1$d · Rear: %2$d · Complete kits: %3$d"
+msgstr "Productos indexados que coinciden hoy en la tienda: Delantera: %1$d · Trasera: %2$d · Kits completos: %3$d"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "This motorcycle is currently a draft and is hidden from storefront selectors until published."
+msgstr "Esta moto está en borrador y permanece oculta en los selectores hasta que la publiques."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Verified specification"
+msgstr "Especificación verificada"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Update motorcycle"
+msgstr "Actualizar moto"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Defines which target tire size can replace an OEM motorcycle tire size (1 hop only, never transitive, same rim diameter required)."
+msgstr "Define qué medida alternativa puede reemplazar una medida OEM de moto (solo 1 salto, nunca transitiva y siempre con el mismo rodado)."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "OEM source size (e.g. 2.75-18)"
+msgstr "Medida origen OEM (ej. 2.75-18)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Compatible target size (e.g. 80/100-18)"
+msgstr "Medida destino compatible (ej. 80/100-18)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Bidirectional"
+msgstr "Bidireccional"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Storefront status"
+msgstr "Estado en tienda"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Approximate flag"
+msgstr "Marca aproximada"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Pause"
+msgstr "Pausar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Approve"
+msgstr "Aprobar"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Bundled base catalog (Argentina)"
+msgstr "Catálogo inicial incluido (Argentina)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Preview and import the bundled starter catalog of Argentine motorcycles without pasting JSON manually."
+msgstr "Previsualizá e importá el catálogo base de motos argentinas incluido sin pegar JSON manualmente."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Prefill base catalog (Argentina)"
+msgstr "Precargar catálogo inicial (Argentina)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "WooCommerce Tire Product Index"
+msgstr "Índice de productos de cubiertas en WooCommerce"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Indexed tire products: %1$d · Published products with missing/invalid size attributes: %2$d."
+msgstr "Cubiertas indexadas: %1$d · Productos publicados con atributos faltantes o inválidos: %2$d."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Published products listed below have position or size attributes assigned, but cannot be indexed until fixed."
+msgstr "Los productos publicados abajo tienen atributos de posición o medida asignados, pero no se pueden indexar hasta corregirlos."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Reindex all tire products"
+msgstr "Reindexar todas las cubiertas"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Bulk action applied."
+msgstr "Acción en lote aplicada."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Source and target tire sizes must have the same rim diameter."
+msgstr "La medida origen y destino deben tener el mismo rodado."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Kit (Front + Rear)"
+msgstr "Kit (Delantera + Trasera)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "A background compatibility import is currently queued or running."
+msgstr "Hay una importación de compatibilidad en curso o encolada en segundo plano."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Full size display override (optional)"
+msgstr "Texto de medida a mostrar (opcional)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Optional display text for the Technical information tab (mainly for kits). Leave empty to auto-generate. Compatibility and Catalog Filters use the Attributes tab (Position, Front/Rear size, Width, Aspect ratio, Rim)."
+msgstr "Texto opcional para la pestaña Información técnica (sobre todo para kits). Dejalo vacío para generarlo automáticamente. Compatibilidad y los Filtros del catálogo usan la pestaña Atributos (Posición, Medida delantera/trasera, Ancho, Perfil, Rodado)."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Catalog filters (Width / Profile / Rim)"
+msgstr "Filtros del catálogo (Ancho / Perfil / Rodado)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Kits are filtered by Position, Brand and Compatibility (unit dimensions are excluded)."
+msgstr "Los kits se filtran por Posición, Marca y Compatibilidad (no entran en medidas unitarias)."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Ready: %1$s / %2$s / R%3$s"
+msgstr "Listo: %1$s / %2$s / R%3$s"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Not ready for size filters yet. Assign Width and Rim attributes in the Attributes tab (or enable Auto-fill dimensions in Compatibility settings)."
+msgstr "Todavía no aparece en los filtros por medida. Asigná Ancho y Rodado en la pestaña Atributos (o activá Autocompletar medidas en ajustes de Compatibilidad)."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "1. Install attributes & terms"
+msgstr "1. Instalar atributos y términos"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "2. Load base catalog (Argentina)"
+msgstr "2. Cargar catálogo base (Argentina)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Import every motorcycle as draft (review before publishing)"
+msgstr "Importar todas las motos como borrador (revisalas antes de publicar)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Do step 1 once, then step 2 (imports immediately, safe to repeat). Saving tire products auto-indexes them; step 3 is only needed after bulk imports."
+msgstr "Hacé el paso 1 una sola vez y luego el paso 2 (importa al instante y se puede repetir sin duplicar). Al guardar un neumático se indexa solo; el paso 3 solo hace falta tras importaciones masivas."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Setup done: %1$d attributes created, %2$d already existed, %3$d fixed terms ready."
+msgstr "Listo: %1$d atributos creados, %2$d ya existían, %3$d términos fijos preparados."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Import every motorcycle as draft"
+msgstr "Importar todas las motos como borrador"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Load base catalog (Argentina)"
+msgstr "Cargar catálogo base (Argentina)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Imports the bundled starter catalog of Argentine motorcycles in one click (safe to repeat; existing data is updated, not duplicated)."
+msgstr "Importa en un clic el catálogo inicial de motos argentinas incluido en el plugin (se puede repetir: los datos existentes se actualizan, no se duplican)."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Add an alternative size or a size with safety limits (optional)"
+msgstr "Agregar una medida alternativa o con límites de seguridad (opcional)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Version (optional)"
+msgstr "Versión (opcional)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Front tire size (OEM, as printed in the manual)"
+msgstr "Medida delantera (OEM, como figura en el manual)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Rear tire size (OEM, as printed in the manual)"
+msgstr "Medida trasera (OEM, como figura en el manual)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Motorcycle search page URL"
+msgstr "URL de la página de búsqueda por moto"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Page with the motorcycle search ([motored_buscador]). Product pages send shoppers there when no motorcycle is selected. Leave blank to use the home page."
+msgstr "Página con el buscador por moto ([motored_buscador]). Las fichas de producto envían ahí a quien todavía no eligió su moto. Dejalo vacío para usar la portada."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Use this motorcycle"
+msgstr "Usar esta moto"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Factory tire sizes:"
+msgstr "Medidas de fábrica:"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "We do not have tires for this motorcycle in the catalog yet. Try another position or motorcycle, or contact us."
+msgstr "Todavía no tenemos cubiertas para esta moto en el catálogo. Probá con otra posición u otra moto, o escribinos."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Compatible motorcycles found: %d"
+msgstr "Motos compatibles encontradas: %d"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "...and %d more."
+msgstr "...y %d más."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Automatic (from the size)"
+msgstr "Automática (según la medida)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Choose where this tire goes: front, rear, both axles or a front + rear kit."
+msgstr "Elegí dónde va esta cubierta: delantera, trasera, ambos ejes o un kit delantera + trasera."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Enter a valid front size for the kit, as printed on the tire (for example 120/70ZR17)."
+msgstr "Ingresá una medida delantera válida para el kit, tal como está impresa en la cubierta (por ejemplo 120/70ZR17)."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Enter a valid rear size for the kit, as printed on the tire (for example 160/60ZR17)."
+msgstr "Ingresá una medida trasera válida para el kit, tal como está impresa en la cubierta (por ejemplo 160/60ZR17)."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Enter a valid tire size, as printed on the tire (for example 160/60ZR17 or 110/80-19)."
+msgstr "Ingresá una medida válida, tal como está impresa en la cubierta (por ejemplo 160/60ZR17 o 110/80-19)."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Fill this in for every tire. Saving the product creates the attributes, publishes the size filters and links the tire to the motorcycles it fits. Leave the position empty for products that are not tires."
+msgstr "Completalo en cada cubierta. Al guardar el producto se crean los atributos, se publican los filtros por medida y la cubierta queda vinculada a las motos que le corresponden. Dejá la posición vacía en los productos que no son cubiertas."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Front size for kits. Examples: 160/60ZR17, 150/70R17, 110/80-19, 4.10-18."
+msgstr "Medida delantera en los kits. Ejemplos: 160/60ZR17, 150/70R17, 110/80-19, 4.10-18."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Front tire only"
+msgstr "Solo cubierta delantera"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Install them in WooCommerce > Settings > Motored > Compatibility (step 1)."
+msgstr "Instalalos en WooCommerce > Ajustes > Motored > Compatibilidad (paso 1)."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Kit: front + rear (two different sizes)"
+msgstr "Kit: delantera + trasera (dos medidas distintas)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Leave empty to generate it automatically from the size, construction and speed rating."
+msgstr "Dejalo vacío para generarlo automáticamente a partir de la medida, la construcción y el índice de velocidad."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Motorcycle tire"
+msgstr "Cubierta para motos"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Not a tire / choose..."
+msgstr "No es una cubierta / elegir..."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Not linked yet. Choose the position, enter the size and update the product."
+msgstr "Todavía no está vinculada. Elegí la posición, ingresá la medida y actualizá el producto."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Rear size (kits only)"
+msgstr "Medida trasera (solo kits)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Rear tire only"
+msgstr "Solo cubierta trasera"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Same tire fits front and rear"
+msgstr "La misma cubierta va adelante y atrás"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Size (as printed on the tire)"
+msgstr "Medida (como figura en la cubierta)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Size text to display (optional)"
+msgstr "Texto de medida a mostrar (opcional)"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "The load index must be a number between 20 and 120."
+msgstr "El índice de carga debe ser un número entre 20 y 120."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "The size is valid, but no published motorcycle in the catalog uses it yet."
+msgstr "La medida es válida, pero todavía ninguna moto publicada del catálogo la usa."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "The tire attributes are not installed yet."
+msgstr "Todavía no están instalados los atributos de cubiertas."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "The tire is linked to motorcycles once the product is published."
+msgstr "La cubierta se vincula con las motos cuando el producto está publicado."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Unknown speed rating."
+msgstr "Índice de velocidad desconocido."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "ZR and R sizes are radial, B is belted; a plain dash does not say. Choose one to override."
+msgstr "Las medidas ZR y R son radiales, B es cinturado; un guion simple no lo indica. Elegí una opción para forzarlo."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "— Not a tire —"
+msgstr "— No es una cubierta —"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Choose the position above if this product is a motorcycle tire. The fields to fill in appear right away."
+msgstr "Elegí la posición arriba si este producto es una cubierta de moto. Los campos para completar aparecen enseguida."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "In a kit, this is the front size."
+msgstr "En un kit, esta es la medida delantera."
+
+#. translators: %s: maximum weight in kilograms per tire.
+#: src/Modules/Compatibility/TireSpecs.php
+msgid "up to %s kg"
+msgstr "hasta %s kg"
+
+#. translators: %d: speed threshold in km/h above 270.
+#: src/Modules/Compatibility/TireSpecs.php
+msgid "+%d km/h"
+msgstr "+%d km/h"
+
+#. translators: %d: maximum rated speed in km/h.
+#: src/Modules/Compatibility/TireSpecs.php
+msgid "%d km/h"
+msgstr "%d km/h"
+
+#. translators: %d: maximum rated speed in km/h.
+#: src/Modules/Compatibility/TireSpecs.php
+msgid "up to %d km/h"
+msgstr "hasta %d km/h"
+
+#: src/Modules/Compatibility/ProductTireAdmin.php
+msgid "Not a tire"
+msgstr "No es una cubierta"
+
+#: src/Modules/Compatibility/ProductTireAdmin.php
+msgid "Front tire"
+msgstr "Cubierta delantera"
+
+#: src/Modules/Compatibility/ProductTireAdmin.php
+msgid "Rear tire"
+msgstr "Cubierta trasera"
+
+#: src/Modules/Compatibility/ProductTireAdmin.php
+msgid "Front / Rear (both axles)"
+msgstr "Delantera / Trasera (ambos ejes)"
+
+#: src/Modules/Compatibility/ProductTireAdmin.php
+msgid "Kit (front + rear)"
+msgstr "Kit (delantera + trasera)"
+
+#: src/Modules/Compatibility/ProductTireAdmin.php
+msgid "ZR/R = radial, B = belted. Choose to override."
+msgstr "ZR/R = radial, B = cinturado. Elegí una opción para forzarlo."
+
+#: src/Modules/Compatibility/ProductTireAdmin.php
+msgid "Customize displayed size text (optional)"
+msgstr "Personalizar texto de medida (opcional)"
+
+#: src/Modules/Compatibility/ProductTireAdmin.php
+msgid "Storefront summary:"
+msgstr "Resumen en tienda:"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Check compatibility"
+msgstr "Verificar compatibilidad"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Index"
+msgstr "Índice"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Does it fit your motorcycle?"
+msgstr "¿Sirve para tu moto?"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Select your motorcycle"
+msgstr "Elegí tu moto"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Change motorcycle"
+msgstr "Cambiar moto"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Your saved motorcycles:"
+msgstr "Tus motos guardadas:"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Your motorcycle uses:"
+msgstr "Tu moto usa:"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Factory sizes:"
+msgstr "Medidas originales:"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Loading..."
+msgstr "Cargando..."
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "No models available"
+msgstr "Sin modelos disponibles"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Could not load options. Please try again."
+msgstr "No se pudieron cargar las opciones. Probá de nuevo."
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Motorcycle saved to My Garage."
+msgstr "Moto guardada en Mi Garage."
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Save your motorcycle to instantly see which tires fit across the store."
+msgstr "Guardá tu moto para ver al instante qué cubiertas son compatibles en toda la tienda."
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php
+msgid "No tire sizes available yet."
+msgstr "Todavía no hay medidas de cubiertas disponibles."
+
+#: src/Modules/InstallGallery/GalleryDisplay.php
+msgid "Previous photo"
+msgstr "Foto anterior"
+
+#: src/Modules/InstallGallery/GalleryDisplay.php
+msgid "Next photo"
+msgstr "Foto siguiente"
+
+#: src/Modules/InstallGallery/GalleryDisplay.php
+msgid "View review"
+msgstr "Ver reseña"
+
+#: src/Modules/InstallGallery/GalleryDisplay.php
+msgid "Customer and installation photos"
+msgstr "Fotos de clientes y colocaciones"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Photo gallery"
+msgstr "Galería de fotos"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "A second gallery on the product page: installation photos you choose plus the photos of approved reviews."
+msgstr "Una segunda galería en la página del producto: las fotos de colocación que elijas más las fotos de las reseñas aprobadas."
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Show the gallery"
+msgstr "Mostrar la galería"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Print the gallery below the product tabs when the product has photos."
+msgstr "Mostrar la galería debajo de las pestañas del producto cuando tenga fotos."
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Include review photos"
+msgstr "Incluir fotos de reseñas"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Add the photos of approved reviews to the gallery."
+msgstr "Sumar a la galería las fotos de las reseñas aprobadas."
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Thumbnails in the strip"
+msgstr "Miniaturas en la tira"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "The rest of the photos open from the \"+N\" thumbnail. Fewer thumbnails means a lighter page."
+msgstr "El resto de las fotos se abre desde la miniatura \"+N\". Menos miniaturas hacen una página más liviana."
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Installation photos"
+msgstr "Fotos de colocación"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Add to the gallery"
+msgstr "Agregar a la galería"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Remove photo"
+msgstr "Quitar foto"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Add photos"
+msgstr "Agregar fotos"
+
+#. translators: %d: maximum number of photos.
+#: src/Modules/InstallGallery/GalleryAdmin.php
+#, php-format
+msgid "Photos of tires fitted on motorcycles (up to %d). Write the motorcycle in the caption of each photo in the Media Library. Photos of approved reviews join automatically."
+msgstr "Fotos de neumáticos colocados en motos (hasta %d). Escribí la moto en el epígrafe de cada foto en la Biblioteca de medios. Las fotos de las reseñas aprobadas se suman solas."
+
+#: src/Modules/Compatibility/CompatListRenderer.php
+msgid "No motorcycle matches your search."
+msgstr "Ninguna moto coincide con tu búsqueda."
+
+#: src/Modules/Compatibility/CompatListRenderer.php
+msgid "Try again"
+msgstr "Reintentar"
+
+#: src/Modules/Compatibility/CompatListRenderer.php
+msgid "Show less"
+msgstr "Ver menos"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Show incompatible badge on catalog cards"
+msgstr "Mostrar aviso de incompatibilidad en las tarjetas del catálogo"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Display \"Does not match your bike\" on shop cards when a tire does not fit the active garage bike. The product page always tells the truth about the active bike."
+msgstr "Muestra \"No coincide con tu moto\" en las tarjetas de la tienda cuando una cubierta no le queda a la moto activa de Mi Garage. La ficha del producto siempre informa si le queda o no a la moto activa."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Suggest filtering by the active motorcycle"
+msgstr "Sugerir filtrar por la moto activa"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "On shop pages without a motorcycle filter, show \"View only tires for my …\" to shoppers with a bike in My Garage."
+msgstr "En la tienda sin filtro de moto, muestra \"Ver solo las cubiertas que le quedan\" a quien tenga una moto en Mi Garage."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Best fit first"
+msgstr "Mejor ajuste primero"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "When filtering by motorcycle and the shopper did not pick a sorting, list OEM sizes first, then alternatives, then equivalents."
+msgstr "Al filtrar por moto, si el cliente no eligió un orden, muestra primero las medidas originales, después las alternativas y al final las equivalentes."
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Analytics events"
+msgstr "Eventos de analítica"
+
+#: src/Modules/Compatibility/CompatibilityAdmin.php
+msgid "Push anonymous events (motorcycle chosen, filters applied, suggestion clicked) to window.dataLayer when it exists. No personal data is sent."
+msgstr "Envía eventos anónimos (moto elegida, filtros aplicados, sugerencia elegida) a window.dataLayer si existe. No se envían datos personales."
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php
+msgid "Type to filter..."
+msgstr "Escribí para filtrar..."
+
+#. translators: motorcycle removed to make room in My Garage.
+#: src/Modules/Compatibility/Storefront.php
+msgid "My Garage was full, so %s was removed."
+msgstr "Mi Garage estaba lleno, así que se quitó %s."
+
+#. translators: removed motorcycle label.
+#: src/Modules/Compatibility/Storefront.php
+msgid "%s removed."
+msgstr "%s eliminada."
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Undo"
+msgstr "Deshacer"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Your session expired. Reload the page to save your changes."
+msgstr "Tu sesión expiró. Recargá la página para guardar los cambios."
+
+#. translators: active motorcycle label.
+#: src/Modules/Compatibility/Storefront.php
+msgid "Your motorcycle: %s."
+msgstr "Tu moto: %s."
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "View only tires that fit it"
+msgstr "Ver solo las cubiertas que le quedan"
+
+#: src/Modules/Compatibility/Storefront.php
+msgid "Your other motorcycles:"
+msgstr "Tus otras motos:"
+
+#. translators: active motorcycle label.
+#: src/Modules/Compatibility/Storefront.php
+msgid "View front tires for your %s"
+msgstr "Ver cubiertas delanteras para tu %s"
+
+#. translators: active motorcycle label.
+#: src/Modules/Compatibility/Storefront.php
+msgid "View rear tires for your %s"
+msgstr "Ver cubiertas traseras para tu %s"
+
+#: src/Modules/CatalogFilters/SearchShortcode.php
+msgid "Suggestions"
+msgstr "Sugerencias"
+
+#. translators: number of suggestions.
+#: src/Modules/CatalogFilters/StorefrontAssets.php
+msgid "%d suggestions available. Use the up and down arrows to browse."
+msgstr "%d sugerencias disponibles. Usá las flechas arriba y abajo para recorrerlas."
+
+#. translators: number of pending filter changes.
+#: src/Modules/CatalogFilters/StorefrontAssets.php
+msgid "Apply filters (%d)"
+msgstr "Aplicar filtros (%d)"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Print the gallery on product pages when the product has photos."
+msgstr "Muestra la galería en la página del producto cuando tiene fotos."
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Placement on product page"
+msgstr "Ubicación en la página del producto"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Where the gallery appears in classic WooCommerce templates. You can also place [motored_install_gallery] manually anywhere."
+msgstr "Dónde se muestra la galería en plantillas clásicas de WooCommerce. También podés ubicar [motored_install_gallery] donde quieras."
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Below product summary (above tabs)"
+msgstr "Debajo del resumen del producto (arriba de las pestañas)"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Below product tabs"
+msgstr "Debajo de las pestañas del producto"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "As a product tab"
+msgstr "Como una pestaña del producto"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Manual placement only ([motored_install_gallery])"
+msgstr "Solo ubicación manual ([motored_install_gallery])"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Gallery tools"
+msgstr "Herramientas de la galería"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Sync existing review photos"
+msgstr "Sincronizar fotos de reseñas existentes"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Rebuilds the gallery index from already-approved product reviews that have photos. For block themes or custom product builders, insert shortcode [motored_install_gallery]."
+msgstr "Reconstruye el índice de la galería a partir de las reseñas ya aprobadas que tienen fotos. Para temas de bloques o maquetadores personalizados, usá el shortcode [motored_install_gallery]."
+
+#. translators: %d: number of products rebuilt.
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Synced review photos for %d products."
+msgstr "Se sincronizaron las fotos de reseñas de %d productos."
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Move left"
+msgstr "Mover a la izquierda"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Move right"
+msgstr "Mover a la derecha"
+
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "No caption"
+msgstr "Sin epígrafe"
+
+#. translators: %d: number of linked customer review photos.
+#: src/Modules/InstallGallery/GalleryAdmin.php
+msgid "Linked approved review photos: %d."
+msgstr "Fotos de reseñas aprobadas vinculadas: %d."
+
+#. translators: %d: number of photos in the gallery.
+#: src/Modules/InstallGallery/GalleryDisplay.php
+msgid "Customer photos (%d)"
+msgstr "Fotos de clientes (%d)"
+
+#: src/Modules/InstallGallery/GalleryDisplay.php
+msgid "Filter photos"
+msgstr "Filtrar fotos"
+
+#. translators: %d: total photo count.
+#: src/Modules/InstallGallery/GalleryDisplay.php
+msgid "All (%d)"
+msgstr "Todas (%d)"
+
+#. translators: %d: installation photo count.
+#: src/Modules/InstallGallery/GalleryDisplay.php
+msgid "Installations (%d)"
+msgstr "Colocaciones (%d)"
+
+#. translators: %d: customer review photo count.
+#: src/Modules/InstallGallery/GalleryDisplay.php
+msgid "Reviews (%d)"
+msgstr "Reseñas (%d)"
+
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "An image optimization job is already running. Wait for it to finish or cancel it first."
+msgstr "Ya hay una optimización de imágenes en curso. Esperá a que termine o cancelala primero."
+
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "No pending images to optimize."
+msgstr "No hay imágenes pendientes para optimizar."
+
+#. translators: %d: number of images queued for dry-run scan.
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "Test scan queued in background batches (%d images)."
+msgstr "Escaneo de prueba encolado en lotes en segundo plano (%d imágenes)."
+
+#. translators: %d: number of images queued for optimization.
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "Bulk optimization queued in background batches (%d images)."
+msgstr "Optimización masiva encolada en lotes en segundo plano (%d imágenes)."
+
+#. translators: %d: number of images scanned.
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "Test scan finished synchronously (%d images checked)."
+msgstr "Escaneo de prueba terminado en el acto (%d imágenes revisadas)."
+
+#. translators: %d: number of images optimized.
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "Bulk optimization finished synchronously (%d images processed)."
+msgstr "Optimización masiva terminada en el acto (%d imágenes procesadas)."
+
+#. translators: 1: processed count, 2: total count.
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "Action Scheduler is unavailable: processed the first batch (%1$d of %2$d images). Click Resume to continue."
+msgstr "Action Scheduler no está disponible: se procesó el primer lote (%1$d de %2$d imágenes). Hacé clic en Reanudar para seguir."
+
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "There is no active optimization job to resume."
+msgstr "No hay ninguna tarea de optimización activa para reanudar."
+
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "Optimization job resumed in background batches."
+msgstr "Tarea de optimización reanudada en lotes en segundo plano."
+
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "Processed the next optimization batch synchronously."
+msgstr "Se procesó en el acto el siguiente lote de optimización."
+
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "There is no active optimization job to cancel."
+msgstr "No hay ninguna tarea de optimización activa para cancelar."
+
+#: src/Modules/ImageOptimizer/BulkRunner.php
+msgid "Optimization job cancelled."
+msgstr "Se canceló la tarea de optimización."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Images"
+msgstr "Imágenes"
+
+#. translators: 1: active image editor (GD/Imagick/None), 2: WebP support (Yes/No).
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Optimizes newly uploaded and existing Media Library images with WordPress native tools. Server editor: %1$s · WebP supported: %2$s."
+msgstr "Optimiza las imágenes nuevas y existentes de la Biblioteca de medios con herramientas nativas de WordPress. Editor del servidor: %1$s · Soporte WebP: %2$s."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "None"
+msgstr "Ninguno"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Image optimization"
+msgstr "Optimización de imágenes"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Enable upload optimization"
+msgstr "Activar optimización al subir"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Automatically compress, resize and convert new Media Library uploads."
+msgstr "Comprime, redimensiona y convierte automáticamente las imágenes nuevas subidas a la Biblioteca de medios."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Maximum longest side (px)"
+msgstr "Lado máximo (px)"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Images larger than this are scaled down proportionally (800-3000 px)."
+msgstr "Las imágenes más grandes se achican de forma proporcional (800-3000 px)."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "JPEG / WebP quality"
+msgstr "Calidad JPEG / WebP"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Balanced web quality is 80-84 (60-95)."
+msgstr "La calidad equilibrada para web es 80-84 (60-95)."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Convert new JPEG sub-sizes to WebP"
+msgstr "Convertir subtamaños JPEG nuevos a WebP"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Generate WebP thumbnails and catalog sizes on new JPEG uploads when the server supports WebP."
+msgstr "Genera miniaturas y tamaños de catálogo en WebP cuando subís un JPEG nuevo y el servidor lo soporta."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Convert new PNG sub-sizes to WebP"
+msgstr "Convertir subtamaños PNG nuevos a WebP"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Also generate WebP sub-sizes for new PNG uploads (optional)."
+msgstr "También genera subtamaños WebP para imágenes PNG nuevas (opcional)."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Strip EXIF metadata"
+msgstr "Quitar metadatos EXIF"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Remove camera EXIF/GPS data during optimization."
+msgstr "Elimina datos EXIF/GPS de la cámara al optimizar."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Skip 1536px and 2048px sizes on upload"
+msgstr "Omitir tamaños 1536px y 2048px al subir"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Prevent WordPress from generating extra 1536x1536 and 2048x2048 files to save disk space."
+msgstr "Evita que WordPress genere archivos extra de 1536x1536 y 2048x2048 para ahorrar espacio en disco."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Bulk batch size"
+msgstr "Tamaño de lote masivo"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Number of attachments processed per background Action Scheduler batch (5-25). Keep low on shared or busy servers."
+msgstr "Cantidad de imágenes procesadas por cada lote en segundo plano con Action Scheduler (5-25). Dejalo bajo en servidores compartidos o con mucho tráfico."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Convert sub-sizes to WebP during bulk run"
+msgstr "Convertir subtamaños a WebP en el proceso masivo"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Warning: regenerates sub-size URLs to .webp, which may differ from cached or external ERP links. Leave unchecked to keep every file name and URL unchanged."
+msgstr "Atención: regenera las URLs de los subtamaños a .webp, lo que puede cambiar enlaces cacheados o de un ERP externo. Dejalo desmarcado para conservar intactos todos los nombres de archivo y URLs."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Bulk optimization & library status"
+msgstr "Optimización masiva y estado de la biblioteca"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Images:"
+msgstr "Imágenes:"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Optimized:"
+msgstr "Optimizadas:"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Pending:"
+msgstr "Pendientes:"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Space saved:"
+msgstr "Espacio ahorrado:"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Test scan (dry run)"
+msgstr "Escaneo de prueba (simulación)"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Live compression"
+msgstr "Compresión real"
+
+#. translators: 1: status, 2: processed count, 3: total count, 4: optimized/eligible count, 5: error count, 6: saved bytes formatted.
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Status %1$s — %2$d / %3$d processed (%4$d OK, %5$d errors, %6$s saved)."
+msgstr "Estado %1$s — %2$d / %3$d procesadas (%4$d OK, %5$d errores, %6$s ahorrados)."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Run test scan (dry run)"
+msgstr "Ejecutar escaneo de prueba (simulación)"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Optimize pending images"
+msgstr "Optimizar imágenes pendientes"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Resume job"
+msgstr "Reanudar tarea"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Cancel job"
+msgstr "Cancelar tarea"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Default bulk mode compresses images in place, keeping every filename and URL intact so ERP integrations and cached links stay valid. Runs asynchronously in small batches."
+msgstr "El modo masivo predeterminado comprime las imágenes en el mismo lugar y mantiene intactos los nombres y URLs para no romper integraciones ERP ni caché. Se ejecuta de forma asincrónica en lotes chicos."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Original format"
+msgstr "Formato original"
+
+#. translators: 1: output mode (WebP/Original format), 2: editor name (GD/Imagick).
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Active (%1$s / %2$s)"
+msgstr "Activo (%1$s / %2$s)"
+
+#. translators: product name.
+#: src/Modules/InstallGallery/GalleryDisplay.php
+msgid "%s — customer photo"
+msgstr "%s — foto de cliente"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Scale down existing originals during bulk run"
+msgstr "Achicar originales existentes en la optimización masiva"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "Also shrink existing images larger than the maximum side. Leave unchecked to only recompress (wide banners and theme images keep their resolution)."
+msgstr "También reduce las imágenes existentes más grandes que el lado máximo. Dejalo sin marcar para solo recomprimir (los banners anchos y las imágenes del tema mantienen su resolución)."
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "idle"
+msgstr "inactiva"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "running"
+msgstr "en curso"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "completed"
+msgstr "terminada"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "cancelled"
+msgstr "cancelada"
+
+#: src/Modules/ImageOptimizer/ImageOptimizerAdmin.php
+msgid "error"
+msgstr "con error"
