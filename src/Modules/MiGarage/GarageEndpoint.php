@@ -31,7 +31,8 @@ final class GarageEndpoint {
 	 *
 	 * @var bool
 	 */
-	private bool $endpoint_added = false;
+	private bool $endpoint_added  = false;
+	private bool $drawer_rendered = false;
 
 	/**
 	 * Registers only the zero-cost rewrite and query-var hooks so flushes from CLI, cron,
@@ -49,6 +50,7 @@ final class GarageEndpoint {
 	public function register(): void {
 		$this->register_rewrite_hooks();
 		add_shortcode( self::SHORTCODE, array( $this, 'shortcode' ) );
+		add_action( 'motored_garage_trigger', array( $this, 'mount_drawer' ) );
 		add_filter( 'woocommerce_account_menu_items', array( $this, 'menu_item' ) );
 		add_filter( 'woocommerce_endpoint_' . self::ENDPOINT . '_title', array( $this, 'endpoint_title' ) );
 		add_action( 'woocommerce_account_' . self::ENDPOINT . '_endpoint', array( $this, 'render_page' ) );
@@ -221,36 +223,103 @@ final class GarageEndpoint {
 			echo '<p>' . esc_html__( 'Vehicle compatibility is currently disabled.', 'motored-core' ) . '</p>';
 			return;
 		}
+		$this->render_garage( false );
+	}
+
+	/**
+	 * Opts in from a rendered storefront trigger, outside checkout.
+	 */
+	public function mount_drawer(): void {
+		if ( ( function_exists( 'is_checkout' ) && is_checkout() ) || ! Config::enabled() ) {
+			return;
+		}
+		add_action( 'wp_footer', array( $this, 'render_drawer' ), 15 );
+	}
+
+	/**
+	 * Outputs the shared garage inside one native modal.
+	 */
+	public function render_drawer(): void {
+		if ( $this->drawer_rendered ) {
+			return;
+		}
+		$this->drawer_rendered = true;
+		echo '<dialog id="motored-garage-drawer" class="motored-garage-drawer" aria-labelledby="motored-garage-drawer-title">';
+		echo '<div class="motored-garage-drawer__header">';
+		echo '<h2 id="motored-garage-drawer-title">' . esc_html__( 'My Garage', 'motored-core' ) . '</h2>';
+		echo '<button type="button" class="motored-garage-drawer__close" aria-label="' . esc_attr__( 'Close', 'motored-core' ) . '"><span aria-hidden="true">&times;</span></button>';
+		echo '</div>';
+		$this->render_garage( true );
+		echo '</dialog>';
+	}
+
+	/**
+	 * Renders the list, picker and account hint for either garage surface.
+	 *
+	 * @param bool $drawer Whether this is the modal surface.
+	 */
+	private function render_garage( bool $drawer ): void {
 		StorefrontAssets::enqueue_compat_css();
 		GarageAssets::enqueue();
-		wp_enqueue_script(
-			'motored-compat-garage-page',
-			MOTORED_CORE_URL . 'assets/js/compat-garage-page.js',
-			array( GarageAssets::HANDLE ),
-			MOTORED_CORE_VERSION . '-garage8',
-			array(
-				'strategy'  => 'defer',
-				'in_footer' => true,
-			)
-		);
-		wp_add_inline_script( 'motored-compat-garage-page', 'window.motoredGaragePageI18n=' . wp_json_encode( GarageAssets::page_i18n() ) . ';', 'before' );
+		if ( ! wp_script_is( 'motored-compat-garage-page', 'enqueued' ) ) {
+			wp_enqueue_script(
+				'motored-compat-garage-page',
+				MOTORED_CORE_URL . 'assets/js/compat-garage-page.js',
+				array( GarageAssets::HANDLE ),
+				MOTORED_CORE_VERSION . '-garage10',
+				array(
+					'strategy'  => 'defer',
+					'in_footer' => true,
+				)
+			);
+			wp_add_inline_script( 'motored-compat-garage-page', 'window.motoredGaragePageI18n=' . wp_json_encode( GarageAssets::page_i18n() ) . ';', 'before' );
+		}
 		$shop_url    = Config::shop_url();
 		$account_url = function_exists( 'wc_get_page_permalink' ) ? (string) wc_get_page_permalink( 'myaccount' ) : '';
-		echo '<div class="motored-garage-page" data-shop-url="' . esc_url( $shop_url ) . '">';
-		echo '<div class="motored-garage-page__head">';
-		echo '<h2>' . esc_html__( 'My Garage', 'motored-core' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Save your motorcycles to filter tires and verify compatibility automatically across the store.', 'motored-core' ) . '</p>';
-		if ( ! is_user_logged_in() && '' !== $account_url ) {
-			echo '<p class="motored-garage-page__login"><a href="' . esc_url( $account_url ) . '">' . esc_html__( 'Log in to save your garage permanently across devices', 'motored-core' ) . '</a></p>';
+		echo '<div class="motored-garage-page' . ( $drawer ? ' motored-garage-page--drawer' : '' ) . '" data-shop-url="' . esc_url( $shop_url ) . '"' . ( $drawer ? '' : ' data-garage-full-page' ) . '>';
+
+		if ( $drawer ) {
+			echo '<div class="motored-garage-drawer__body">';
+			if ( ! is_user_logged_in() && '' !== $account_url ) {
+				echo '<div class="motored-garage-guest">';
+				echo '<p class="motored-garage-guest__title">' . esc_html__( 'Guardá tus motos en tu cuenta', 'motored-core' ) . '</p>';
+				echo '<p class="motored-garage-guest__cta"><a href="' . esc_url( $account_url ) . '">' . esc_html__( 'Iniciá sesión o creá tu cuenta gratis', 'motored-core' ) . '</a> ' . esc_html__( 'para:', 'motored-core' ) . '</p>';
+				echo '<ul class="motored-garage-guest__perks">';
+				echo '<li>' . esc_html__( 'Ver solo cubiertas compatibles con tu moto', 'motored-core' ) . '</li>';
+				echo '<li>' . esc_html__( 'Acceder a tu garage desde cualquier dispositivo', 'motored-core' ) . '</li>';
+				echo '</ul>';
+				echo '</div>';
+			}
+		} else {
+			echo '<div class="motored-garage-page__head">';
+			echo '<h2>' . esc_html__( 'My Garage', 'motored-core' ) . '</h2>';
+			echo '<p>' . esc_html__( 'Save your motorcycles to filter tires and verify compatibility automatically across the store.', 'motored-core' ) . '</p>';
+			echo '</div>';
 		}
-		echo '</div>';
+
 		echo '<p class="motored-garage-notice" role="status" aria-live="polite" hidden></p>';
 		echo '<div class="motored-garage-list" aria-live="polite"></div>';
-		echo '<div class="motored-garage-add">';
-		echo '<h3>' . esc_html__( 'Add a motorcycle', 'motored-core' ) . '</h3>';
-		echo do_shortcode( '[' . Storefront::SELECTOR_SHORTCODE . ' mode="garage"]' );
-		echo '</div>';
-		echo '<p class="motored-compat-disclaimer"><small>' . esc_html( Config::disclaimer() ) . '</small></p>';
+
+		if ( $drawer ) {
+			echo '<p class="motored-compat-disclaimer"><small>' . esc_html( Config::disclaimer() ) . '</small></p>';
+			echo '</div>';
+			echo '<div class="motored-garage-drawer__footer">';
+			echo '<details class="motored-garage-add"><summary><span>' . esc_html__( 'Add a motorcycle', 'motored-core' ) . '</span><span class="motored-garage-add__chev" aria-hidden="true"></span></summary>';
+			echo '<div class="motored-garage-add__body">';
+			echo do_shortcode( '[' . Storefront::SELECTOR_SHORTCODE . ' mode="garage" lazy="1"]' );
+			echo '</div>';
+			echo '</details>';
+			echo '</div>';
+		} else {
+			echo '<div class="motored-garage-add">';
+			echo '<h3>' . esc_html__( 'Add a motorcycle', 'motored-core' ) . '</h3>';
+			echo do_shortcode( '[' . Storefront::SELECTOR_SHORTCODE . ' mode="garage"]' );
+			echo '</div>';
+			if ( ! is_user_logged_in() && '' !== $account_url ) {
+				echo '<p class="motored-garage-page__login"><a href="' . esc_url( $account_url ) . '">' . esc_html__( 'Log in to save your garage permanently across devices', 'motored-core' ) . '</a></p>';
+			}
+			echo '<p class="motored-compat-disclaimer"><small>' . esc_html( Config::disclaimer() ) . '</small></p>';
+		}
 		echo '</div>';
 	}
 

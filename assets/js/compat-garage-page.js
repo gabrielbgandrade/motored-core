@@ -10,7 +10,8 @@
 	var t = Object.assign({}, c.i18n || {}, window.motoredGaragePageI18n || {});
 	var G = window.motoredGarageApi;
 	var UNDO_MS = 5000;
-	var pending = null; // { slug, timer, prev }
+	var pending = null;
+	var removing = new Set();
 
 	if (!G) {
 		return;
@@ -33,33 +34,22 @@
 	}
 
 	function notice(text, undo) {
-		var box = D.querySelector('.motored-garage-notice');
-		if (!box) {
-			return;
-		}
-		box.textContent = '';
-		if (!text) {
-			box.hidden = true;
-			return;
-		}
-		box.appendChild(el('span', '', text + ' '));
-		if (undo) {
-			var b = el('button', 'motored-compat-badge__link', t.undo || '');
-			b.type = 'button';
-			b.addEventListener('click', undo);
-			box.appendChild(b);
-		}
-		box.hidden = false;
+		D.querySelectorAll('.motored-garage-notice').forEach(function (box) {
+			box.textContent = text || '';
+			box.hidden = !text;
+			if (undo) {
+				var b = el('button', 'motored-compat-badge__link', t.undo || '');
+				b.type = 'button';
+				b.addEventListener('click', undo);
+				box.append(' ', b);
+			}
+		});
 	}
 
-	function optimistic(prev, next, method, path, body) {
-		G.wr(next);
-		if (!c.loggedIn) {
-			return Promise.resolve(next);
+	function showNetworkError(error) {
+		if (error instanceof TypeError) {
+			notice(t.actionFailed);
 		}
-		return G.api(method, path, body).catch(function () {
-			G.wr(prev);
-		});
 	}
 
 	function commitPending() {
@@ -69,59 +59,81 @@
 		var p = pending;
 		pending = null;
 		clearTimeout(p.timer);
-		if (!c.loggedIn) {
+		notice('');
+		if (c.loggedIn) {
+			removing.add(p.slug);
+			G.api('DELETE', '/garage/' + encodeURIComponent(p.slug)).catch(function (error) {
+				showNetworkError(error);
+			}).finally(function () {
+				removing.delete(p.slug);
+				draw();
+			});
 			return;
 		}
-		G.api('DELETE', '/garage/' + encodeURIComponent(p.slug)).catch(function () {
-			G.wr(p.prev);
+		var next = G.rd();
+		next.bikes = next.bikes.filter(function (x) {
+			return x.slug !== p.slug;
 		});
+		delete next.profiles[p.slug];
+		if (next.active === p.slug) {
+			next.active = next.bikes[0] ? next.bikes[0].slug : '';
+		}
+		G.wr(next);
 	}
 
 	function remove(bike) {
 		commitPending();
-		var prev = G.rd();
-		var next = G.rd();
-		next.bikes = next.bikes.filter(function (x) {
-			return x.slug !== bike.slug;
-		});
-		delete next.profiles[bike.slug];
-		if (next.active === bike.slug) {
-			next.active = next.bikes[0] ? next.bikes[0].slug : '';
-		}
-		G.wr(next);
-		pending = { slug: bike.slug, prev: prev, timer: setTimeout(commitPending, UNDO_MS) };
+		pending = { slug: bike.slug, timer: setTimeout(commitPending, UNDO_MS) };
+		draw();
 		notice(String(t.removedBike || '%s').replace('%s', bike.label), function () {
 			if (pending && pending.slug === bike.slug) {
 				clearTimeout(pending.timer);
-				G.wr(pending.prev);
 				pending = null;
+				draw();
 			}
 			notice('');
 		});
 	}
 
 	function draw() {
-		var wrap = D.querySelector('.motored-garage-list');
-		if (!wrap) {
-			return;
-		}
 		var s = G.rd();
+		D.querySelectorAll('.motored-garage-list').forEach(function (wrap) {
+			drawList(wrap, s);
+		});
+	}
+
+	function drawList(wrap, s) {
+		var bikes = s.bikes.filter(function (bike) {
+			return !removing.has(bike.slug) && (!pending || pending.slug !== bike.slug);
+		});
 		var page = wrap.closest('[data-shop-url]');
 		var shop = (page && page.dataset.shopUrl) || c.shopUrl || '/';
+		var focusedCard = wrap.contains(D.activeElement) && D.activeElement.closest('.motored-garage-card');
+		var focusedBike = focusedCard && focusedCard.dataset.bike;
+		var nextFocus;
 		wrap.textContent = '';
-		if (!s.bikes.length) {
+		if (!bikes.length) {
 			var empty = el('div', 'motored-garage-empty');
 			empty.appendChild(el('p', 'motored-garage-empty__title', t.emptyGarage || ''));
 			if (t.emptyGarageHint) {
 				empty.appendChild(el('p', 'motored-garage-empty__hint', t.emptyGarageHint));
 			}
 			wrap.appendChild(empty);
+			if (focusedBike) {
+				var addControl = page.querySelector('summary, [data-role="brand"]');
+				if (addControl) {
+					addControl.focus();
+				}
+			}
 			return;
 		}
 		var list = el('ul', 'motored-garage-cards');
-		s.bikes.forEach(function (bike) {
+		bikes.sort(function (a, b) {
+			return Number(b.slug === s.active) - Number(a.slug === s.active);
+		}).forEach(function (bike) {
 			var isActive = s.active === bike.slug;
 			var card = el('li', 'motored-garage-card' + (isActive ? ' is-active' : ''));
+			card.dataset.bike = bike.slug;
 			var head = el('div', 'motored-garage-card__head');
 			head.appendChild(el('strong', 'motored-garage-card__name', bike.label));
 			if (isActive) {
@@ -140,30 +152,111 @@
 				card.appendChild(el('p', 'motored-garage-card__sizes', (t.oemSizes ? t.oemSizes + ' ' : '') + parts.join(' · ')));
 			}
 			var actions = el('div', 'motored-garage-card__actions');
-			var view = el('a', 'button alt wp-element-button', t.filterTires || '');
+			var view = el('a', 'button alt wp-element-button motored-garage-card__primary', t.filterTires || '');
 			view.href = (pf && pf.pageUrl) ? pf.pageUrl : withMoto(bike.slug, shop);
 			actions.appendChild(view);
+			var secondary = el('div', 'motored-garage-card__secondary');
 			if (!isActive) {
-				var use = el('button', 'button wp-element-button', t.useBike || '');
+				var use = el('button', 'motored-garage-card__link', t.useBike || '');
 				use.type = 'button';
 				use.addEventListener('click', function () {
-					var prev = G.rd();
-					var next = G.rd();
-					next.active = bike.slug;
-					optimistic(prev, next, 'POST', '/garage', { action: 'set_active', slug: bike.slug });
+					if (c.loggedIn) {
+						use.disabled = true;
+						G.api('POST', '/garage', { action: 'set_active', slug: bike.slug })
+							.catch(showNetworkError).finally(function () { use.disabled = false; });
+					} else {
+						var next = G.rd();
+						next.active = bike.slug;
+						G.wr(next);
+					}
 				});
-				actions.appendChild(use);
+				secondary.appendChild(use);
 			}
-			var del = el('button', 'button wp-element-button motored-garage-card__remove', t.remove || '');
+			var del = el('button', 'motored-garage-card__link motored-garage-card__remove', t.remove || '');
 			del.type = 'button';
+			del.setAttribute('aria-label', (t.remove || '') + ' ' + bike.label);
 			del.addEventListener('click', function () {
 				remove(bike);
 			});
-			actions.appendChild(del);
+			secondary.appendChild(del);
+			actions.appendChild(secondary);
 			card.appendChild(actions);
 			list.appendChild(card);
+			if (focusedBike === bike.slug) {
+				nextFocus = view;
+			}
 		});
 		wrap.appendChild(list);
+		if (focusedBike) {
+			(nextFocus || list.querySelector('a')).focus();
+		}
+	}
+
+	var drawer = D.getElementById('motored-garage-drawer');
+	if (drawer && typeof drawer.showModal === 'function') {
+		var opener;
+		var lastBikeCount = G.rd().bikes.length;
+		var add = drawer.querySelector('details');
+		var picker = add && add.querySelector('.motored-compat-selector');
+		var close = drawer.querySelector('.motored-garage-drawer__close');
+		D.querySelectorAll('[data-motored-garage-open]').forEach(function (link) {
+			link.setAttribute('aria-haspopup', 'dialog');
+			link.setAttribute('aria-controls', drawer.id);
+		});
+		D.addEventListener('click', function (event) {
+			var link = event.target.closest('[data-motored-garage-open]');
+			if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+				return;
+			}
+			event.preventDefault();
+			if (drawer.open) {
+				return;
+			}
+			opener = link.getClientRects().length ? link : D.activeElement;
+			lastBikeCount = G.rd().bikes.length;
+			draw();
+			drawer.showModal();
+			if (add && !lastBikeCount) {
+				add.open = true;
+				if (picker) {
+					picker.dispatchEvent(new CustomEvent('motored:open-selector'));
+				}
+			}
+			D.documentElement.classList.add('motored-garage-drawer-open');
+			if (c.loggedIn) {
+				G.api('GET', '/garage').catch(showNetworkError);
+			}
+		});
+		if (add) {
+			add.addEventListener('toggle', function () {
+				if (add.open && picker) {
+					picker.dispatchEvent(new CustomEvent('motored:open-selector'));
+				}
+			});
+		}
+		D.addEventListener('motored:garage', function () {
+			var count = G.rd().bikes.length;
+			if (drawer.open && add && count > lastBikeCount) {
+				add.open = false;
+			}
+			lastBikeCount = count;
+		});
+		close.addEventListener('click', function () { drawer.close(); });
+		drawer.addEventListener('click', function (event) {
+			if (event.target !== drawer) {
+				return;
+			}
+			var bounds = drawer.getBoundingClientRect();
+			if (event.clientX < bounds.left || event.clientX > bounds.right) {
+				drawer.close();
+			}
+		});
+		drawer.addEventListener('close', function () {
+			D.documentElement.classList.remove('motored-garage-drawer-open');
+			if (opener) {
+				opener.focus({ preventScroll: true });
+			}
+		});
 	}
 
 	D.addEventListener('motored:garage', draw);

@@ -625,3 +625,11 @@ Pending / suggestions (not changed):
 - Owner controls: enable/disable, subject (`{site_title}`, `{bike}`), heading, additional content, HTML/plain; theme-overridable templates. WhatsApp-first order and all safety switches unchanged.
 - Disabled e-mail: e-mail-only alerts are held as `paused/email_disabled` (re-enabled -> next sweep sends); WhatsApp terminal failure no longer queues a disabled e-mail (row `failed`).
 - Verified: PHPUnit (3 new notifier tests), phpcs, PHPStan; on the local site (WordPress bootstrapped in admin context, nothing sent) the e-mail is listed and enabled, subject/plain/HTML render in es_AR with the store's WooCommerce e-mail styles. Not verified: a real delivery.
+
+### 2026-11-25 — Mi Garage storefront drawer
+
+- The desktop and mobile header now open one native dialog. The original page remains a direct entry point, including checkout. The panel prioritizes the active motorcycle and reuses the cards, compatible tire links, and selector of the full page.
+- Independent review caught the late mobile-sidebar render and the competing focus trap. The drawer mounts before footer assets print (`GarageEndpoint.php:231`), and the theme closes its menu overlay before opening the drawer (block "Release the mobile menu's focus trap" in the theme's `assets/js/flatsome.js`). An existing desktop-only header configuration now gets a mobile shortcut.
+- The list responds to matching browser storage events (`compat-garage.js:793`). The drawer fetches current account data on open (`compat-garage-page.js:219`). Reviewed existing REST permissions and es_AR translations used by the drawer.
+- Studio Chromium checks passed at 320, 390 and 1440 px for opening, lazy picker loading, closing and focus restoration. Verified the complete guest selector and save, tire link, updates between open tabs, shared list rendering, delayed removal and undo, authenticated reads, and the direct header link with JavaScript disabled. Live checkout, cold Redis and other themes remain staging checks.
+- PHPUnit reported 732 tests and one skip. The changed plugin PHP files passed PHPCS and the theme files passed PHP lint. Global checks found existing CRLF line endings and unrelated findings in the in-progress `CatalogFilters/RestController.php` changes.

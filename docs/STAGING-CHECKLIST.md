@@ -164,6 +164,8 @@ Prerequisites: MP plugin 8.10.2, sandbox credentials, Checkout Pro enabled, plug
 - [ ] Recuperación (steps), WhatsApp (tests), Estado: spacing and alignment consistent; the CSS file is requested only on the Motored tab.
 
 ## Compatibility + Mi Garage (Motored > Compatibilidad & Productos > Compatibilidad)
+
+- [ ] Garage drawer: open from the desktop header and mobile menu, close with Escape or the close button, and verify focus returns to the opener. Expand the picker and check that the first brands request starts on interaction. Verify saved motorcycles, factory sizes, switching, undo, linked tire results, and account refresh. Confirm the original link works with JavaScript disabled and at checkout.
 - [ ] Settings > Compatibilidad: enable off by default; buttons 1 (Install global attributes) and 2 (Seed fixed terms) register all 12 attributes (`pa_posicion` has 4 terms including `Delantero / Trasero`, `pa_indice-velocidad` in ETRTO order, `pa_medida-*` sorted by `name`); `product_brand` detected.
 - [ ] Productos > Compatibilidad: CRUD Brands, Models (with aliases), Versions (year range + `0` present, overlap blocked, immutable slug), Fitments, Sizes (`4.10-18` keeps zero), Directed equivalences (with "Create inverse too"), Invalid sizes report.
 - [ ] JSON Import/Export: Export downloads `schema_version: 1` JSON; Dry-Run reports new/updated/unchanged/rejected/suspicious/overlaps; batches > 50 queue via `motored_compat_import`; imported versions default to `draft` and ignore AI constraints unless checked.

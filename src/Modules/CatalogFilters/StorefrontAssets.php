@@ -82,6 +82,7 @@ final class StorefrontAssets {
 			'restBase'      => untrailingslashit( rest_url( RestController::NAMESPACE ) ),
 			'sizesUrl'      => rest_url( RestController::NAMESPACE . '/filters/sizes' ),
 			'suggestUrl'    => rest_url( RestController::NAMESPACE . '/filters/suggest' ),
+			'trendingUrl'   => rest_url( RestController::NAMESPACE . '/filters/trending' ),
 			'shopUrl'       => Config::shop_url(),
 			'compatEnabled' => \Motored\Core\Modules\Compatibility\Config::enabled(),
 			'events'        => \Motored\Core\Modules\Compatibility\Config::analytics_events(),
@@ -101,6 +102,9 @@ final class StorefrontAssets {
 				'loadSelectErr'      => __( 'Could not load options. Please try again.', 'motored-core' ),
 				/* translators: %d: number of suggestions. */
 				'suggestCount'       => __( '%d suggestions available. Use the up and down arrows to browse.', 'motored-core' ),
+				'trendingSizes'      => __( 'Medidas más buscadas', 'motored-core' ),
+				'trendingBrands'     => __( 'Marcas destacadas', 'motored-core' ),
+				'trendingProducts'   => __( 'Más vendidos', 'motored-core' ),
 			),
 		);
 		wp_add_inline_script(

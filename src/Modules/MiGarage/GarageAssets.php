@@ -46,7 +46,7 @@ final class GarageAssets {
 			self::HANDLE,
 			MOTORED_CORE_URL . 'assets/js/compat-garage.js',
 			$deps,
-			MOTORED_CORE_VERSION . '-garage8',
+			MOTORED_CORE_VERSION . '-garage9',
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,
@@ -162,7 +162,7 @@ final class GarageAssets {
 	}
 
 	/**
-	 * Strings used ONLY by compat-garage-page.js (Mi Garage page / [motored_mi_garage]); kept out of the config
+	 * Strings used ONLY by compat-garage-page.js (Mi Garage page and drawer); kept out of the config
 	 * that every catalog and product page ships.
 	 *
 	 * @return array<string,string>

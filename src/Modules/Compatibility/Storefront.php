@@ -195,7 +195,7 @@ final class Storefront {
 	}
 
 	/**
-	 * Shortcode [motored_compat_selector mode="shop|garage"].
+	 * Shortcode [motored_compat_selector mode="shop|garage" lazy="0|1"].
 	 *
 	 * @param mixed $atts Shortcode attributes.
 	 */
@@ -206,6 +206,7 @@ final class Storefront {
 		$atts = shortcode_atts(
 			array(
 				'mode' => 'shop',
+				'lazy' => '0',
 			),
 			is_array( $atts ) ? $atts : array(),
 			self::SELECTOR_SHORTCODE
@@ -215,7 +216,7 @@ final class Storefront {
 		StorefrontAssets::enqueue_compat_css();
 		self::enqueue_selector_script();
 
-		return self::selector_form_html( $mode, false );
+		return self::selector_form_html( $mode, '1' === $atts['lazy'] );
 	}
 
 	/**

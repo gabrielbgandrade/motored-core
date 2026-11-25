@@ -792,7 +792,7 @@
 	// Another tab changed the garage: re-render here too.
 	window.addEventListener('storage', function (e) {
 		if (e.key === KEY) {
-			draw();
+			D.dispatchEvent(new CustomEvent(EVENT));
 		}
 	});
 	draw();
@@ -810,7 +810,7 @@
 				setItem(true, syncedKey, '1');
 			})
 			.catch(function () {});
-	} else if (base && c.loggedIn && (!getItem(true, syncedKey) || D.querySelector('.motored-garage-page'))) {
+	} else if (base && c.loggedIn && (!getItem(true, syncedKey) || D.querySelector('[data-garage-full-page]'))) {
 		api('GET', '/garage').then(function () {
 			setItem(true, syncedKey, '1');
 		}).catch(function () {});

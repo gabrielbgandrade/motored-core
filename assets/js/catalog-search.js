@@ -380,14 +380,173 @@
 			return exact.length === 1 ? exact[0] : null;
 		}
 
+		var trendingBox = form.querySelector('[data-role="smart-trending"]');
+		var clearBtn = form.querySelector('[data-role="smart-clear"]');
+		var trendingLoaded = false;
+		var trendingPromise = null;
+
+		function hideTrending() {
+			if (trendingBox) {
+				trendingBox.hidden = true;
+			}
+		}
+
+		function syncClear() {
+			if (clearBtn) {
+				clearBtn.hidden = input.value.length === 0;
+			}
+		}
+
+		function renderTrending(d) {
+			if (!trendingBox || !d) {
+				return;
+			}
+			var sizes = Array.isArray(d.sizes) ? d.sizes : [];
+			var brands = Array.isArray(d.brands) ? d.brands : [];
+			var prods = Array.isArray(d.products) ? d.products : [];
+			if (!sizes.length && !brands.length && !prods.length) {
+				return;
+			}
+			trendingBox.textContent = '';
+			var grid = document.createElement('div');
+			grid.className = 'motored-trending__grid';
+
+			if (sizes.length || brands.length) {
+				var side = document.createElement('div');
+				side.className = 'motored-trending__side';
+				if (sizes.length) {
+					var hS = document.createElement('h4');
+					hS.className = 'motored-trending__heading';
+					hS.textContent = T.trendingSizes || 'Medidas más buscadas';
+					side.appendChild(hS);
+					var ulS = document.createElement('ul');
+					ulS.className = 'motored-trending__list';
+					sizes.forEach(function (s) {
+						var li = document.createElement('li');
+						var a = document.createElement('a');
+						a.href = s.url;
+						a.textContent = s.label;
+						a.addEventListener('mousedown', function (e) { e.preventDefault(); location.href = s.url; });
+						li.appendChild(a);
+						ulS.appendChild(li);
+					});
+					side.appendChild(ulS);
+				}
+				if (brands.length) {
+					var hB = document.createElement('h4');
+					hB.className = 'motored-trending__heading';
+					hB.textContent = T.trendingBrands || 'Marcas destacadas';
+					side.appendChild(hB);
+					var ulB = document.createElement('ul');
+					ulB.className = 'motored-trending__list motored-trending__list--inline';
+					brands.forEach(function (b) {
+						var li = document.createElement('li');
+						var a = document.createElement('a');
+						a.href = b.url;
+						a.textContent = b.label;
+						a.addEventListener('mousedown', function (e) { e.preventDefault(); location.href = b.url; });
+						li.appendChild(a);
+						ulB.appendChild(li);
+					});
+					side.appendChild(ulB);
+				}
+				grid.appendChild(side);
+			}
+
+			if (prods.length) {
+				var main = document.createElement('div');
+				main.className = 'motored-trending__main';
+				var hP = document.createElement('h4');
+				hP.className = 'motored-trending__heading';
+				hP.textContent = T.trendingProducts || 'Más vendidos';
+				main.appendChild(hP);
+				var cards = document.createElement('div');
+				cards.className = 'motored-trending__products';
+				prods.forEach(function (p) {
+					var a = document.createElement('a');
+					a.className = 'motored-trending__card';
+					a.href = p.url;
+					a.addEventListener('mousedown', function (e) { e.preventDefault(); location.href = p.url; });
+					if (p.img) {
+						var img = document.createElement('img');
+						img.src = p.img;
+						img.alt = p.title || '';
+						img.loading = 'lazy';
+						a.appendChild(img);
+					}
+					var title = document.createElement('span');
+					title.className = 'motored-trending__title';
+					title.textContent = p.title || '';
+					a.appendChild(title);
+					if (p.price) {
+						var price = document.createElement('strong');
+						price.className = 'motored-trending__price';
+						price.textContent = p.price;
+						a.appendChild(price);
+					}
+					cards.appendChild(a);
+				});
+				main.appendChild(cards);
+				grid.appendChild(main);
+			}
+
+			trendingBox.appendChild(grid);
+			trendingLoaded = true;
+		}
+
+		function showTrending() {
+			if (!trendingBox || input.value.trim().length >= 2) {
+				return;
+			}
+			if (trendingLoaded) {
+				trendingBox.hidden = false;
+				return;
+			}
+			if (!trendingPromise) {
+				var url = restEndpoint(C.trendingUrl, '/filters/trending');
+				trendingPromise = ui.getJson(url.href).then(function (d) {
+					renderTrending(d);
+					return d;
+				}).catch(function () {
+					trendingPromise = null;
+				});
+			}
+			trendingPromise.then(function () {
+				if (trendingLoaded && document.activeElement === input && input.value.trim().length < 2) {
+					trendingBox.hidden = false;
+				}
+			});
+		}
+
+		if (clearBtn) {
+			clearBtn.addEventListener('mousedown', function (e) {
+				e.preventDefault();
+				input.value = '';
+				syncClear();
+				close();
+				input.focus();
+				showTrending();
+			});
+			syncClear();
+		}
+
+		input.addEventListener('focus', function () {
+			if (input.value.trim().length < 2) {
+				showTrending();
+			}
+		});
+
 		input.addEventListener('input', function () {
 			submission++;
 			clearTimeout(timer);
+			syncClear();
 			close();
 			var q = input.value.trim();
 			if (q.length < 2) {
+				showTrending();
 				return;
 			}
+			hideTrending();
 			timer = setTimeout(function () {
 				fetchFor(q).catch(function () {});
 			}, 250);
@@ -403,6 +562,7 @@
 				highlight(activeIdx <= 0 ? count - 1 : activeIdx - 1);
 			} else if (e.key === 'Escape') {
 				close();
+				hideTrending();
 			} else if (e.key === 'Enter' && activeIdx >= 0 && items[activeIdx]) {
 				e.preventDefault();
 				go(items[activeIdx]);
@@ -410,7 +570,10 @@
 		});
 
 		input.addEventListener('blur', function () {
-			setTimeout(close, 150);
+			setTimeout(function () {
+				close();
+				hideTrending();
+			}, 160);
 		});
 
 		form.addEventListener('submit', function (e) {

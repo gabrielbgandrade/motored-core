@@ -42,10 +42,36 @@ final class SearchShortcode {
 			self::SHORTCODE
 		);
 
-		$layout        = 'split' === $atts['layout'] ? 'split' : 'tabs';
+		$layout        = in_array( $atts['layout'], array( 'split', 'smart' ), true ) ? (string) $atts['layout'] : 'tabs';
 		$compat_active = \Motored\Core\Modules\Compatibility\Config::enabled();
 		$shop_url      = Config::shop_url();
 		$uid           = 'motored-busc-' . wp_unique_id();
+
+		if ( 'smart' === $layout ) {
+			StorefrontAssets::enqueue_search_js();
+			ob_start();
+			?>
+			<div class="motored-search motored-search--smart" data-motored-search data-layout="smart" data-shop-url="<?php echo esc_url( $shop_url ); ?>">
+				<form class="motored-search__form motored-search__form--smart" method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>" data-role="smart-form">
+					<input type="hidden" name="post_type" value="product" />
+					<div class="motored-search__smart-wrap">
+						<span class="motored-search__icon" aria-hidden="true">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+						</span>
+						<label class="screen-reader-text" for="<?php echo esc_attr( $uid ); ?>-q"><?php esc_html_e( 'Search by size, rim, motorcycle or brand', 'motored-core' ); ?></label>
+						<input id="<?php echo esc_attr( $uid ); ?>-q" class="motored-search__input" type="search" name="s" value="<?php echo esc_attr( get_search_query() ); ?>" autocomplete="off" data-role="smart-input" role="combobox" placeholder="<?php esc_attr_e( 'Search by size (120/70-17), rim, motorcycle or brand...', 'motored-core' ); ?>" aria-autocomplete="list" aria-expanded="false" aria-controls="<?php echo esc_attr( $uid ); ?>-sug" />
+						<button type="button" class="motored-search__clear" data-role="smart-clear" aria-label="<?php esc_attr_e( 'Clear search', 'motored-core' ); ?>" hidden>
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+						</button>
+						<ul id="<?php echo esc_attr( $uid ); ?>-sug" class="motored-search__suggest" role="listbox" aria-label="<?php esc_attr_e( 'Suggestions', 'motored-core' ); ?>" data-role="smart-list" hidden></ul>
+						<div class="motored-search__trending" data-role="smart-trending" hidden></div>
+						<p class="screen-reader-text" data-role="smart-live" aria-live="polite"></p>
+					</div>
+				</form>
+			</div>
+			<?php
+			return (string) ob_get_clean();
+		}
 
 		if ( $compat_active ) {
 			GarageAssets::enqueue();

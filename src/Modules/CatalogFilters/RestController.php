@@ -73,6 +73,125 @@ final class RestController {
 				),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/filters/trending',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_trending' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+	}
+
+	/**
+	 * Public GET /motored/v1/filters/trending — cached top sizes, brands and best-selling tires
+	 * for the RevZilla-style search focus dropdown (lazy-loaded on first focus, 0 cost on page load).
+	 */
+	public function get_trending(): \WP_REST_Response|\WP_Error {
+		$ver       = SnapshotInvalidator::version();
+		$cache_key = 'motored_search_trending_' . md5( $ver . '|' . ( Config::only_in_stock() ? '1' : '0' ) );
+		$cached    = get_transient( $cache_key );
+		if ( is_array( $cached ) ) {
+			return self::public_response( $cached, 300, 600 );
+		}
+
+		$shop_url = Config::shop_url();
+		$sizes    = array();
+		$brands   = array();
+
+		try {
+			$snapshot = FacetEngine::snapshot();
+			$combos   = FacetEngine::size_combinations( $snapshot, Config::only_in_stock() );
+			usort(
+				$combos,
+				static fn( array $a, array $b ): int => ( (int) ( $b['c'] ?? 0 ) ) <=> ( (int) ( $a['c'] ?? 0 ) )
+			);
+			foreach ( array_slice( $combos, 0, 6 ) as $c ) {
+				$w_lbl = (string) ( $c['wl'] ?? $c['w'] ?? '' );
+				$p_lbl = (string) ( $c['pl'] ?? $c['p'] ?? '' );
+				$r_lbl = (string) ( $c['rl'] ?? $c['r'] ?? '' );
+				if ( '' === $w_lbl || '' === $r_lbl ) {
+					continue;
+				}
+				$label = '' !== $p_lbl ? $w_lbl . '/' . $p_lbl . '-' . $r_lbl : $w_lbl . '-' . $r_lbl;
+				$query = array(
+					'filter_' . TireSpecs::ATTR_WIDTH => (string) $c['w'],
+					'filter_' . TireSpecs::ATTR_RIM   => (string) $c['r'],
+				);
+				if ( ! empty( $c['p'] ) ) {
+					$query[ 'filter_' . TireSpecs::ATTR_PROFILE ] = (string) $c['p'];
+				}
+				$sizes[] = array(
+					'label' => $label,
+					'count' => (int) ( $c['c'] ?? 0 ),
+					'url'   => add_query_arg( $query, $shop_url ),
+				);
+			}
+
+			$brand_counts = array();
+			$brand_labels = $snapshot['labels']['product_brand'] ?? array();
+			foreach ( ( $snapshot['products'] ?? array() ) as $prod ) {
+				if ( Config::only_in_stock() && empty( $prod['stock'] ) ) {
+					continue;
+				}
+				foreach ( ( $prod['brands'] ?? array() ) as $slug ) {
+					$brand_counts[ $slug ] = ( $brand_counts[ $slug ] ?? 0 ) + 1;
+				}
+			}
+			arsort( $brand_counts );
+			foreach ( array_slice( $brand_counts, 0, 5, true ) as $slug => $cnt ) {
+				$brands[] = array(
+					'label' => (string) ( $brand_labels[ $slug ] ?? ucfirst( (string) $slug ) ),
+					'count' => (int) $cnt,
+					'url'   => add_query_arg( 'product_brand', (string) $slug, $shop_url ),
+				);
+			}
+		} catch ( \RuntimeException $exception ) {
+			// Continue so products can still be returned even if snapshot is warming.
+		}
+
+		$products = array();
+		if ( function_exists( 'wc_get_products' ) ) {
+			$wc_args = array(
+				'status'       => 'publish',
+				'visibility'   => 'catalog',
+				'limit'        => 4,
+				'stock_status' => Config::only_in_stock() ? 'instock' : null,
+				'meta_key'     => 'total_sales',
+				'orderby'      => 'meta_value_num',
+				'order'        => 'DESC',
+			);
+			$found   = wc_get_products( array_filter( $wc_args, static fn( $v ) => null !== $v ) );
+			if ( empty( $found ) ) {
+				unset( $wc_args['meta_key'] );
+				$wc_args['orderby'] = 'date';
+				$found              = wc_get_products( array_filter( $wc_args, static fn( $v ) => null !== $v ) );
+			}
+			foreach ( $found as $p ) {
+				if ( ! $p instanceof \WC_Product ) {
+					continue;
+				}
+				$img_id     = $p->get_image_id();
+				$img        = $img_id ? (string) wp_get_attachment_image_url( $img_id, 'woocommerce_thumbnail' ) : ( function_exists( 'wc_placeholder_img_src' ) ? (string) wc_placeholder_img_src( 'woocommerce_thumbnail' ) : '' );
+				$products[] = array(
+					'title' => $p->get_name(),
+					'url'   => (string) get_permalink( $p->get_id() ),
+					'price' => html_entity_decode( wp_strip_all_tags( (string) wc_price( (float) wc_get_price_to_display( $p ) ) ), ENT_QUOTES, 'UTF-8' ),
+					'img'   => $img,
+				);
+			}
+		}
+
+		$payload = array(
+			'sizes'    => $sizes,
+			'brands'   => $brands,
+			'products' => $products,
+		);
+		set_transient( $cache_key, $payload, 10 * MINUTE_IN_SECONDS );
+
+		return self::public_response( $payload, 300, 600 );
 	}
 
 	/**
