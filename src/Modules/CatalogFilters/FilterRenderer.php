@@ -23,19 +23,6 @@ final class FilterRenderer {
 	public const SHORTCODE = 'motored_filtros';
 
 	/**
-	 * Facets expanded by default when no filters are active.
-	 *
-	 * @var list<string>
-	 */
-	private const DEFAULT_OPEN = array(
-		TireSpecs::ATTR_POSITION,
-		'product_brand',
-		TireSpecs::ATTR_WIDTH,
-		TireSpecs::ATTR_PROFILE,
-		TireSpecs::ATTR_RIM,
-	);
-
-	/**
 	 * Registers the [motored_filtros] shortcode (zero option reads or asset enqueues here).
 	 */
 	public function register(): void {
@@ -79,11 +66,17 @@ final class FilterRenderer {
 		}
 		StorefrontAssets::enqueue_filters_js();
 
-		$moto_ids = null;
-		$moto_lbl = '';
+		$moto_ids       = null;
+		$moto_lbl       = '';
+		$moto_positions = array();
 		if ( '' !== $state->moto() && \Motored\Core\Modules\Compatibility\Config::enabled() ) {
-			$ids      = MatchEngine::matching_product_ids( $state->moto(), $state->pos() );
-			$moto_ids = array_fill_keys( $ids, true );
+			$matches  = MatchEngine::matching_ids_by_position( $state->moto() );
+			$moto_ids = array_fill_keys( $matches['all'], true );
+			if ( empty( $state->attribute_terms( TireSpecs::ATTR_POSITION ) ) ) {
+				foreach ( array( TireSpecs::POS_FRONT, TireSpecs::POS_REAR, TireSpecs::POS_KIT ) as $position ) {
+					$moto_positions[ $position ] = array_fill_keys( $matches[ $position ], true );
+				}
+			}
 			$prof     = MatchEngine::bike_profile( $state->moto() );
 			$moto_lbl = is_array( $prof ) && ! empty( $prof['label'] ) ? (string) $prof['label'] : $state->moto();
 		}
@@ -99,19 +92,19 @@ final class FilterRenderer {
 			$state,
 			array(
 				// Counts must match the grid, which only hides out-of-stock items when WooCommerce does.
-				'only_in_stock' => Config::grid_hides_out_of_stock(),
-				'moto_ids'      => $moto_ids,
-				'kit_ids'       => $kit_ids,
-				'cat_slugs'     => $scope['cat_slugs'],
-				'universe_ids'  => $scope['universe_ids'],
-				'sale_ids'      => FacetEngine::on_sale_id_map(),
+				'only_in_stock'  => Config::grid_hides_out_of_stock(),
+				'moto_ids'       => $moto_ids,
+				'moto_positions' => $moto_positions,
+				'kit_ids'        => $kit_ids,
+				'cat_slugs'      => $scope['cat_slugs'],
+				'universe_ids'   => $scope['universe_ids'],
+				'sale_ids'       => FacetEngine::on_sale_id_map(),
 			)
 		);
 
 		$labels = self::facet_titles();
 		$chips  = self::build_active_chips( $state, $base_url, $snapshot['labels'] ?? array(), $moto_lbl );
-		$kits   = self::kits_hint( $state, $base_url, $snapshot['labels'] ?? array() );
-		$uid    = 'motored-flt-' . wp_unique_id();
+		$kits   = self::kits_hint( $state, $base_url, $snapshot['labels'] ?? array(), isset( $matches ) ? $matches['kit'] : null );
 		global $wp_query;
 		$total = $wp_query instanceof \WP_Query && 'product_query' === $wp_query->get( 'wc_query' )
 			? (int) $wp_query->found_posts
@@ -161,36 +154,33 @@ final class FilterRenderer {
 					if ( empty( $items ) ) {
 						continue;
 					}
-					$has_active = 'oferta' === $facet_key
-						? $state->on_sale()
-						: ( 'product_brand' === $facet_key ? ! empty( $state->brands() ) : ! empty( $state->attribute_terms( $facet_key ) ) );
-					$is_open    = $has_active || in_array( $facet_key, self::DEFAULT_OPEN, true );
-					$panel_id   = $uid . '-' . $facet_key;
+					$facet_action = TireSpecs::ATTR_POSITION === $facet_key && ! empty( $moto_positions ) ? 'pos' : $facet_key;
+					$has_active   = in_array( true, array_column( $items, 'active' ), true );
 					?>
-					<div class="motored-acc" data-facet-group="<?php echo esc_attr( $facet_key ); ?>">
-						<button type="button" class="motored-acc__btn" aria-expanded="<?php echo $is_open ? 'true' : 'false'; ?>" aria-controls="<?php echo esc_attr( $panel_id ); ?>">
+					<details class="motored-acc" data-facet-group="<?php echo esc_attr( $facet_key ); ?>"<?php echo $has_active ? ' open' : ''; ?>>
+						<summary class="motored-acc__btn">
 							<span><?php echo esc_html( $labels[ $facet_key ] ?? $facet_key ); ?></span>
-							<span class="motored-acc__icon" aria-hidden="true"><?php echo $is_open ? '−' : '+'; ?></span>
-						</button>
-						<div id="<?php echo esc_attr( $panel_id ); ?>" class="motored-acc__panel"<?php echo $is_open ? '' : ' hidden'; ?>>
+							<span class="motored-acc__icon" aria-hidden="true"></span>
+						</summary>
+						<div class="motored-acc__panel">
 							<ul class="motored-acc__list">
 								<?php foreach ( $items as $item ) : ?>
-									<?php $url = $state->toggle_url( $base_url, $facet_key, $item['slug'] ); ?>
+									<?php $url = $state->toggle_url( $base_url, $facet_action, $item['slug'] ); ?>
 									<li>
 										<a class="motored-opt<?php echo $item['active'] ? ' is-active' : ''; ?>"
 											href="<?php echo esc_url( $url ); ?>"
-											data-facet="<?php echo esc_attr( $facet_key ); ?>"
+											data-facet="<?php echo esc_attr( $facet_action ); ?>"
 											data-slug="<?php echo esc_attr( $item['slug'] ); ?>"
 											aria-pressed="<?php echo $item['active'] ? 'true' : 'false'; ?>">
 											<span class="motored-opt__box" aria-hidden="true"></span>
-											<span class="motored-opt__label"><?php echo esc_html( $item['label'] ); ?></span>
+											<span class="motored-opt__label"><?php echo esc_html( self::facet_value_label( $facet_action, $item['slug'], $item['label'] ) ); ?></span>
 											<span class="motored-opt__cnt">(<?php echo esc_html( (string) $item['count'] ); ?>)</span>
 										</a>
 									</li>
 								<?php endforeach; ?>
 							</ul>
 						</div>
-					</div>
+					</details>
 				<?php endforeach; ?>
 			</div>
 
@@ -227,6 +217,12 @@ final class FilterRenderer {
 				'label' => __( 'Motorcycle', 'motored-core' ) . ': ' . ( '' !== $moto_label ? $moto_label : $state->moto() ),
 				'url'   => $state->toggle_url( $base_url, 'moto' ),
 			);
+			if ( '' !== $state->pos() ) {
+				$chips[] = array(
+					'label' => $titles[ TireSpecs::ATTR_POSITION ] . ': ' . TireSpecs::position_label( $state->pos() ),
+					'url'   => $state->toggle_url( $base_url, 'pos', $state->pos() ),
+				);
+			}
 		}
 
 		foreach ( $state->brands() as $b_slug ) {
@@ -240,7 +236,7 @@ final class FilterRenderer {
 		foreach ( $state->attributes() as $attr_slug => $slugs ) {
 			$prefix = $titles[ $attr_slug ] ?? $attr_slug;
 			foreach ( $slugs as $slug ) {
-				$t_name  = $label_map[ $attr_slug ][ $slug ] ?? $slug;
+				$t_name  = self::facet_value_label( $attr_slug, $slug, $label_map[ $attr_slug ][ $slug ] ?? $slug );
 				$chips[] = array(
 					'label' => $prefix . ': ' . $t_name,
 					'url'   => $state->toggle_url( $base_url, $attr_slug, $slug ),
@@ -267,6 +263,21 @@ final class FilterRenderer {
 	}
 
 	/**
+	 * Localizes known position slugs without changing the stored taxonomy term.
+	 *
+	 * @param string $facet   Facet key.
+	 * @param string $slug    Term or compatibility position slug.
+	 * @param string $fallback Stored label for this option.
+	 */
+	private static function facet_value_label( string $facet, string $slug, string $fallback ): string {
+		if ( TireSpecs::ATTR_POSITION === $facet ) {
+			$label = TireSpecs::position_label( TireSpecs::normalize_position( $slug ) );
+			return '' !== $label ? $label : $fallback;
+		}
+		return $fallback;
+	}
+
+	/**
 	 * Link to the kits that include the size the shopper filtered (kits never enter the width/profile/rim facets).
 	 *
 	 * Shown only when the filters name exactly one size: one width, one rim and at most one profile.
@@ -274,14 +285,18 @@ final class FilterRenderer {
 	 * @param FilterState                        $state     Active state.
 	 * @param string                             $base_url  Base archive URL.
 	 * @param array<string,array<string,string>> $label_map Snapshot labels map.
+	 * @param list<int>|null                     $compatible_kits Compatible kit IDs, or null without a motorcycle.
 	 * @return array{label:string,url:string}|null
 	 */
-	public static function kits_hint( FilterState $state, string $base_url, array $label_map ): ?array {
+	public static function kits_hint( FilterState $state, string $base_url, array $label_map, ?array $compatible_kits = null ): ?array {
 		$canonical = self::selected_size( $state, $label_map );
 		if ( '' === $canonical || '' !== $state->kit_size() ) {
 			return null;
 		}
-		$kits  = ProductIndexRepository::kit_ids_with_size( $canonical );
+		$kits = ProductIndexRepository::kit_ids_with_size( $canonical );
+		if ( null !== $compatible_kits ) {
+			$kits = array_intersect_key( $kits, array_fill_keys( $compatible_kits, true ) );
+		}
 		$count = Config::grid_hides_out_of_stock() ? count( array_filter( $kits ) ) : count( $kits );
 		if ( $count <= 0 ) {
 			return null;

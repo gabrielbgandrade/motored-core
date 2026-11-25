@@ -242,15 +242,17 @@ final class FacetEngine {
 	 *
 	 * @param array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>} $snapshot Compact snapshot.
 	 * @param FilterState                                                                         $state    Active URL filter state.
-	 * @param array<string,mixed>                                                                 $context  Request context (only_in_stock, moto_ids, kit_ids, cat_slug, cat_slugs, universe_ids, sale_ids).
+	 * @param array<string,mixed>                                                                 $context  Request context (only_in_stock, moto_ids, moto_positions, kit_ids, cat_slug, cat_slugs, universe_ids, sale_ids).
 	 * @return array{total:int,facets:array<string,list<array{slug:string,label:string,count:int,active:bool}>>}
 	 */
 	public static function compute_facets( array $snapshot, FilterState $state, array $context = array() ): array {
-		$only_in_stock = ! array_key_exists( 'only_in_stock', $context ) || ! empty( $context['only_in_stock'] );
-		$moto_ids      = isset( $context['moto_ids'] ) && is_array( $context['moto_ids'] ) ? $context['moto_ids'] : null;
-		$kit_ids       = isset( $context['kit_ids'] ) && is_array( $context['kit_ids'] ) ? $context['kit_ids'] : null;
-		$universe      = isset( $context['universe_ids'] ) && is_array( $context['universe_ids'] ) ? $context['universe_ids'] : null;
-		$cat_set       = array();
+		$only_in_stock   = ! array_key_exists( 'only_in_stock', $context ) || ! empty( $context['only_in_stock'] );
+		$moto_ids        = isset( $context['moto_ids'] ) && is_array( $context['moto_ids'] ) ? $context['moto_ids'] : null;
+		$moto_positions  = $context['moto_positions'] ?? array();
+		$position_counts = array_fill_keys( array_keys( $moto_positions ), 0 );
+		$kit_ids         = isset( $context['kit_ids'] ) && is_array( $context['kit_ids'] ) ? $context['kit_ids'] : null;
+		$universe        = isset( $context['universe_ids'] ) && is_array( $context['universe_ids'] ) ? $context['universe_ids'] : null;
+		$cat_set         = array();
 		foreach ( array_merge( array( (string) ( $context['cat_slug'] ?? '' ) ), (array) ( $context['cat_slugs'] ?? array() ) ) as $cs ) {
 			if ( '' !== (string) $cs ) {
 				$cat_set[ (string) $cs ] = true;
@@ -331,6 +333,17 @@ final class FacetEngine {
 			}
 
 			if ( 0 === $fail_count ) {
+				foreach ( $moto_positions as $position => $ids ) {
+					if ( isset( $ids[ $pid ] ) ) {
+						++$position_counts[ $position ];
+					}
+				}
+			}
+			if ( isset( $moto_positions[ $state->pos() ] ) && ! isset( $moto_positions[ $state->pos() ][ $pid ] ) ) {
+				continue;
+			}
+
+			if ( 0 === $fail_count ) {
 				++$total;
 				foreach ( Config::ATTRIBUTE_SLUGS as $attr_slug ) {
 					foreach ( $p['attrs'][ $attr_slug ] ?? array() as $t_slug ) {
@@ -363,6 +376,21 @@ final class FacetEngine {
 		$facets = array();
 		foreach ( Config::ALL_FACETS as $facet ) {
 			$items = array();
+			if ( TireSpecs::ATTR_POSITION === $facet && ! empty( $moto_positions ) ) {
+				foreach ( $position_counts as $position => $count ) {
+					$active = $state->is_active( 'pos', $position );
+					if ( $count > 0 || $active ) {
+						$items[] = array(
+							'slug'   => $position,
+							'label'  => TireSpecs::position_label( $position ),
+							'count'  => $count,
+							'active' => $active,
+						);
+					}
+				}
+				$facets[ $facet ] = $items;
+				continue;
+			}
 			if ( 'oferta' === $facet ) {
 				$sale_cnt = (int) ( $counts['oferta']['1'] ?? 0 );
 				if ( $sale_cnt > 0 || $state->on_sale() ) {

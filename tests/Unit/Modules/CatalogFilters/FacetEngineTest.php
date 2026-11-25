@@ -94,6 +94,31 @@ final class FacetEngineTest extends TestCase {
 		}
 	}
 
+	public function test_motorcycle_positions_keep_alternate_buckets_without_expanding_other_facets(): void {
+		Functions\when( '_x' )->returnArg();
+		$snapshot = FacetEngine::assemble_snapshot_rows(
+			array(
+				array( 'id' => 1, 'stock_status' => 'instock', 'taxonomy' => 'pa_posicion', 'slug' => 'both', 'name' => 'Both' ),
+				array( 'id' => 1, 'stock_status' => 'instock', 'taxonomy' => 'pa_ancho', 'slug' => '160', 'name' => '160' ),
+				array( 'id' => 2, 'stock_status' => 'instock', 'taxonomy' => 'pa_posicion', 'slug' => 'kit', 'name' => 'Kit' ),
+			)
+		);
+		$state = FilterState::from_query( array( 'moto' => 'benelli', 'pos' => 'kit' ) );
+		$result = FacetEngine::compute_facets(
+			$snapshot,
+			$state,
+			array(
+				'moto_ids' => array( 1 => true, 2 => true ),
+				'moto_positions' => array( 'rear' => array( 1 => true ), 'kit' => array( 2 => true ) ),
+				'sale_ids' => array(),
+			)
+		);
+		$this->assertSame( 1, $result['total'] );
+		$this->assertSame( array( 'rear' => 1, 'kit' => 1 ), array_column( $result['facets'][ TireSpecs::ATTR_POSITION ], 'count', 'slug' ) );
+		$this->assertSame( array( 'rear' => false, 'kit' => true ), array_column( $result['facets'][ TireSpecs::ATTR_POSITION ], 'active', 'slug' ) );
+		$this->assertSame( array(), $result['facets'][ TireSpecs::ATTR_WIDTH ] );
+	}
+
 	public function test_benchmark_3000_products_disjunctive_facets_runs_in_milliseconds(): void {
 		$products = array();
 		$widths   = array( '90', '100', '110', '120', '130', '140', '150', '160', '180', '190', '4-10', '2-75' );

@@ -32,8 +32,8 @@ final class SizeParser {
 			return null;
 		}
 
-		// Metric: 120/70-17, 120/70ZR17, 150/80B16, 120/70 VB 17, 80/100-21.
-		if ( 1 === preg_match( '/^(\d{2,3})\s*\/\s*(\d{2,3})\s*(?:ZR|VR|VB|R|B|D|-)\s*(\d{1,2})(?:\b|$)/', $norm, $m ) ) {
+		// Metric: 120/70-17, 120/70ZR17, 120/70 17, 120 70 17, 150/80B16, 120/70 VB 17, 80/100-21.
+		if ( 1 === preg_match( '/^(\d{2,3})\s*(?:\/|\s+)\s*(\d{2,3})\s*(?:ZR|VR|VB|R|B|D|-|\s+)\s*(\d{1,2})(?:\b|$)/', $norm, $m ) ) {
 			$width  = (int) $m[1];
 			$aspect = (int) $m[2];
 			$rim    = (int) $m[3];
@@ -66,8 +66,8 @@ final class SizeParser {
 			);
 		}
 
-		// Imperial: 4.10-18, 3.00-18, 2.75-18, 3.50-10, 4.10R18, 4.10B18.
-		if ( 1 === preg_match( '/^(\d+\.\d{1,2})\s*(?:R|B|X|-)\s*(\d{1,2})(?:\b|$)/', $norm, $m ) ) {
+		// Imperial: 4.10-18, 3.00-18, 2.75-18, 3.50-10, 4.10R18, 4.10B18, 4.10 18.
+		if ( 1 === preg_match( '/^(\d+\.\d{1,2})\s*(?:R|B|X|-|\s+)\s*(\d{1,2})(?:\b|$)/', $norm, $m ) ) {
 			$width_str = self::pad_imperial_width( $m[1] );
 			$width_num = (float) $width_str;
 			$rim       = (int) $m[2];
@@ -84,6 +84,91 @@ final class SizeParser {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Extracts all valid tire sizes from a free-text query (including kits/pairs such as
+	 * "160/60 17 + 120/70 17" or "120/70ZR17 y 180/55ZR17").
+	 *
+	 * @param string $raw Raw input.
+	 * @return list<array{canonical:string,notation:string,width:string,aspect:int|null,rim:int}>
+	 */
+	public static function parse_all( string $raw ): array {
+		$norm = self::preprocess( $raw );
+		if ( '' === $norm ) {
+			return array();
+		}
+
+		$found = array();
+		$seen  = array();
+
+		$add = static function ( array $item ) use ( &$found, &$seen ): void {
+			if ( ! isset( $seen[ $item['canonical'] ] ) ) {
+				$seen[ $item['canonical'] ] = true;
+				$found[]                    = $item;
+			}
+		};
+
+		// Metric sizes anywhere in the query.
+		if ( preg_match_all( '/(?<!\d)(\d{2,3})\s*(?:\/|\s+)\s*(\d{2,3})\s*(?:ZR|VR|VB|R|B|D|-|\s+)\s*(\d{1,2})(?!\d)/', $norm, $matches, PREG_SET_ORDER ) ) {
+			foreach ( $matches as $m ) {
+				$width  = (int) $m[1];
+				$aspect = (int) $m[2];
+				$rim    = (int) $m[3];
+				if ( $width >= 50 && $width <= 360 && $aspect >= 25 && $aspect <= 100 && $rim >= 4 && $rim <= 30 ) {
+					$width_str = (string) $width;
+					$add(
+						array(
+							'canonical' => $width_str . '/' . $aspect . '-' . $rim,
+							'notation'  => self::NOTATION_METRIC,
+							'width'     => $width_str,
+							'aspect'    => $aspect,
+							'rim'       => $rim,
+						)
+					);
+				}
+			}
+		}
+
+		// Alpha sizes.
+		if ( preg_match_all( '/\b(M[HJMNPRSTUV]\d{2})\s*(?:ZR|R|B|D|-)?\s*(\d{1,2})(?!\d)/', $norm, $matches, PREG_SET_ORDER ) ) {
+			foreach ( $matches as $m ) {
+				$rim = (int) $m[2];
+				if ( $rim >= 12 && $rim <= 23 ) {
+					$add(
+						array(
+							'canonical' => $m[1] . '-' . $rim,
+							'notation'  => self::NOTATION_ALPHA,
+							'width'     => $m[1],
+							'aspect'    => null,
+							'rim'       => $rim,
+						)
+					);
+				}
+			}
+		}
+
+		// Imperial sizes.
+		if ( preg_match_all( '/(?<!\d)(\d+\.\d{1,2})\s*(?:R|B|X|-|\s+)\s*(\d{1,2})(?!\d)/', $norm, $matches, PREG_SET_ORDER ) ) {
+			foreach ( $matches as $m ) {
+				$width_str = self::pad_imperial_width( $m[1] );
+				$width_num = (float) $width_str;
+				$rim       = (int) $m[2];
+				if ( $width_num >= 1.50 && $width_num <= 7.50 && $rim >= 4 && $rim <= 30 ) {
+					$add(
+						array(
+							'canonical' => $width_str . '-' . $rim,
+							'notation'  => self::NOTATION_IMPERIAL,
+							'width'     => $width_str,
+							'aspect'    => null,
+							'rim'       => $rim,
+						)
+					);
+				}
+			}
+		}
+
+		return $found;
 	}
 
 	/**

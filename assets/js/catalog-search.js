@@ -326,37 +326,142 @@
 
 		function render(data, q) {
 			items = (data && data.items) || [];
+			var prods = (data && Array.isArray(data.products)) ? data.products : [];
+			var searchUrl = (data && data.search_url) || '';
 			itemsFor = q;
 			list.textContent = '';
 			activeIdx = -1;
-			if (!items.length) {
+			if (!items.length && !prods.length) {
 				close();
 				return;
 			}
-			items.forEach(function (it, i) {
-				var li = document.createElement('li');
-				li.id = list.id + '-o' + i;
-				li.setAttribute('role', 'option');
-				li.setAttribute('aria-selected', 'false');
-				li.className = 'motored-search__option';
-				var label = document.createElement('span');
-				label.textContent = it.label;
-				var meta = document.createElement('span');
-				meta.className = 'motored-search__suggest-meta';
-				meta.textContent = it.meta || '';
-				li.appendChild(label);
-				li.appendChild(meta);
-				// mousedown (not click) so the input does not lose the list before navigation.
-				li.addEventListener('mousedown', function (e) {
-					e.preventDefault();
-					go(it);
+
+			var isSmartLayout = root.dataset.layout === 'smart';
+			if (isSmartLayout && prods.length) {
+				list.classList.add('motored-search__suggest--mega');
+				var wrap = document.createElement('li');
+				wrap.className = 'motored-suggest__shell';
+				wrap.setAttribute('role', 'presentation');
+
+				var grid = document.createElement('div');
+				grid.className = 'motored-suggest__grid' + (items.length ? '' : ' motored-suggest__grid--solo');
+
+				if (items.length) {
+					var side = document.createElement('div');
+					side.className = 'motored-suggest__side';
+					var hS = document.createElement('h4');
+					hS.className = 'motored-trending__heading';
+					hS.textContent = T.suggestHeading || 'Sugerencias';
+					side.appendChild(hS);
+
+					var ul = document.createElement('ul');
+					ul.className = 'motored-suggest__list';
+					items.forEach(function (it, i) {
+						var li = document.createElement('li');
+						li.id = list.id + '-o' + i;
+						li.setAttribute('role', 'option');
+						li.setAttribute('aria-selected', 'false');
+						li.className = 'motored-search__option';
+						var label = document.createElement('span');
+						label.textContent = it.label;
+						var meta = document.createElement('span');
+						meta.className = 'motored-search__suggest-meta';
+						meta.textContent = it.meta || '';
+						li.appendChild(label);
+						li.appendChild(meta);
+						li.addEventListener('mousedown', function (e) {
+							e.preventDefault();
+							go(it);
+						});
+						ul.appendChild(li);
+					});
+					side.appendChild(ul);
+					grid.appendChild(side);
+				}
+
+				var main = document.createElement('div');
+				main.className = 'motored-suggest__main';
+				var head = document.createElement('div');
+				head.className = 'motored-suggest__header';
+				var hP = document.createElement('h4');
+				hP.className = 'motored-trending__heading';
+				hP.textContent = String(T.productsFor || 'Productos para "%s"').replace('%s', q);
+				head.appendChild(hP);
+				if (searchUrl) {
+					var allLink = document.createElement('a');
+					allLink.className = 'motored-suggest__all';
+					allLink.href = searchUrl;
+					allLink.textContent = (T.viewAllResults || 'Ver todos los resultados') + ' ›';
+					allLink.addEventListener('mousedown', function (e) {
+						e.preventDefault();
+						location.href = searchUrl;
+					});
+					head.appendChild(allLink);
+				}
+				main.appendChild(head);
+
+				var cards = document.createElement('div');
+				cards.className = 'motored-trending__products';
+				prods.forEach(function (p) {
+					var a = document.createElement('a');
+					a.className = 'motored-trending__card';
+					a.href = p.url;
+					a.addEventListener('mousedown', function (e) {
+						e.preventDefault();
+						location.href = p.url;
+					});
+					if (p.img) {
+						var img = document.createElement('img');
+						img.src = p.img;
+						img.alt = p.title || '';
+						img.loading = 'lazy';
+						a.appendChild(img);
+					}
+					var title = document.createElement('span');
+					title.className = 'motored-trending__title';
+					title.textContent = p.title || '';
+					a.appendChild(title);
+					if (p.price) {
+						var price = document.createElement('strong');
+						price.className = 'motored-trending__price';
+						price.textContent = p.price;
+						a.appendChild(price);
+					}
+					cards.appendChild(a);
 				});
-				list.appendChild(li);
-			});
+				main.appendChild(cards);
+				grid.appendChild(main);
+
+				wrap.appendChild(grid);
+				list.appendChild(wrap);
+			} else {
+				list.classList.remove('motored-search__suggest--mega');
+				items.forEach(function (it, i) {
+					var li = document.createElement('li');
+					li.id = list.id + '-o' + i;
+					li.setAttribute('role', 'option');
+					li.setAttribute('aria-selected', 'false');
+					li.className = 'motored-search__option';
+					var label = document.createElement('span');
+					label.textContent = it.label;
+					var meta = document.createElement('span');
+					meta.className = 'motored-search__suggest-meta';
+					meta.textContent = it.meta || '';
+					li.appendChild(label);
+					li.appendChild(meta);
+					// mousedown (not click) so the input does not lose the list before navigation.
+					li.addEventListener('mousedown', function (e) {
+						e.preventDefault();
+						go(it);
+					});
+					list.appendChild(li);
+				});
+			}
+
 			list.hidden = false;
 			input.setAttribute('aria-expanded', 'true');
 			if (live) {
-				live.textContent = String(T.suggestCount || '').replace('%d', items.length);
+				live.textContent = String(T.suggestCount || '').replace('%d', items.length + prods.length);
 			}
 		}
 

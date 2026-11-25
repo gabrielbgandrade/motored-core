@@ -133,7 +133,7 @@ final class RestController {
 			$brand_counts = array();
 			$brand_labels = $snapshot['labels']['product_brand'] ?? array();
 			foreach ( ( $snapshot['products'] ?? array() ) as $prod ) {
-				if ( Config::only_in_stock() && empty( $prod['stock'] ) ) {
+				if ( Config::only_in_stock() && empty( $prod['in_stock'] ) ) {
 					continue;
 				}
 				foreach ( ( $prod['brands'] ?? array() ) as $slug ) {
@@ -215,21 +215,32 @@ final class RestController {
 	}
 
 	/**
-	 * Public GET /motored/v1/filters/suggest?q= — smart search over cached arrays (no DB LIKE queries).
+	 * Public GET /motored/v1/filters/suggest?q= — smart search returning suggestions + live product matches.
 	 *
 	 * @param \WP_REST_Request $request Request.
 	 */
 	public function get_suggestions( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$raw_q = (string) $request->get_param( 'q' );
+		$q     = self::normalize_query( $raw_q );
 		try {
-			$items = self::build_suggestions( $raw_q, Config::shop_url(), Config::only_in_stock() );
+			$snap     = FacetEngine::snapshot();
+			$items    = self::build_suggestions( $raw_q, Config::shop_url(), Config::only_in_stock(), $snap );
+			$products = strlen( $q ) >= 2 ? self::search_products( $raw_q, $snap, Config::only_in_stock(), 4 ) : array();
 		} catch ( \RuntimeException $exception ) {
 			return self::snapshot_error();
 		}
 		return self::public_response(
 			array(
-				'q'     => self::normalize_query( $raw_q ),
-				'items' => $items,
+				'q'          => $q,
+				'items'      => $items,
+				'products'   => $products,
+				'search_url' => add_query_arg(
+					array(
+						's'         => trim( $raw_q ),
+						'post_type' => 'product',
+					),
+					home_url( '/' )
+				),
 			),
 			60,
 			300
@@ -266,19 +277,46 @@ final class RestController {
 		}
 
 		$snap    = null !== $snapshot ? $snapshot : FacetEngine::snapshot();
-		$combos  = preg_match( '/^(?:\d|(?:rodado|aro|r)\s*\d)/', $q ) ? FacetEngine::size_combinations( $snap, $only_in_stock ) : array();
+		$combos  = preg_match( '/\d/', $q ) ? FacetEngine::size_combinations( $snap, $only_in_stock ) : array();
 		$results = array();
 		$seen    = array();
 
-		// 1. Exact or parsed tire size (e.g. "120/70-17", "120/70ZR17", "4.10-18", "4,10 18").
-		$parsed = SizeParser::parse( $raw_q );
-		if ( null !== $parsed ) {
+		// 1. Exact or parsed tire sizes (supports single "120/70ZR17", "120/70 17" AND kits "160/60 17 + 120/70 17").
+		$parsed_list = SizeParser::parse_all( $raw_q );
+		if ( count( $parsed_list ) >= 2 ) {
+			$kit_labels = array_map( static fn( array $p ): string => $p['canonical'], array_slice( $parsed_list, 0, 2 ) );
+			$kit_label  = sprintf(
+				/* translators: 1: first tire size, 2: second tire size. */
+				__( 'Kit %1$s + %2$s', 'motored-core' ),
+				$kit_labels[0],
+				$kit_labels[1]
+			);
+			$kit_url    = add_query_arg(
+				array(
+					's'         => trim( $raw_q ),
+					'post_type' => 'product',
+				),
+				home_url( '/' )
+			);
+			$seen[ 'kit:' . $kit_label ] = true;
+			$results[]                   = array(
+				'type'  => 'kit',
+				'label' => $kit_label,
+				'meta'  => __( 'Kit / Pair', 'motored-core' ),
+				'url'   => $kit_url,
+			);
+		}
+
+		$is_single_size = 1 === count( $parsed_list );
+		foreach ( $parsed_list as $parsed ) {
 			$w_slug = FilterState::sanitize_term_slug( $parsed['width'] );
 			$p_slug = null !== $parsed['aspect'] ? (string) $parsed['aspect'] : null;
 			$r_slug = (string) $parsed['rim'];
+			$matched_combo = false;
 			foreach ( $combos as $c ) {
 				if ( $c['w'] === $w_slug && $c['r'] === $r_slug && ( null === $p_slug || $c['p'] === $p_slug ) ) {
-					$args = array(
+					$matched_combo = true;
+					$args          = array(
 						'filter_' . TireSpecs::ATTR_WIDTH => $c['w'],
 						'query_type_' . TireSpecs::ATTR_WIDTH => 'or',
 						'filter_' . TireSpecs::ATTR_RIM   => $c['r'],
@@ -295,13 +333,32 @@ final class RestController {
 						$seen[ $key ] = true;
 						$results[]    = array(
 							'type'  => 'size',
-							'exact' => true,
+							'exact' => $is_single_size,
 							'label' => $label,
 							/* translators: %d: number of available tires for this size. */
 							'meta'  => sprintf( __( 'Size (%d)', 'motored-core' ), $c['c'] ),
 							'url'   => $url,
 						);
 					}
+				}
+			}
+			// Fallback: if parsed size wasn't in attribute combos (e.g. kit-only size), still offer a direct search suggestion.
+			if ( ! $matched_combo && $is_single_size ) {
+				$key = 'size:' . $parsed['canonical'];
+				if ( ! isset( $seen[ $key ] ) ) {
+					$seen[ $key ] = true;
+					$results[]    = array(
+						'type'  => 'size',
+						'label' => $parsed['canonical'],
+						'meta'  => __( 'Search size', 'motored-core' ),
+						'url'   => add_query_arg(
+							array(
+								's'         => $parsed['canonical'],
+								'post_type' => 'product',
+							),
+							home_url( '/' )
+						),
+					);
 				}
 			}
 		}
@@ -334,9 +391,10 @@ final class RestController {
 			}
 		}
 
-		// 3. Partial size prefix match in cached combos (e.g. "120/70", "90/90", "4.10").
+		// 3. Partial size prefix match in cached combos (e.g. "120/70", "120/70zr", "120 70", "90/90", "4.10").
 		if ( count( $results ) < self::MAX_SUGGESTIONS && 1 === preg_match( '/^\d/', $q ) ) {
-			$q_norm = str_replace( array( ',', ' ' ), array( '.', '/' ), $q );
+			$q_digits = (string) preg_replace( '/[^0-9.,]+/', '-', str_replace( ',', '.', $q ) );
+			$q_digits = trim( $q_digits, '-' );
 			foreach ( $combos as $c ) {
 				if ( count( $results ) >= self::MAX_SUGGESTIONS ) {
 					break;
@@ -346,7 +404,8 @@ final class RestController {
 				if ( isset( $seen[ $key ] ) ) {
 					continue;
 				}
-				if ( str_contains( strtolower( $label ), $q_norm ) ) {
+				$label_digits = (string) preg_replace( '/[^0-9.]+/', '-', strtolower( $label ) );
+				if ( '' !== $q_digits && str_contains( $label_digits, $q_digits ) ) {
 					$seen[ $key ] = true;
 					$args         = array(
 						'filter_' . TireSpecs::ATTR_WIDTH => $c['w'],
@@ -427,6 +486,142 @@ final class RestController {
 	 */
 	public static function normalize_query( string $raw ): string {
 		return SearchText::normalize( $raw );
+	}
+
+	/**
+	 * Fast live product search for the smart-search mega-dropdown (supports single sizes, kits/pairs, brands and titles).
+	 *
+	 * @param string                                                                              $raw_q         Raw user query.
+	 * @param array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>} $snap          Catalog snapshot.
+	 * @param bool                                                                                $only_in_stock Filter to in-stock products.
+	 * @param int                                                                                 $limit         Max products to return.
+	 * @return list<array{id:int,title:string,url:string,price:string,img:string}>
+	 */
+	public static function search_products( string $raw_q, array $snap, bool $only_in_stock = true, int $limit = 4 ): array {
+		$q = self::normalize_query( $raw_q );
+		if ( strlen( $q ) < 2 || ! function_exists( 'wc_get_product' ) ) {
+			return array();
+		}
+
+		$ver       = SnapshotInvalidator::version();
+		$cache_key = 'motored_search_prods_' . md5( $ver . '|' . ( $only_in_stock ? '1' : '0' ) . '|' . $q . '|' . $limit );
+		$cached    = get_transient( $cache_key );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$ids         = array();
+		$seen_ids    = array();
+		$parsed_list = SizeParser::parse_all( $raw_q );
+
+		$push_id = static function ( int $pid ) use ( &$ids, &$seen_ids, $limit ): bool {
+			if ( $pid > 0 && ! isset( $seen_ids[ $pid ] ) ) {
+				$seen_ids[ $pid ] = true;
+				$ids[]            = $pid;
+			}
+			return count( $ids ) >= $limit;
+		};
+
+		// 1. Single parsed size: match directly against the in-memory facet snapshot (0 DB LIKE queries).
+		if ( 1 === count( $parsed_list ) ) {
+			$parsed = $parsed_list[0];
+			$w_slug = FilterState::sanitize_term_slug( $parsed['width'] );
+			$p_slug = null !== $parsed['aspect'] ? (string) $parsed['aspect'] : null;
+			$r_slug = (string) $parsed['rim'];
+			foreach ( ( $snap['products'] ?? array() ) as $prod ) {
+				if ( $only_in_stock && empty( $prod['in_stock'] ) ) {
+					continue;
+				}
+				$attrs = $prod['attrs'] ?? array();
+				$ws    = $attrs[ TireSpecs::ATTR_WIDTH ] ?? array();
+				$rs    = $attrs[ TireSpecs::ATTR_RIM ] ?? array();
+				$ps    = $attrs[ TireSpecs::ATTR_PROFILE ] ?? array();
+				if ( in_array( $w_slug, $ws, true ) && in_array( $r_slug, $rs, true ) && ( null === $p_slug || in_array( $p_slug, $ps, true ) ) ) {
+					if ( $push_id( (int) ( $prod['id'] ?? 0 ) ) ) {
+						break;
+					}
+				}
+			}
+		}
+
+		// 2. Database title/SKU match for kits (2+ sizes), partial sizes (e.g. "120/70ZR17"), models and brands.
+		global $wpdb;
+		if ( count( $ids ) < $limit && isset( $wpdb ) && is_object( $wpdb ) ) {
+			$tokens = array();
+			if ( ! empty( $parsed_list ) ) {
+				foreach ( array_slice( $parsed_list, 0, 2 ) as $p ) {
+					$tokens[] = null !== $p['aspect'] ? $p['width'] . '/' . $p['aspect'] : $p['width'];
+					$tokens[] = (string) $p['rim'];
+				}
+			} else {
+				// Strip ZR/VR/VB/R/B/D from partial tire codes like "120/70zr" -> "120/70".
+				$clean = (string) preg_replace( '/(\d{2,3}\s*\/\s*\d{2,3})\s*(?:zr|vr|vb|r|b|d)\b/i', '$1', $q );
+				$clean = str_replace( array( '+', ',' ), ' ', $clean );
+				foreach ( preg_split( '/\s+/', trim( $clean ) ) ?: array() as $tok ) {
+					if ( strlen( $tok ) >= 2 ) {
+						$tokens[] = $tok;
+					}
+				}
+			}
+			$tokens = array_values( array_unique( array_slice( $tokens, 0, 5 ) ) );
+
+			if ( ! empty( $tokens ) ) {
+				$where  = array( "p.post_type = 'product'", "p.post_status = 'publish'", 'p.post_parent = 0' );
+				$params = array();
+				foreach ( $tokens as $tok ) {
+					$where[]  = 'p.post_title LIKE %s';
+					$params[] = '%' . $wpdb->esc_like( $tok ) . '%';
+				}
+				$stock_join = '';
+				if ( $only_in_stock ) {
+					$stock_join = "LEFT JOIN {$wpdb->postmeta} pms ON pms.post_id = p.ID AND pms.meta_key = '_stock_status'";
+					$where[]    = "COALESCE(pms.meta_value, 'instock') <> 'outofstock'";
+				}
+				$params[] = $limit;
+				$sql      = "SELECT p.ID
+					FROM {$wpdb->posts} p
+					{$stock_join}
+					WHERE " . implode( ' AND ', $where ) . "
+					AND NOT EXISTS (
+						SELECT 1
+						FROM {$wpdb->term_relationships} trv
+						INNER JOIN {$wpdb->term_taxonomy} ttv ON ttv.term_taxonomy_id = trv.term_taxonomy_id AND ttv.taxonomy = 'product_visibility'
+						INNER JOIN {$wpdb->terms} tv ON tv.term_id = ttv.term_id AND tv.slug = 'exclude-from-search'
+						WHERE trv.object_id = p.ID
+					)
+					ORDER BY p.menu_order ASC, p.ID DESC
+					LIMIT %d";
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared below with dynamic LIKE token count, cached via transient.
+				$found_ids = $wpdb->get_col( $wpdb->prepare( $sql, $params ) );
+				if ( is_array( $found_ids ) ) {
+					foreach ( $found_ids as $fid ) {
+						if ( $push_id( (int) $fid ) ) {
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		$products = array();
+		foreach ( $ids as $pid ) {
+			$p = wc_get_product( $pid );
+			if ( ! $p instanceof \WC_Product ) {
+				continue;
+			}
+			$img_id     = $p->get_image_id();
+			$img        = $img_id ? (string) wp_get_attachment_image_url( $img_id, 'woocommerce_thumbnail' ) : ( function_exists( 'wc_placeholder_img_src' ) ? (string) wc_placeholder_img_src( 'woocommerce_thumbnail' ) : '' );
+			$products[] = array(
+				'id'    => $p->get_id(),
+				'title' => $p->get_name(),
+				'url'   => (string) get_permalink( $p->get_id() ),
+				'price' => html_entity_decode( wp_strip_all_tags( (string) wc_price( (float) wc_get_price_to_display( $p ) ) ), ENT_QUOTES, 'UTF-8' ),
+				'img'   => $img,
+			);
+		}
+
+		set_transient( $cache_key, $products, 60 );
+		return $products;
 	}
 
 	/**

@@ -54,7 +54,7 @@ final class StorefrontAssets {
 				self::HANDLE_CSS,
 				MOTORED_CORE_URL . 'assets/css/catalog-filters.css',
 				array( SharedAssets::HANDLE_COMPAT_CSS ),
-				MOTORED_CORE_VERSION
+				MOTORED_CORE_VERSION . '-filters5'
 			);
 		}
 	}
@@ -68,11 +68,12 @@ final class StorefrontAssets {
 		if ( ! self::once( self::HANDLE_SEARCH ) ) {
 			return;
 		}
+		$js_file = MOTORED_CORE_PATH . 'assets/js/catalog-search.js';
 		wp_enqueue_script(
 			self::HANDLE_SEARCH,
 			MOTORED_CORE_URL . 'assets/js/catalog-search.js',
 			array( SharedAssets::HANDLE_UI ),
-			MOTORED_CORE_VERSION,
+			is_file( $js_file ) ? (string) filemtime( $js_file ) : MOTORED_CORE_VERSION,
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,
@@ -105,6 +106,10 @@ final class StorefrontAssets {
 				'trendingSizes'      => __( 'Medidas más buscadas', 'motored-core' ),
 				'trendingBrands'     => __( 'Marcas destacadas', 'motored-core' ),
 				'trendingProducts'   => __( 'Más vendidos', 'motored-core' ),
+				'suggestHeading'     => __( 'Sugerencias', 'motored-core' ),
+				/* translators: %s: search query. */
+				'productsFor'        => __( 'Productos para "%s"', 'motored-core' ),
+				'viewAllResults'     => __( 'Ver todos los resultados', 'motored-core' ),
 			),
 		);
 		wp_add_inline_script(
@@ -126,7 +131,7 @@ final class StorefrontAssets {
 			self::HANDLE_FILTERS,
 			MOTORED_CORE_URL . 'assets/js/catalog-filters.js',
 			array(),
-			MOTORED_CORE_VERSION,
+			MOTORED_CORE_VERSION . '-position2',
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,

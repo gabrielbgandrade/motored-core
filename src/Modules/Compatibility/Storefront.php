@@ -63,6 +63,7 @@ final class Storefront {
 		add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
 		add_filter( 'wp_robots', array( $this, 'robots_noindex' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'maybe_enqueue_catalog_assets' ) );
+		add_action( 'template_redirect', array( $this, 'normalize_position_url' ), 5 );
 
 		CompatibilityHooks::register_query_filters(
 			array( $this, 'filter_product_query' ),
@@ -462,7 +463,7 @@ final class Storefront {
 			TireSpecs::POS_REAR  => TireSpecs::position_label( TireSpecs::POS_REAR, true ),
 			TireSpecs::POS_KIT   => TireSpecs::position_label( TireSpecs::POS_KIT, true ),
 		);
-		$base_url  = remove_query_arg( array( 'pos', 'paged' ) );
+		$base_url  = remove_query_arg( array( 'pos', 'paged', 'product-page', 'filter_' . TireSpecs::ATTR_POSITION, 'query_type_' . TireSpecs::ATTR_POSITION ) );
 		$total_cnt = (int) ( $counts['all'] ?? 0 );
 
 		$out  = '<div class="motored-compat-bar" data-moto="' . esc_attr( (string) $profile['slug'] ) . '">';
@@ -1005,6 +1006,30 @@ final class Storefront {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public catalog URL filter.
 		$pos = isset( $_GET['pos'] ) && is_string( $_GET['pos'] ) ? sanitize_key( wp_unslash( $_GET['pos'] ) ) : '';
 		return in_array( $pos, array( TireSpecs::POS_FRONT, TireSpecs::POS_REAR, TireSpecs::POS_KIT ), true ) ? $pos : '';
+	}
+
+	/**
+	 * Consolidates old single-position URLs and gives an explicit compatibility position priority.
+	 * Legacy multi-position or combined-axle selections keep their native taxonomy behavior.
+	 */
+	public function normalize_position_url(): void {
+		$filter_key = 'filter_' . TireSpecs::ATTR_POSITION;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public catalog URL filter.
+		$legacy = isset( $_GET[ $filter_key ] ) && is_string( $_GET[ $filter_key ] ) ? sanitize_text_field( wp_unslash( $_GET[ $filter_key ] ) ) : '';
+		if ( '' === $legacy || ! self::is_catalog_request() || '' === self::requested_moto_slug() || ! Config::enabled() ) {
+			return;
+		}
+		$position = self::requested_position();
+		if ( '' === $position ) {
+			$position = TireSpecs::normalize_position( $legacy );
+			if ( ! in_array( $position, array( TireSpecs::POS_FRONT, TireSpecs::POS_REAR, TireSpecs::POS_KIT ), true ) ) {
+				return;
+			}
+		}
+		$url = add_query_arg( 'pos', $position, remove_query_arg( array( $filter_key, 'query_type_' . TireSpecs::ATTR_POSITION ) ) );
+		if ( wp_safe_redirect( $url ) ) {
+			exit;
+		}
 	}
 
 	/**

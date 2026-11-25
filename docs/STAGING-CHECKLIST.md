@@ -165,6 +165,8 @@ Prerequisites: MP plugin 8.10.2, sandbox credentials, Checkout Pro enabled, plug
 
 ## Compatibility + Mi Garage (Motored > Compatibilidad & Productos > Compatibilidad)
 
+- [ ] With a motorcycle selected, switch between rear and kits from both the compatibility bar and the position facet. Confirm the sidebar opens for the selected position, both controls clear it, and other catalog filters survive. Verify legacy single-position and conflicting links, mobile Apply, browser history, and the native multi-select position filter without a motorcycle.
+
 - [ ] Garage drawer: open from the desktop header and mobile menu, close with Escape or the close button, and verify focus returns to the opener. Expand the picker and check that the first brands request starts on interaction. Verify saved motorcycles, factory sizes, switching, undo, linked tire results, and account refresh. Confirm the original link works with JavaScript disabled and at checkout.
 - [ ] Settings > Compatibilidad: enable off by default; buttons 1 (Install global attributes) and 2 (Seed fixed terms) register all 12 attributes (`pa_posicion` has 4 terms including `Delantero / Trasero`, `pa_indice-velocidad` in ETRTO order, `pa_medida-*` sorted by `name`); `product_brand` detected.
 - [ ] Productos > Compatibilidad: CRUD Brands, Models (with aliases), Versions (year range + `0` present, overlap blocked, immutable slug), Fitments, Sizes (`4.10-18` keeps zero), Directed equivalences (with "Create inverse too"), Invalid sizes report.

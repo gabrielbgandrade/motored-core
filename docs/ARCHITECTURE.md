@@ -12,6 +12,8 @@
    WAHA, Action Scheduler). Modules talk to adapters, never to raw third-party hooks.
 6. **Modules** (`src/Modules/`): functional units. See `Plugin::MODULES` for the current registry.
 
+Public components own the spacing of their controls. Set the margins of buttons and fields through Motored component selectors, and use the wrapper's `gap` or padding for layout. This keeps spacing stable across themes while preserving native controls and WooCommerce button styles elsewhere. Avoid global resets for `button`, `input`, and `.button`.
+
 ## Lifecycle
 - **Activation:** `Plugin::activate()` -> `Options::ensure('general')` (autoload=false) -> `Migrations::run()`.
 - **Every request:** `plugins_loaded@20` -> `boot()`:
@@ -86,6 +88,8 @@ The core filter `motored_status_rows` lets modules add rows to the Status sectio
 Product save / `set_object_terms` on tire taxonomies -> `ProductIndexSync` (`shutdown` <= 20, AS `motored_compat_reindex` > 20; MD5 `terms_hash` skips ERP price/stock updates) -> `motored_compat_product_index` (`product_id` PK; kits read per-axle ratings from the `_motored_tire_spec` meta, which is part of the hash). Storefront remains 100% page-cache safe: `the_posts` batch-primes markers, `<span hidden data-motored-fit>` prints uniform HTML, `compat-garage.js` matches client-side from `localStorage` (0 REST calls during browsing, 12 h TTL revalidation), `?moto=` filters via `post__in` + `noindex`, and the `Compatibility` product tab lazy-loads via REST on open (`CompatCache` uses `Support\Cache` only when persistent).
 
 A storefront header can opt into the Mi Garage drawer with `motored_garage_trigger`. The plugin renders one dialog with the shared garage UI for links marked `data-motored-garage-open`; those links retain a direct page URL for checkout and when the dialog cannot open. Motorcycle options load when the drawer selector expands.
+
+With a motorcycle selected, the compatibility bar and catalog sidebar use `pos` for axle or kit selection. The sidebar counts compatible products per position after applying the remaining catalog filters. The compatibility bar displays totals for the motorcycle across positions, while the sidebar header displays the current result total.
 
 ## Image pipeline & galleries (ImageProcessor, InstallGallery, ImageOptimizer)
 - **Shared image pipeline (`Support\ImageProcessor`):** centralizes GD/Imagick editor selection (preferring GD for predictable memory/WebP behavior), `supports_webp()`, max-side containment, EXIF/IPTC stripping, and atomic same-directory `optimize_in_place()`. Used by `ReviewPhotos` on upload, `ImageOptimizer` on bulk runs, and status diagnostics.

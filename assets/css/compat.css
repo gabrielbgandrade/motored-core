@@ -178,6 +178,10 @@
 	gap: 0.5rem;
 }
 
+.motored-compat-selector__actions > .button {
+	margin: 0;
+}
+
 .motored-compat-selector__msg {
 	margin: 0.65rem 0 0;
 	font-size: 0.9em;

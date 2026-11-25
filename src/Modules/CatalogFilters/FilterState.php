@@ -283,7 +283,7 @@ final class FilterState {
 	/**
 	 * Checks if a specific facet value is currently active.
 	 *
-	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', 'kit_medida' or 'moto').
+	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', 'kit_medida', 'moto' or 'pos').
 	 * @param string $slug  Term slug (ignored for 'oferta' / 'moto').
 	 */
 	public function is_active( string $facet, string $slug = '' ): bool {
@@ -292,6 +292,9 @@ final class FilterState {
 		}
 		if ( 'moto' === $facet ) {
 			return '' !== $this->moto;
+		}
+		if ( 'pos' === $facet ) {
+			return '' !== $this->moto && '' !== $this->pos && $slug === $this->pos;
 		}
 		if ( 'kit_medida' === $facet ) {
 			return '' !== $this->kit_size && $slug === $this->kit_size;
@@ -305,7 +308,7 @@ final class FilterState {
 	/**
 	 * Returns a new FilterState with a single facet option toggled (OR within group).
 	 *
-	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', 'kit_medida' or 'moto').
+	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', 'kit_medida', 'moto' or 'pos').
 	 * @param string $slug  Term slug.
 	 */
 	public function with_toggled( string $facet, string $slug = '' ): self {
@@ -324,6 +327,9 @@ final class FilterState {
 		} elseif ( 'moto' === $facet ) {
 			$moto = '';
 			$pos  = '';
+		} elseif ( 'pos' === $facet && '' !== $moto && in_array( $slug, array( TireSpecs::POS_FRONT, TireSpecs::POS_REAR, TireSpecs::POS_KIT ), true ) ) {
+			$pos = $pos === $slug ? '' : $slug;
+			unset( $attrs[ TireSpecs::ATTR_POSITION ] );
 		} elseif ( 'product_brand' === $facet ) {
 			$clean  = self::sanitize_term_slug( $slug );
 			$brands = self::toggle_in_list( $brands, $clean );
@@ -351,7 +357,12 @@ final class FilterState {
 		foreach ( Config::UNIT_ONLY_ATTRIBUTES as $unit_attr ) {
 			unset( $attrs[ $unit_attr ] );
 		}
-		return new self( $attrs, $this->brands, $this->moto, $this->pos, $this->on_sale, $this->extra, $this->operators, (string) SizeParser::canonical( $canonical ) );
+		$pos = $this->pos;
+		if ( '' !== $this->moto ) {
+			unset( $attrs[ TireSpecs::ATTR_POSITION ] );
+			$pos = TireSpecs::POS_KIT;
+		}
+		return new self( $attrs, $this->brands, $this->moto, $pos, $this->on_sale, $this->extra, $this->operators, (string) SizeParser::canonical( $canonical ) );
 	}
 
 	/**

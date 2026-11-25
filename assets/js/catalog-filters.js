@@ -8,27 +8,13 @@
 	'use strict';
 	var C = window.motoredFacetCfg || {};
 	var T = C.i18n || {};
-	var ACC_KEY = 'motored_facets_open';
 	var DESKTOP_MQ = '(min-width: 850px)';
 	var GRID_SEL = '.shop-container, .mt-catalog__results';
+	var BAR_SEL = '.motored-compat-bar';
 	var inflight = null;
 
 	function isDesktop() {
 		return window.matchMedia && window.matchMedia(DESKTOP_MQ).matches;
-	}
-
-	function readOpen() {
-		try {
-			return JSON.parse(window.sessionStorage.getItem(ACC_KEY)) || {};
-		} catch (e) {
-			return {};
-		}
-	}
-
-	function writeOpen(map) {
-		try {
-			window.sessionStorage.setItem(ACC_KEY, JSON.stringify(map));
-		} catch (e) {}
 	}
 
 	function track(name, data) {
@@ -82,6 +68,9 @@
 				if (!res.ok) {
 					throw new Error('HTTP ' + res.status);
 				}
+				if (res.redirected && new URL(res.url).origin === location.origin) {
+					targetUrl = res.url;
+				}
 				return res.text();
 			})
 			.then(function (html) {
@@ -95,6 +84,17 @@
 					return;
 				}
 
+				var currentBar = document.querySelector(BAR_SEL);
+				var nextBar = nextDoc.querySelector(BAR_SEL);
+				var externalBar = currentBar && !currentGrid.contains(currentBar);
+				var nextExternalBar = nextBar && !nextGrid.contains(nextBar);
+				if (!!externalBar !== !!nextExternalBar) {
+					window.location.href = targetUrl;
+					return;
+				}
+				if (externalBar) {
+					currentBar.replaceWith(nextBar);
+				}
 				currentGrid.innerHTML = nextGrid.innerHTML;
 				currentGrid.className = nextGrid.className;
 
@@ -122,6 +122,8 @@
 				}
 				if (pushHistory && window.history && typeof window.history.pushState === 'function') {
 					window.history.pushState({ motoredFilter: true }, '', targetUrl);
+				} else if (!pushHistory && targetUrl !== location.href) {
+					window.history.replaceState(window.history.state, '', targetUrl);
 				}
 
 				initAll();
@@ -159,44 +161,14 @@
 
 		var base = box.dataset.baseUrl || '/';
 		var moto = box.dataset.moto || '';
-		var pos = box.dataset.pos || '';
+		var pos = box.querySelector('[data-facet="pos"]') ? '' : box.dataset.pos || '';
 		var kit = box.dataset.kit || '';
 		var apply = box.querySelector('[data-role="apply"]');
 		var extra = {};
 		var initial = {};
-		var openMap = readOpen();
 		try {
 			extra = JSON.parse(box.dataset.extra || '{}') || {};
 		} catch (e) {}
-
-		// Accordions (aria-expanded + remembered per facet for this browsing session).
-		box.querySelectorAll('.motored-acc__btn').forEach(function (btn) {
-			var group = btn.closest('[data-facet-group]');
-			var key = group ? group.dataset.facetGroup : '';
-			var panel = document.getElementById(btn.getAttribute('aria-controls') || '');
-			var icon = btn.querySelector('.motored-acc__icon');
-			function set(open) {
-				btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-				if (panel) {
-					panel.hidden = !open;
-				}
-				if (icon) {
-					icon.textContent = open ? '−' : '+';
-				}
-			}
-			if (key && Object.prototype.hasOwnProperty.call(openMap, key)) {
-				// Never collapse a group that has an active option.
-				set(openMap[key] || !!(panel && panel.querySelector('.motored-opt.is-active')));
-			}
-			btn.addEventListener('click', function () {
-				var open = btn.getAttribute('aria-expanded') !== 'true';
-				set(open);
-				if (key) {
-					openMap[key] = open;
-					writeOpen(openMap);
-				}
-			});
-		});
 
 		var opts = box.querySelectorAll('.motored-opt');
 		opts.forEach(function (a) {
@@ -248,6 +220,8 @@
 					params.push('oferta=1');
 				} else if (fk === 'product_brand') {
 					params.push('product_brand=' + byFacet[fk].map(encodeURIComponent).join(','));
+				} else if (fk === 'pos') {
+					params.push('pos=' + encodeURIComponent(byFacet[fk][0]));
 				} else {
 					params.push('filter_' + encodeURIComponent(fk) + '=' + byFacet[fk].map(encodeURIComponent).join(','), 'query_type_' + encodeURIComponent(fk) + '=' + (operators[fk] || 'or'));
 				}
@@ -282,6 +256,12 @@
 				}
 				e.preventDefault();
 				var on = !a.classList.contains('is-active');
+				if (on && a.dataset.facet === 'pos') {
+					box.querySelectorAll('[data-facet="pos"].is-active').forEach(function (previous) {
+						previous.classList.remove('is-active');
+						previous.setAttribute('aria-pressed', 'false');
+					});
+				}
 				a.classList.toggle('is-active', on);
 				a.setAttribute('aria-pressed', on ? 'true' : 'false');
 

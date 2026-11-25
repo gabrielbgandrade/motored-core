@@ -69,6 +69,15 @@ final class FilterStateTest extends TestCase {
 		$this->assertSame( 'https://example.test/tienda/?orderby=price&utm_source=ig', $cleared );
 	}
 
+	public function test_motorcycle_position_switch_replaces_taxonomy_and_preserves_other_filters(): void {
+		$state = FilterState::from_query( array( 'moto' => 'benelli', 'filter_posicion' => 'front', 'filter_ancho' => '160' ) );
+		$rear  = $state->with_toggled( 'pos', 'rear' );
+		$this->assertSame( array( 'moto' => 'benelli', 'pos' => 'rear', 'filter_ancho' => '160', 'query_type_ancho' => 'and' ), $rear->to_query_args() );
+		$this->assertTrue( $rear->is_active( 'pos', 'rear' ) );
+		$this->assertArrayNotHasKey( 'pos', $rear->with_toggled( 'pos', 'rear' )->to_query_args() );
+		$this->assertSame( 'kit', $rear->kits_view( '160/60-17' )->pos() );
+	}
+
 	public function test_preserves_plain_archive_routing_and_native_and_operator(): void {
 		$state = FilterState::from_query( array( 'filter_ancho' => '120,130', 'query_type_ancho' => 'and' ) );
 		$url   = $state->build_url( 'https://example.test/?product_cat=cubiertas&paged=2' );
