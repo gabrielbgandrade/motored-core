@@ -1,24 +1,27 @@
 /**
  * Mi Garage client store + cache-safe compatibility hydration (badges, product banner, shop CTA, bar switch).
  *
- * Storage: localStorage `motored_garage_v1` = { active, bikes:[{slug,label}], profiles:{slug: profile} }.
+ * Guest storage and the per-account session cache use separate keys.
  * Logged-in shoppers are synced with REST /garage (user meta is the source of truth; local is a cache).
  * `ev()` MUST mirror MatchEngine::evaluate_product(); tests/js/compat-parity.test.js checks both on the same fixture.
  */
 (function () {
 	'use strict';
 
-	var KEY = 'motored_garage_v1';
+	var GUEST_KEY = 'motored_garage_guest_v2';
 	var EVENT = 'motored:garage';
 	var PRIORITY = { oem: 3, alt: 2, equiv: 1 };
 	var BADGE = 'motored-compat-badge';
 	var PROFILE_TTL = 432e5; // 12 h
 
 	var c = window.motoredCompatCfg || {};
+	var accountKey = 'motored_garage_account_' + (c.accountId || 'current');
+	var KEY = c.loggedIn ? accountKey : GUEST_KEY;
 	var t = c.i18n || {};
 	var base = (c.restBase || '').replace(/\/$/, '');
 	var D = document;
 	var memory = {};
+	var requestQueue = Promise.resolve();
 
 	/* ---------- storage (works with storage disabled: in-memory fallback) ---------- */
 
@@ -74,22 +77,37 @@
 		return out;
 	}
 
-	function read() {
+	function readState(session, key) {
 		try {
-			return normalize(JSON.parse(getItem(0, KEY)));
+			return normalize(JSON.parse(getItem(session, key)));
 		} catch (e) {
 			return normalize(null);
 		}
 	}
 
+	function read() {
+		return readState(!!c.loggedIn, KEY);
+	}
+
 	function write(state) {
-		setItem(0, KEY, JSON.stringify(normalize(state)));
+		setItem(!!c.loggedIn, KEY, JSON.stringify(normalize(state)));
 		D.dispatchEvent(new Event(EVENT));
 	}
 
 	function activeProfile() {
 		var s = read();
-		return s.profiles[s.active] || null;
+		var profile = s.profiles[s.active];
+		return profile && profile.schema === 2 ? profile : null;
+	}
+
+	function restUrl(path) {
+		var url = new URL(base, window.location.href);
+		if (url.searchParams.has('rest_route')) {
+			url.searchParams.set('rest_route', url.searchParams.get('rest_route').replace(/\/$/, '') + path);
+		} else {
+			url.pathname = url.pathname.replace(/\/$/, '') + path;
+		}
+		return url.href;
 	}
 
 	/* ---------- matching (mirror of MatchEngine::evaluate_product) ---------- */
@@ -121,7 +139,7 @@
 	}
 
 	/**
-	 * @param {Object} fit     Marker payload {p,f,r,fl,rl,fs,rs,c}.
+	 * @param {Object} fit     Marker payload {p,f,r,fl,rl,fs,rs,c,fc?,rc?}.
 	 * @param {Object} profile Client profile {front:{size:{t,f,l,s,c}}, rear:{...}}.
 	 * @return {{ok:boolean, ps:Array, m:string, w:boolean, fr:string}}
 	 */
@@ -144,7 +162,9 @@
 			if (!req || !(pos === name || pos === 'both' || pos === 'kit')) {
 				continue;
 			}
-			var res = checkConstraints(req, fit[ax + 'l'], fit[ax + 's'], fit.c);
+			// Kit sheet: per-axle construction (fc/rc); otherwise the product-wide one (c).
+			var axc = fit[ax + 'c'] != null && fit[ax + 'c'] !== '' ? fit[ax + 'c'] : fit.c;
+			var res = checkConstraints(req, fit[ax + 'l'], fit[ax + 's'], axc);
 			if (res === null) {
 				continue;
 			}
@@ -185,12 +205,17 @@
 			opts.headers['Content-Type'] = 'application/json';
 			opts.body = JSON.stringify(body);
 		}
-		return fetch(base + path, opts)
+		var operation = requestQueue.then(function () {
+			return fetch(restUrl(path), opts);
+		})
 			.then(function (r) {
 				if (r.status === 401 || r.status === 403) {
 					D.dispatchEvent(new CustomEvent('motored:garage-error', { detail: 'session' }));
 				}
 				if (!r.ok) {
+					if (method !== 'GET' && r.status !== 401 && r.status !== 403) {
+						D.dispatchEvent(new CustomEvent('motored:garage-error', { detail: 'storage' }));
+					}
 					throw new Error('HTTP ' + r.status);
 				}
 				return r.json();
@@ -202,9 +227,14 @@
 						p[k].ts = Date.now();
 					}
 					write({ active: d.active || '', bikes: d.bikes, profiles: p });
+					if (Array.isArray(d.unavailable) && d.unavailable.length) {
+						D.dispatchEvent(new CustomEvent('motored:garage-unavailable', { detail: d.unavailable }));
+					}
 				}
 				return d;
 			});
+		requestQueue = operation.catch(function () {});
+		return operation;
 	}
 
 	/** Stores a profile; with add=true it becomes the newest + active bike. Returns the label dropped at capacity. */
@@ -257,8 +287,9 @@
 		return e;
 	}
 
+	// Fills the single sprintf-style placeholder of a translated string (%s for labels, %d for counts).
 	function fmt(s, v) {
-		return String(s || '').replace('%s', v);
+		return String(s || '').replace(/%[sd]/, String(v));
 	}
 
 	function urlWithMoto(slug, pos, from) {
@@ -282,11 +313,22 @@
 		return r.ps.length === 2 ? t.front + ' / ' + t.rear : t[r.ps[0]] || '';
 	}
 
-	function detailText(r) {
+	function detailText(r, fit) {
+		var sz = '';
+		if (fit) {
+			if (r.ps[0] === 'kit' && fit.f && fit.r) {
+				sz = ' (' + fit.f + ' + ' + fit.r + ')';
+			} else if (r.ps.indexOf('front') > -1 && fit.f) {
+				sz = ' (' + fit.f + ')';
+			} else if (r.ps.indexOf('rear') > -1 && fit.r) {
+				sz = ' (' + fit.r + ')';
+			}
+		}
 		return (
 			positionText(r) +
 			' · ' +
 			(t[r.m] || r.m) +
+			sz +
 			(r.fr ? ': ' + t.equivNote + ' ' + r.fr : '') +
 			(r.w ? ' — ' + t.verifySpecs : '')
 		);
@@ -298,10 +340,10 @@
 		}
 		var parts = [];
 		if (pf.oem.f) {
-			parts.push(t.front + ': ' + pf.oem.f);
+			parts.push(t.front + ' ' + pf.oem.f);
 		}
 		if (pf.oem.r) {
-			parts.push(t.rear + ': ' + pf.oem.r);
+			parts.push(t.rear + ' ' + pf.oem.r);
 		}
 		return parts.join(' · ');
 	}
@@ -378,8 +420,8 @@
 		var r = ev(fit, pf);
 		var badge;
 		if (r.ok) {
-			badge = el('p', BADGE + ' ' + BADGE + '--ok ' + BADGE + '--loop', '✓ ' + fmt(t.compatWith, pf.label) + ' · ' + positionText(r));
-			badge.title = detailText(r);
+			badge = el('p', BADGE + ' ' + BADGE + '--ok ' + BADGE + '--loop', '✓ ' + fmt(t.compatLoop || t.compatWith, pf.label) + ' · ' + positionText(r));
+			badge.title = detailText(r, fit);
 		} else if (c.showIncomp) {
 			badge = el('p', BADGE + ' ' + BADGE + '--no ' + BADGE + '--loop', fmt(t.incompatWith, pf.label));
 		}
@@ -400,27 +442,56 @@
 			var ask = el('div', BADGE + ' ' + BADGE + '--empty');
 			ask.appendChild(el('p', BADGE + '__title', t.askFit || ''));
 			if (picker) {
-				ask.appendChild(pickerButton(picker, t.pickBike || '', 'button ' + BADGE + '__btn'));
+				ask.appendChild(pickerButton(picker, t.pickBike || '', 'button wp-element-button ' + BADGE + '__btn'));
 			}
 			status.appendChild(ask);
 			return;
 		}
 		var r = ev(fit, pf);
 		var actions = el('div', BADGE + '__actions');
+		var allTarget = function (pos) {
+			if (pf.pageUrl) {
+				if (pos === 'front') {
+					return pf.pageUrl + '#delanteras';
+				}
+				if (pos === 'rear') {
+					return pf.pageUrl + '#traseras';
+				}
+				return pf.pageUrl;
+			}
+			return urlWithMoto(pf.slug, pos || '', shopUrl());
+		};
 		var box;
 		if (r.ok) {
 			box = el('div', BADGE + ' ' + BADGE + '--ok');
-			box.appendChild(el('p', BADGE + '__title', '✓ ' + fmt(t.compatWith, pf.label)));
-			box.appendChild(el('p', BADGE + '__meta', detailText(r)));
-			var all = el('a', BADGE + '__link', t.seeCompat || '');
-			all.href = urlWithMoto(pf.slug, '', shopUrl());
+			// A kit is not "una cubierta": say what the shopper is looking at.
+			var okTpl = r.ps[0] === 'kit' && t.compatWithKit ? t.compatWithKit : t.compatWith;
+			box.appendChild(el('p', BADGE + '__title', '✓ ' + fmt(okTpl, pf.label)));
+			box.appendChild(el('p', BADGE + '__meta', detailText(r, fit)));
+			var totalCnt = pf.counts && typeof pf.counts.all === 'number' ? pf.counts.all : null;
+			var allLabel = totalCnt !== null && t.seeCompatCount ? fmt(t.seeCompatCount, totalCnt) : (t.seeCompat || '');
+			var all = el('a', BADGE + '__link', allLabel);
+			all.href = allTarget('');
 			actions.appendChild(all);
-			// Pair suggestion: a front tire fits -> offer the rear ones (and vice versa).
+			// Pair suggestion: only link when the other axle actually has products; otherwise offer demand notify.
 			if (fit.p === 'front' || fit.p === 'rear') {
 				var other = fit.p === 'front' ? 'rear' : 'front';
-				var pair = el('a', BADGE + '__link', fmt(other === 'rear' ? t.pairRear : t.pairFront, pf.label));
-				pair.href = urlWithMoto(pf.slug, other, shopUrl());
-				actions.appendChild(pair);
+				var otherCnt = pf.counts && typeof pf.counts[other] === 'number' ? pf.counts[other] : null;
+				if (otherCnt === null || otherCnt > 0) {
+					var pairTpl = otherCnt !== null
+						? (other === 'rear' ? (t.pairRearCount || t.pairRear) : (t.pairFrontCount || t.pairFront))
+						: (other === 'rear' ? t.pairRear : t.pairFront);
+					var pairText = otherCnt !== null ? fmt(pairTpl, otherCnt) : fmt(pairTpl, pf.label);
+					var pair = el('a', BADGE + '__link', pairText);
+					pair.href = allTarget(other);
+					actions.appendChild(pair);
+				} else {
+					var missingText = fmt(other === 'rear' ? t.noPairRear : t.noPairFront, pf.label);
+					var missingWrap = el('div', BADGE + '__missing');
+					missingWrap.appendChild(el('span', BADGE + '__missing-text', missingText + ' '));
+					missingWrap.appendChild(buildNotifyForm(pf.slug, other, pf.label));
+					box.appendChild(missingWrap);
+				}
 			}
 		} else {
 			// With an active bike the product page always tells the truth (no "select your bike" here).
@@ -430,12 +501,19 @@
 			if (oem) {
 				box.appendChild(el('p', BADGE + '__meta', (t.yourBikeUses ? t.yourBikeUses + ' ' : '') + oem));
 			}
-			var see = el('a', 'button alt ' + BADGE + '__btn', t.seeCompat || '');
-			see.href = urlWithMoto(pf.slug, '', shopUrl());
+			var seeCnt = pf.counts && typeof pf.counts.all === 'number' ? pf.counts.all : null;
+			var seeLbl = seeCnt !== null && t.seeCompatCount ? fmt(t.seeCompatCount, seeCnt) : (t.seeCompat || '');
+			var see = el('a', 'button alt wp-element-button ' + BADGE + '__btn', seeLbl);
+			see.href = allTarget('');
 			actions.appendChild(see);
 		}
 		if (picker) {
 			actions.appendChild(pickerButton(picker, t.changeBike || '', BADGE + '__link'));
+		}
+		if (c.loggedIn && c.garageUrl) {
+			var gLink = el('a', BADGE + '__link', t.viewGarage || '');
+			gLink.href = c.garageUrl;
+			actions.appendChild(gLink);
 		}
 		box.appendChild(actions);
 		status.appendChild(box);
@@ -485,9 +563,154 @@
 		});
 	}
 
+	function buildNotifyForm(moto, pos, label) {
+		var box = el('div', 'motored-notify-form');
+		if (!c.notifyEnabled) return box;
+		var trigger = el('button', 'button alt wp-element-button', t.notifySubmit || '');
+		trigger.type = 'button';
+		box.appendChild(trigger);
+		var result = el('p', 'motored-notify-form__msg');
+		result.setAttribute('role', 'status');
+		result.hidden = true;
+		box.appendChild(result);
+		if (c.loggedIn && c.accountPhone) box.appendChild(el('small', '', t.notifyAccountConsent || ''));
+
+		function subscribe(contact, website, submit, message) {
+			submit.disabled = true;
+			var headers = { 'Content-Type': 'application/json', 'X-Motored-Nonce': c.notifyNonce || '' };
+			if (c.loggedIn && c.nonce) headers['X-WP-Nonce'] = c.nonce;
+			return fetch(restUrl('/compat/notify'), {
+				method: 'POST', credentials: 'same-origin', headers: headers,
+				body: JSON.stringify({ moto: moto, position: pos || 'all', contact: contact, website: website, consent: true }),
+			}).then(function (r) {
+				return r.json().then(function (data) {
+					if (!r.ok || !data.ok) throw new Error(data.error || t.notifyErr);
+					message.textContent = data.message || t.notifyOk;
+					message.className = 'motored-notify-form__msg is-ok';
+					message.hidden = false;
+					trigger.disabled = true;
+					if (c.events) {
+						window.dataLayer = window.dataLayer || [];
+						window.dataLayer.push({ event: 'notify_submit', moto: moto, pos: pos || 'all' });
+					}
+				});
+			}).catch(function (error) {
+				message.textContent = error.message || t.notifyErr;
+				message.className = 'motored-notify-form__msg is-error';
+				message.hidden = false;
+			}).finally(function () { submit.disabled = submit === trigger ? trigger.disabled && !result.classList.contains('is-error') : false; });
+		}
+
+		trigger.addEventListener('click', function () {
+			if (c.loggedIn && c.accountPhone) {
+				subscribe('', '', trigger, result);
+				return;
+			}
+			// Guests, and accounts without a phone: WhatsApp is the main channel, so ask for it here.
+			var askPhone = !!c.loggedIn;
+			var dialog = D.createElement('dialog');
+			dialog.className = 'motored-notify-dialog';
+			dialog.setAttribute('aria-label', t.notifyTitle || t.notifySubmit);
+			var close = el('button', 'motored-notify-dialog__close', t.notifyClose || '');
+			close.type = 'button';
+			close.addEventListener('click', function () { dialog.close(); });
+			dialog.appendChild(close);
+			dialog.appendChild(el('h2', '', t.notifyTitle || ''));
+			if (label) dialog.appendChild(el('p', '', label));
+			dialog.appendChild(el('p', '', (askPhone ? t.notifyAddPhone : t.notifyPriority) || ''));
+			var form = el('form', 'motored-notify-form');
+			var inputLabel = el('label', '', (askPhone ? t.notifyPhone : t.notifyContact) || '');
+			var input = D.createElement('input');
+			input.type = askPhone ? 'tel' : 'text'; input.required = !askPhone; input.maxLength = 191;
+			input.autocomplete = 'tel'; input.placeholder = (askPhone ? t.notifyPhone : t.notifyContact) || '';
+			input.className = 'motored-notify-form__input';
+			inputLabel.appendChild(input); form.appendChild(inputLabel);
+			var hp = D.createElement('input');
+			hp.type = 'text'; hp.name = 'website'; hp.tabIndex = -1; hp.autocomplete = 'off';
+			hp.className = 'motored-notify-form__honeypot'; hp.setAttribute('aria-hidden', 'true');
+			form.appendChild(hp);
+			if (askPhone) {
+				form.appendChild(el('small', '', t.notifyAccountConsent || ''));
+			} else {
+				var consent = el('label', 'motored-notify-form__consent');
+				var check = D.createElement('input'); check.type = 'checkbox'; check.required = true;
+				consent.appendChild(check); consent.appendChild(D.createTextNode(' ' + (t.notifyConsent || '')));
+				form.appendChild(consent);
+			}
+			var submit = el('button', 'button alt wp-element-button', t.notifySubmit || '');
+			submit.type = 'submit'; form.appendChild(submit);
+			var message = el('p', 'motored-notify-form__msg');
+			message.setAttribute('role', 'status'); message.hidden = true; form.appendChild(message);
+			if (!askPhone) {
+				var account = el('a', '', t.notifyRegister || '');
+				account.href = c.accountUrl || c.garageUrl; form.appendChild(account);
+			}
+			form.addEventListener('submit', function (event) {
+				event.preventDefault();
+				if (!form.reportValidity()) return;
+				subscribe(input.value.trim(), hp.value, submit, message).then(function () {
+					if (message.classList.contains('is-ok')) {
+						input.value = ''; submit.disabled = true;
+						result.textContent = message.textContent; result.className = message.className; result.hidden = false;
+					}
+				});
+			});
+			dialog.appendChild(form); D.body.appendChild(dialog);
+			dialog.addEventListener('close', function () { dialog.remove(); trigger.focus(); });
+			dialog.addEventListener('click', function (event) { if (event.target === dialog) {
+				var rect = dialog.getBoundingClientRect();
+				if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
+			} });
+			dialog.showModal(); input.focus();
+		});
+		return box;
+	}
+
+	function drawNotifyMounts() {
+		D.querySelectorAll('[data-motored-notify]').forEach(function (box) {
+			if (box.dataset.mounted === '1') {
+				return;
+			}
+			box.dataset.mounted = '1';
+			box.appendChild(buildNotifyForm(box.dataset.moto || '', box.dataset.pos || 'all', box.dataset.label || ''));
+		});
+	}
+
+	function drawBikePageChips(s) {
+		D.querySelectorAll('[data-motored-bike-chip]').forEach(function (chip) {
+			chip.hidden = !s.active || s.active !== chip.dataset.slug;
+		});
+		D.querySelectorAll('[data-motored-use-bike]').forEach(function (btn) {
+			if (btn.dataset.bound === '1') {
+				return;
+			}
+			btn.dataset.bound = '1';
+			btn.addEventListener('click', function () {
+				var slug = btn.dataset.motoredUseBike || '';
+				if (!slug || !base) {
+					return;
+				}
+				btn.disabled = true;
+				fetch(restUrl('/compat/bike/' + encodeURIComponent(slug)))
+					.then(function (r) {
+						return r.ok ? r.json() : null;
+					})
+					.then(function (p) {
+						btn.disabled = false;
+						if (p && p.slug) {
+							window.motoredGarageSave(p);
+						}
+					})
+					.catch(function () {
+						btn.disabled = false;
+					});
+			});
+		});
+	}
+
 	function draw() {
 		var s = read();
-		var pf = s.profiles[s.active] || null;
+		var pf = activeProfile();
 		D.querySelectorAll('.motored-fit-marker').forEach(function (marker) {
 			var fit;
 			try {
@@ -503,28 +726,65 @@
 		});
 		drawCta(s);
 		drawBarSwitch(s);
+		drawNotifyMounts();
+		drawBikePageChips(s);
 	}
+
+	D.addEventListener('click', function (e) {
+		var trigger = e.target && e.target.closest ? e.target.closest('[data-motored-notify-trigger]') : null;
+		if (!trigger) {
+			return;
+		}
+		var parent = trigger.closest('.motored-compat-badge__missing') || trigger.parentNode;
+		if (!parent) {
+			return;
+		}
+		var existing = parent.querySelector('.motored-notify-form');
+		if (existing) {
+			existing.hidden = !existing.hidden;
+			return;
+		}
+		var notify = buildNotifyForm(trigger.dataset.moto || '', trigger.dataset.pos || 'all', trigger.dataset.label || '');
+		trigger.replaceWith(notify);
+		var button = notify.querySelector('button');
+		if (button) button.click();
+	});
 
 	/* ---------- public API ---------- */
 
 	window.motoredGarageActive = activeProfile;
-	window.motoredGarageApi = { rd: read, wr: write, api: api, ev: ev, normalize: normalize };
+	window.motoredGarageApi = { rd: read, wr: write, api: api, ev: ev, normalize: normalize, fmt: fmt };
 	window.motoredGarageSetActive = setActive;
 	window.motoredGarageSave = function (profile) {
-		var dropped = put(profile, true);
-		return api('POST', '/garage', { action: 'add', slug: profile.slug })
-			.catch(function () {})
-			.then(function () {
-				return { dropped: dropped };
+		if (c.loggedIn) {
+			var before = read();
+			return api('POST', '/garage', { action: 'add', slug: profile.slug }).then(function (result) {
+				var saved = result && result.bikes || [];
+				var removed = before.bikes.find(function (bike) {
+					return !saved.some(function (entry) { return entry.slug === bike.slug; });
+				});
+				return { dropped: removed ? removed.label : '' };
 			});
+		}
+		var dropped = put(profile, true);
+		return Promise.resolve({ dropped: dropped });
 	};
 
 	/* ---------- boot ---------- */
 
 	// Logout on a shared computer: forget the local copy of the account garage.
 	if (/(?:^|;\s*)motored_garage_logout=1/.test(D.cookie || '')) {
-		removeItem(0, KEY);
-		removeItem(1, 'mg_s');
+		removeItem(0, 'motored_garage_v1');
+		removeItem(0, GUEST_KEY);
+		try {
+			var session = store(true);
+			for (var i = session.length - 1; i >= 0; i--) {
+				var key = session.key(i);
+				if (key && key.indexOf('motored_garage_account_') === 0) {
+					removeItem(true, key);
+				}
+			}
+		} catch (e) {}
 		D.cookie = 'motored_garage_logout=;Max-Age=0;path=/';
 	}
 
@@ -539,15 +799,37 @@
 
 	var start = read();
 	var act = start.profiles[start.active];
-	if (base && c.loggedIn && !getItem(1, 'mg_s')) {
-		api('POST', '/garage', { action: 'merge', bikes: start.bikes, active: start.active })
+	var guest = readState(false, GUEST_KEY);
+	var syncedKey = accountKey + '_synced';
+	if (base && c.loggedIn && guest.bikes.length) {
+		api('POST', '/garage', { action: 'merge', source: 'guest-v2', bikes: guest.bikes, active: guest.active })
 			.then(function () {
-				setItem(1, 'mg_s', '1');
+				if (JSON.stringify(readState(false, GUEST_KEY)) === JSON.stringify(guest)) {
+					removeItem(false, GUEST_KEY);
+				}
+				setItem(true, syncedKey, '1');
 			})
 			.catch(function () {});
-	} else if (base && start.active && (!act || !act.ts || Date.now() - act.ts > PROFILE_TTL || !act.oem)) {
-		fetch(base + '/compat/bike/' + encodeURIComponent(start.active))
+	} else if (base && c.loggedIn && (!getItem(true, syncedKey) || D.querySelector('.motored-garage-page'))) {
+		api('GET', '/garage').then(function () {
+			setItem(true, syncedKey, '1');
+		}).catch(function () {});
+	} else if (base && start.active && (!act || act.schema !== 2 || !act.ts || Date.now() - act.ts > PROFILE_TTL || !act.oem)) {
+		fetch(restUrl('/compat/bike/' + encodeURIComponent(start.active)))
 			.then(function (r) {
+				if (r.status === 404) {
+					// Bike was deleted or reverted to draft: drop the stale entry so the guest is not stuck.
+					var cur = read();
+					cur.bikes = cur.bikes.filter(function (x) {
+						return x.slug !== start.active;
+					});
+					delete cur.profiles[start.active];
+					if (cur.active === start.active) {
+						cur.active = cur.bikes[0] ? cur.bikes[0].slug : '';
+					}
+					write(cur);
+					return null;
+				}
 				return r.ok ? r.json() : null;
 			})
 			.then(function (p) {

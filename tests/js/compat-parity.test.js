@@ -40,7 +40,15 @@ function clientAxis(axis) {
 }
 
 function marker(fit) {
-	return { p: fit.position, f: fit.front_canonical, r: fit.rear_canonical, fl: fit.front_load, rl: fit.rear_load, fs: fit.front_speed_rank, rs: fit.rear_speed_rank, c: fit.construction };
+	const m = { p: fit.position, f: fit.front_canonical, r: fit.rear_canonical, fl: fit.front_load, rl: fit.rear_load, fs: fit.front_speed_rank, rs: fit.rear_speed_rank, c: fit.construction };
+	// Same as Storefront::fit_marker_html(): fc/rc only when the kit sheet sets them.
+	if (fit.front_construction) {
+		m.fc = fit.front_construction;
+	}
+	if (fit.rear_construction) {
+		m.rc = fit.rear_construction;
+	}
+	return m;
 }
 
 let failures = 0;
@@ -63,5 +71,22 @@ for (const tc of fixture.cases) {
 		console.log('FAIL ' + tc.name + '\n     expected ' + JSON.stringify(tc.expect) + '\n     got      ' + JSON.stringify(got));
 	}
 }
-console.log(failures ? failures + ' parity failure(s)' : 'all ' + fixture.cases.length + ' parity cases pass');
+// fmt(): translated strings use %s (labels) and %d (counts); neither may leak to the storefront.
+const fmt = windowStub.motoredGarageApi.fmt;
+for (const [tpl, val, want] of [
+	['Ver todas las cubiertas para tu moto (%d)', 2, 'Ver todas las cubiertas para tu moto (2)'],
+	['Completá el juego: delanteras (%d)', 0, 'Completá el juego: delanteras (0)'],
+	['Esta cubierta sirve para tu %s', 'Benelli TRK 502 2017+', 'Esta cubierta sirve para tu Benelli TRK 502 2017+'],
+	['Completá el juego: traseras', 'x', 'Completá el juego: traseras'],
+]) {
+	try {
+		assert.strictEqual(fmt(tpl, val), want);
+		console.log('ok   fmt ' + JSON.stringify(tpl));
+	} catch (e) {
+		failures++;
+		console.log('FAIL fmt ' + JSON.stringify(tpl) + ' -> ' + JSON.stringify(fmt(tpl, val)));
+	}
+}
+
+console.log(failures ? failures + ' failure(s)' : 'all ' + fixture.cases.length + ' parity cases + fmt cases pass');
 process.exit(failures ? 1 : 0);

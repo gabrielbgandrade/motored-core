@@ -8,8 +8,6 @@
 namespace Motored\Core\Modules\CatalogFilters;
 
 use Motored\Core\Modules\Compatibility\CatalogRepository;
-use Motored\Core\Modules\Compatibility\CompatCache;
-use Motored\Core\Modules\Compatibility\MatchEngine;
 use Motored\Core\Modules\Compatibility\SizeParser;
 use Motored\Core\Modules\Compatibility\TireSpecs;
 use Motored\Core\Support\SearchText;
@@ -69,6 +67,7 @@ final class RestController {
 				'args'                => array(
 					'q' => array(
 						'required'          => false,
+						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
 				),
@@ -79,9 +78,13 @@ final class RestController {
 	/**
 	 * Public GET /motored/v1/filters/sizes — compact versioned Ancho/Perfil/Rodado cascade JSON.
 	 */
-	public function get_sizes(): \WP_REST_Response {
-		$snapshot = FacetEngine::snapshot();
-		$combos   = FacetEngine::size_combinations( $snapshot, Config::only_in_stock() );
+	public function get_sizes(): \WP_REST_Response|\WP_Error {
+		try {
+			$snapshot = FacetEngine::snapshot();
+		} catch ( \RuntimeException $exception ) {
+			return self::snapshot_error();
+		}
+		$combos = FacetEngine::size_combinations( $snapshot, Config::only_in_stock() );
 		return self::public_response(
 			array(
 				'version' => SnapshotInvalidator::version(),
@@ -97,9 +100,13 @@ final class RestController {
 	 *
 	 * @param \WP_REST_Request $request Request.
 	 */
-	public function get_suggestions( \WP_REST_Request $request ): \WP_REST_Response {
+	public function get_suggestions( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$raw_q = (string) $request->get_param( 'q' );
-		$items = self::build_suggestions( $raw_q, Config::shop_url(), Config::only_in_stock() );
+		try {
+			$items = self::build_suggestions( $raw_q, Config::shop_url(), Config::only_in_stock() );
+		} catch ( \RuntimeException $exception ) {
+			return self::snapshot_error();
+		}
 		return self::public_response(
 			array(
 				'q'     => self::normalize_query( $raw_q ),
@@ -111,6 +118,13 @@ final class RestController {
 	}
 
 	/**
+	 * Reports temporary catalog failure without caching an empty result.
+	 */
+	private static function snapshot_error(): \WP_Error {
+		return new \WP_Error( 'motored_catalog_unavailable', __( 'Action could not be completed.', 'motored-core' ), array( 'status' => 503 ) );
+	}
+
+	/**
 	 * Pure smart-search matcher over cached sizes, brands and published motorcycle versions.
 	 *
 	 * @param string                                                                                   $raw_q         Raw user query.
@@ -118,7 +132,7 @@ final class RestController {
 	 * @param bool                                                                                     $only_in_stock Filter to in-stock products.
 	 * @param array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>}|null $snapshot      Optional preloaded snapshot (tests).
 	 * @param list<array{slug:string,label:string,haystack:string}>|null                               $bikes         Optional preloaded bikes index (tests).
-	 * @return list<array{type:string,label:string,meta:string,url:string,slug?:string}>
+	 * @return list<array{type:string,label:string,meta:string,url:string,slug?:string,exact?:bool}>
 	 */
 	public static function build_suggestions(
 		string $raw_q,
@@ -133,7 +147,7 @@ final class RestController {
 		}
 
 		$snap    = null !== $snapshot ? $snapshot : FacetEngine::snapshot();
-		$combos  = FacetEngine::size_combinations( $snap, $only_in_stock );
+		$combos  = preg_match( '/^(?:\d|(?:rodado|aro|r)\s*\d)/', $q ) ? FacetEngine::size_combinations( $snap, $only_in_stock ) : array();
 		$results = array();
 		$seen    = array();
 
@@ -162,6 +176,7 @@ final class RestController {
 						$seen[ $key ] = true;
 						$results[]    = array(
 							'type'  => 'size',
+							'exact' => true,
 							'label' => $label,
 							/* translators: %d: number of available tires for this size. */
 							'meta'  => sprintf( __( 'Size (%d)', 'motored-core' ), $c['c'] ),
@@ -184,6 +199,7 @@ final class RestController {
 			if ( $rim_cnt > 0 ) {
 				$results[] = array(
 					'type'  => 'rim',
+					'exact' => true,
 					/* translators: %s: rim diameter in inches. */
 					'label' => sprintf( __( 'Rim %s', 'motored-core' ), $rim_slug ),
 					/* translators: %d: number of available tires for this rim. */
@@ -236,7 +252,7 @@ final class RestController {
 
 		// 4. Published motorcycles (brands, models, aliases, years) from cached array.
 		if ( count( $results ) < self::MAX_SUGGESTIONS ) {
-			$bike_list = null !== $bikes ? $bikes : self::cached_bike_index();
+			$bike_list = null !== $bikes ? $bikes : CatalogRepository::published_bike_search_index();
 			foreach ( $bike_list as $bk ) {
 				if ( count( $results ) >= self::MAX_SUGGESTIONS ) {
 					break;
@@ -283,57 +299,6 @@ final class RestController {
 		}
 
 		return array_slice( $results, 0, self::MAX_SUGGESTIONS );
-	}
-
-	/**
-	 * Loads the compact published motorcycle search array (cached in compat_catalog when Redis is active).
-	 *
-	 * @return list<array{slug:string,label:string,haystack:string}>
-	 */
-	private static function cached_bike_index(): array {
-		if ( ! \Motored\Core\Modules\Compatibility\Config::enabled() ) {
-			return array();
-		}
-		return CompatCache::remember(
-			'suggest_bikes_v2',
-			static function (): array {
-				global $wpdb;
-				if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
-					return array();
-				}
-				$v = CatalogRepository::versions_table();
-				$m = CatalogRepository::models_table();
-				$b = CatalogRepository::brands_table();
-				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Cached in CompatCache; fixed validated table names.
-				$rows = $wpdb->get_results(
-					"SELECT v.slug, v.year_from, v.year_to, v.variant, m.name AS model_name, m.aliases, b.name AS brand_name
-					FROM {$v} v
-					INNER JOIN {$m} m ON m.id = v.model_id
-					INNER JOIN {$b} b ON b.id = m.brand_id
-					WHERE v.status = 'published'
-					ORDER BY b.name ASC, m.name ASC, v.year_from DESC",
-					ARRAY_A
-				);
-				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$out = array();
-				foreach ( is_array( $rows ) ? $rows : array() as $row ) {
-					$years = MatchEngine::format_years( (int) $row['year_from'], (int) $row['year_to'] );
-					$var   = trim( (string) $row['variant'] );
-					$label = MatchEngine::version_label( (string) $row['brand_name'], (string) $row['model_name'], $var, (int) $row['year_from'], (int) $row['year_to'] );
-					$hay   = SearchText::haystack(
-						(string) $row['brand_name'] . ' ' . (string) $row['model_name'] . ' ' . (string) $row['aliases'] . ' ' . $var . ' ' . $years
-					);
-					$out[] = array(
-						'slug'     => (string) $row['slug'],
-						'label'    => $label,
-						'haystack' => $hay,
-					);
-				}
-				return $out;
-			},
-			CompatCache::BUCKET_CATALOG,
-			CompatCache::TTL_CATALOG
-		);
 	}
 
 	/**

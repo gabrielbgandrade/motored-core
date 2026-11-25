@@ -28,21 +28,6 @@ final class AdminAssets {
 			return;
 		}
 		wp_enqueue_style( self::HANDLE, MOTORED_CORE_URL . 'assets/admin/motored-admin.css', array(), MOTORED_CORE_VERSION );
-
-		// Product edit screen only: tiny vanilla script of the "Technical information" box (position select + field groups).
-		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( is_object( $screen ) && 'product' === $screen->id && 'post' === $screen->base ) {
-			wp_enqueue_script(
-				'motored-tire-box',
-				MOTORED_CORE_URL . 'assets/admin/motored-tire-box.js',
-				array(),
-				MOTORED_CORE_VERSION,
-				array(
-					'in_footer' => true,
-					'strategy'  => 'defer',
-				)
-			);
-		}
 	}
 
 	/**

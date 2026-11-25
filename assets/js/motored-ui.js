@@ -56,6 +56,16 @@
 		window.dataLayer.push(ev);
 	}
 
+	function restUrl(base, path) {
+		var url = new URL(base, window.location.href);
+		if (url.searchParams.has('rest_route')) {
+			url.searchParams.set('rest_route', url.searchParams.get('rest_route').replace(/\/$/, '') + path);
+		} else {
+			url.pathname = url.pathname.replace(/\/$/, '') + path;
+		}
+		return url.href;
+	}
+
 	function getJson(url) {
 		return fetch(url, { credentials: 'same-origin' }).then(function (r) {
 			if (!r.ok) {
@@ -172,7 +182,7 @@
 			loading = true;
 			msg('');
 			fillSelect(o.brand, [], t.loading || t.brandPlaceholder, true);
-			brandsPromise = brandsPromise || getJson(o.base + '/compat/brands');
+			brandsPromise = brandsPromise || getJson(restUrl(o.base, '/compat/brands'));
 			brandsPromise
 				.then(function (d) {
 					loading = false;
@@ -203,7 +213,7 @@
 				return;
 			}
 			fillSelect(o.model, [], t.loading || t.modelPlaceholder, true);
-			getJson(o.base + '/compat/brands/' + encodeURIComponent(o.brand.value) + '/models')
+			getJson(restUrl(o.base, '/compat/brands/' + encodeURIComponent(o.brand.value) + '/models'))
 				.then(function (d) {
 					if (seq !== brandSeq) {
 						return;
@@ -231,7 +241,7 @@
 				return;
 			}
 			fillSelect(o.year, [], t.loading || t.yearPlaceholder, true);
-			getJson(o.base + '/compat/models/' + encodeURIComponent(o.model.value) + '/years')
+			getJson(restUrl(o.base, '/compat/models/' + encodeURIComponent(o.model.value) + '/years'))
 				.then(function (d) {
 					if (seq !== modelSeq) {
 						return;
@@ -342,6 +352,7 @@
 		compact: compact,
 		matches: matches,
 		track: track,
+		restUrl: restUrl,
 		getJson: getJson,
 		fillSelect: fillSelect,
 		cascade: cascade,

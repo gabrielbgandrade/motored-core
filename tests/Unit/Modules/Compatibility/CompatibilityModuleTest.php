@@ -43,6 +43,6 @@ final class CompatibilityModuleTest extends TestCase {
 
 		$this->assertNotFalse( has_action( 'woocommerce_product_query' ) );
 		$this->assertNotFalse( has_filter( 'woocommerce_product_tabs' ) );
-		$this->assertFalse( has_action( 'rest_api_init' ), 'REST routes are not hooked on normal frontend GET.' );
+		$this->assertNotFalse( has_action( 'rest_api_init' ), 'REST controllers are initialized by the REST hook.' );
 	}
 }

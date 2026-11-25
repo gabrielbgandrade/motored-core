@@ -18,7 +18,7 @@ Rule: a module ships its own `README.md` AND `.claude/skills/motored-module-<id>
 6. Settings (admin only): `SectionRegistry::add( '<id>', label_callable, settings_callable )`; field ids
    `motored_<id>[key]` with `'autoload' => false`. Every new admin UI (table, box, field, meta box) uses the
    classes of `assets/admin/motored-admin.css` via `Admin\Ui`; ad hoc per-module CSS and inline styles are forbidden.
-7. Tables: add `'YYYYMMDDNN' => array( <Name>Migration::class, 'up' )` to `Plugin::migrations()`
+7. Tables: add `'YYYYMMDDNN' => \\Closure::fromCallable( array( <Name>Migration::class, 'up' ) )` to `Plugin::migrations()`
    (idempotent `dbDelta`, `Db::table()`); add drops to `uninstall.php`.
 8. Unverified/third-party APIs: wrap in `src/Integration/`, add rows to `docs/VERIFY.md`.
 9. i18n: `motored-core` domain; update `.pot`, es_AR `.po` (voseo), `.mo` via `bin/i18n.sh`.

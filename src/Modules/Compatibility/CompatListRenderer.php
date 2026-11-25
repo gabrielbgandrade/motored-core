@@ -7,7 +7,8 @@
 
 namespace Motored\Core\Modules\Compatibility;
 
-use Motored\Core\Modules\CatalogFilters\StorefrontAssets;
+use Motored\Core\Support\StorefrontAssets;
+use Motored\Core\Modules\MiGarage\GarageAssets;
 use Motored\Core\Support\SearchText;
 
 defined( 'ABSPATH' ) || exit;
@@ -35,13 +36,13 @@ final class CompatListRenderer {
 			return '';
 		}
 
-		Storefront::enqueue_garage_script();
+		GarageAssets::enqueue();
 		StorefrontAssets::enqueue_compat_css();
 		StorefrontAssets::enqueue_ui_js();
 		wp_enqueue_script(
 			Storefront::HANDLE_TAB,
 			MOTORED_CORE_URL . 'assets/js/compat-tab.js',
-			array( Storefront::HANDLE_GARAGE, StorefrontAssets::HANDLE_UI ),
+			array( GarageAssets::HANDLE, StorefrontAssets::HANDLE_UI ),
 			MOTORED_CORE_VERSION,
 			array(
 				'strategy'  => 'defer',
@@ -103,7 +104,23 @@ final class CompatListRenderer {
 							data-slugs="<?php echo esc_attr( implode( ',', $row['slugs'] ) ); ?>"
 							<?php echo $is_extra ? 'hidden' : ''; ?>>
 							<span class="motored-compat-list__brand-name"><?php echo esc_html( $row['brand'] ); ?>:</span>
-							<span class="motored-compat-list__models"><?php echo esc_html( $row['text'] ); ?></span>
+							<span class="motored-compat-list__models">
+								<?php
+								$entry_count = count( $row['entries'] );
+								foreach ( $row['entries'] as $e_idx => $entry_item ) :
+									if ( '' !== $entry_item['url'] ) :
+										?>
+										<a href="<?php echo esc_url( $entry_item['url'] ); ?>"><?php echo esc_html( $entry_item['text'] ); ?></a>
+										<?php
+									else :
+										echo esc_html( $entry_item['text'] );
+									endif;
+									if ( $e_idx + 1 < $entry_count ) :
+										echo '; ';
+									endif;
+								endforeach;
+								?>
+							</span>
 						</li>
 					<?php endforeach; ?>
 				</ul>
@@ -133,25 +150,34 @@ final class CompatListRenderer {
 	 *
 	 * @param list<array<string,mixed>> $items            Compatible motorcycle items.
 	 * @param string                    $product_position Product position (front|rear|both|kit).
-	 * @return list<array{brand:string,text:string,search:string,slugs:list<string>}>
+	 * @return list<array{brand:string,text:string,entries:list<array{text:string,url:string}>,search:string,slugs:list<string>}>
 	 */
 	public static function build_rows( array $items, string $product_position = '' ): array {
 		$rows = array();
 		foreach ( self::group_by_brand( $items ) as $brand_name => $entries ) {
-			$brand  = (string) $brand_name;
-			$search = array( $brand );
-			$slugs  = array();
-			$parts  = array();
+			$brand       = (string) $brand_name;
+			$search      = array( $brand );
+			$slugs       = array();
+			$parts       = array();
+			$entry_items = array();
 			foreach ( $entries as $e ) {
-				$slugs[]  = (string) ( $e['slug'] ?? '' );
-				$search[] = trim( (string) ( $e['model'] ?? '' ) . ' ' . (string) ( $e['aliases'] ?? '' ) . ' ' . (string) ( $e['variant'] ?? '' ) . ' ' . (string) ( $e['years'] ?? '' ) );
-				$parts[]  = self::format_entry( $e, $product_position );
+				$slug          = (string) ( $e['slug'] ?? '' );
+				$slugs[]       = $slug;
+				$search[]      = trim( (string) ( $e['model'] ?? '' ) . ' ' . (string) ( $e['aliases'] ?? '' ) . ' ' . (string) ( $e['variant'] ?? '' ) . ' ' . (string) ( $e['years'] ?? '' ) );
+				$label         = self::format_entry( $e, $product_position );
+				$url           = '' !== $slug ? (string) apply_filters( 'motored_compat_bike_page_url', '', $slug ) : '';
+				$parts[]       = $label;
+				$entry_items[] = array(
+					'text' => $label,
+					'url'  => $url,
+				);
 			}
 			$rows[] = array(
-				'brand'  => $brand,
-				'text'   => implode( '; ', $parts ),
-				'search' => SearchText::haystack( implode( ' ', array_unique( $search ) ) ),
-				'slugs'  => array_values( array_unique( array_filter( $slugs ) ) ),
+				'brand'   => $brand,
+				'text'    => implode( '; ', $parts ),
+				'entries' => $entry_items,
+				'search'  => SearchText::haystack( implode( ' ', array_unique( $search ) ) ),
+				'slugs'   => array_values( array_unique( array_filter( $slugs ) ) ),
 			);
 		}
 		return $rows;
@@ -183,18 +209,7 @@ final class CompatListRenderer {
 	 * @param string            $product_position Product position (front|rear|both|kit).
 	 */
 	public static function position_label( array $positions, string $product_position = '' ): string {
-		if ( TireSpecs::POS_KIT === $product_position ) {
-			return __( 'Complete kit', 'motored-core' );
-		}
-		$front = in_array( TireSpecs::POS_FRONT, $positions, true );
-		$rear  = in_array( TireSpecs::POS_REAR, $positions, true );
-		if ( $front && $rear ) {
-			return __( 'Front / Rear', 'motored-core' );
-		}
-		if ( $front ) {
-			return __( 'Front', 'motored-core' );
-		}
-		return $rear ? __( 'Rear', 'motored-core' ) : '';
+		return TireSpecs::positions_label( $positions, $product_position );
 	}
 
 	/**

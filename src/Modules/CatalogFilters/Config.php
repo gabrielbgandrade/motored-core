@@ -74,12 +74,13 @@ final class Config {
 	 * @var array<string,string>
 	 */
 	public const DEFAULTS = array(
-		'enabled'          => 'no',
-		'only_in_stock'    => 'yes',
-		'noindex_filtered' => 'yes',
-		'accent_color'     => '',
-		'default_layout'   => 'tabs',
-		'shop_url'         => '',
+		'enabled'                    => 'no',
+		'only_in_stock'              => 'yes',
+		'noindex_filtered'           => 'yes',
+		'replace_native_layered_nav' => 'no',
+		'accent_color'               => '',
+		'default_layout'             => 'tabs',
+		'shop_url'                   => '',
 	);
 
 	/**
@@ -112,6 +113,13 @@ final class Config {
 	 */
 	public static function noindex_filtered(): bool {
 		return 'yes' === (string) Options::get( self::OPTION_KEY, 'noindex_filtered', 'yes' );
+	}
+
+	/**
+	 * Whether CatalogFilters unregisters WooCommerce's native layered navigation widgets to avoid duplicate facets.
+	 */
+	public static function replace_native_layered_nav(): bool {
+		return 'yes' === (string) Options::get( self::OPTION_KEY, 'replace_native_layered_nav', 'no' );
 	}
 
 	/**

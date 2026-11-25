@@ -9,7 +9,7 @@ use Motored\Core\Modules\CatalogFilters\RestController as FiltersRest;
 use Motored\Core\Modules\CatalogFilters\StorefrontAssets;
 use Motored\Core\Modules\Compatibility\CompatListRenderer;
 use Motored\Core\Modules\Compatibility\Config;
-use Motored\Core\Modules\Compatibility\GarageRepository;
+use Motored\Core\Modules\MiGarage\GarageRepository;
 use Motored\Core\Modules\Compatibility\MatchEngine;
 use Motored\Core\Modules\Compatibility\RestController;
 use Motored\Core\Modules\Compatibility\Storefront;
@@ -48,12 +48,17 @@ final class FrontendFixesTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'wp_script_is' )->justReturn( false );
+		Functions\when( 'sanitize_hex_color' )->returnArg();
 		Functions\when( 'wp_add_inline_style' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
 		Functions\when( 'wp_add_inline_script' )->justReturn( true );
 		Functions\when( 'rest_url' )->alias( static fn( $p = '' ) => 'https://example.test/wp-json/' . $p );
 		Functions\when( 'untrailingslashit' )->alias( static fn( $s ) => rtrim( (string) $s, '/' ) );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'test-nonce' );
+		Functions\when( 'wc_get_page_permalink' )->justReturn( 'https://example.test/my-account/' );
 		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.test' . $p );
 	}
 
@@ -209,6 +214,17 @@ final class FrontendFixesTest extends TestCase {
 		$this->assertSame( '', Storefront::active_bike_bar_html() );
 	}
 
+	public function test_independent_product_collection_keeps_its_original_query(): void {
+		$_GET['moto'] = 'moto-1';
+		$block = new \WP_Block();
+		$block->context['query'] = array( 'isProductCollectionBlock' => true, 'inherit' => false );
+		$args = array( 'post_type' => 'product', 'post__in' => array( 11, 12 ), 'orderby' => 'date' );
+
+		$result = ( new Storefront() )->filter_block_query_vars( $args, $block );
+
+		$this->assertSame( $args + array( 'motored_prime_fits' => true ), $result );
+	}
+
 	public function test_block_hooks_registered_and_price_block_appends_loop_marker(): void {
 		$cb = static fn( $c ) => $c;
 		CompatibilityHooks::register_block_hooks( $cb, $cb );
@@ -311,5 +327,61 @@ final class FrontendFixesTest extends TestCase {
 		}
 		$items = FiltersRest::build_suggestions( 'skua', 'https://example.test/shop/', true, $snap, $bikes );
 		$this->assertSame( 'motomel-skua-150', $items[0]['slug'] ?? '' );
+	}
+
+	public function test_compat_list_rows_include_per_motorcycle_page_links_and_gating_skips_non_tires(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static fn( $hook, $val, ...$args ) => 'motored_compat_bike_page_url' === $hook
+				? 'https://example.test/cubiertas-para/' . (string) ( $args[0] ?? '' ) . '/'
+				: $val
+		);
+		$rows = CompatListRenderer::build_rows(
+			array(
+				array(
+					'slug'      => 'benelli-trk-502-2017',
+					'brand'     => 'Benelli',
+					'model'     => 'TRK 502',
+					'aliases'   => '',
+					'variant'   => '',
+					'years'     => '2017+',
+					'positions' => array( TireSpecs::POS_REAR ),
+					'match'     => TireSpecs::FIT_OEM,
+				),
+			),
+			TireSpecs::POS_REAR
+		);
+		$this->assertSame(
+			'https://example.test/cubiertas-para/benelli-trk-502-2017/',
+			$rows[0]['entries'][0]['url']
+		);
+
+		$this->assertSame( 'Front tires', TireSpecs::position_label( TireSpecs::POS_FRONT, true ) );
+		$this->assertSame( 'Rear tires', TireSpecs::position_label( TireSpecs::POS_REAR, true ) );
+
+		// P1-2/P1-3 gating: non-tire product page enqueues neither compat.css nor compat-garage.js.
+		$enqueued = 0;
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function () use ( &$enqueued ): void {
+				++$enqueued;
+			}
+		);
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function () use ( &$enqueued ): void {
+				++$enqueued;
+			}
+		);
+		Functions\when( 'is_shop' )->justReturn( false );
+		Functions\when( 'is_product_taxonomy' )->justReturn( false );
+		Functions\when( 'is_search' )->justReturn( false );
+		Functions\when( 'is_product' )->justReturn( true );
+		Functions\when( 'is_account_page' )->justReturn( false );
+		Functions\when( 'get_queried_object_id' )->justReturn( 999 );
+		$wpdb         = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+		$GLOBALS['wpdb'] = $wpdb;
+		( new Storefront() )->maybe_enqueue_catalog_assets();
+		unset( $GLOBALS['wpdb'] );
+		$this->assertSame( 0, $enqueued );
 	}
 }

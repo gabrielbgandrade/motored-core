@@ -3,6 +3,7 @@ namespace Motored\Core\Tests\Unit\Modules\CatalogFilters;
 
 use Brain\Monkey\Functions;
 use Motored\Core\Modules\CatalogFilters\FacetEngine;
+use Motored\Core\Modules\CatalogFilters\FilterRenderer;
 use Motored\Core\Modules\CatalogFilters\FilterState;
 use Motored\Core\Modules\Compatibility\TireSpecs;
 use Motored\Core\Tests\Unit\TestCase;
@@ -79,6 +80,7 @@ final class FacetEngineTest extends TestCase {
 		$state = FilterState::from_query(
 			array(
 				'filter_ancho'  => '120',
+				'query_type_ancho' => 'or',
 				'filter_rodado' => '17',
 			)
 		);
@@ -144,4 +146,65 @@ final class FacetEngineTest extends TestCase {
 		$this->assertGreaterThan( 0, $res['total'] );
 		$this->assertLessThan( 150.0, $ms, sprintf( '3000-product facet count took %.2f ms', $ms ) );
 	}
+
+	public function test_kit_view_restricts_counts_and_selected_size_reads_labels(): void {
+		$rows     = array(
+			array( 'id' => 1, 'stock_status' => 'instock', 'taxonomy' => 'pa_posicion', 'slug' => 'trasero', 'name' => 'Trasero' ),
+			array( 'id' => 1, 'stock_status' => 'instock', 'taxonomy' => 'product_brand', 'slug' => 'pirelli', 'name' => 'Pirelli' ),
+			array( 'id' => 7, 'stock_status' => 'instock', 'taxonomy' => 'pa_posicion', 'slug' => 'kit', 'name' => 'Kit' ),
+			array( 'id' => 7, 'stock_status' => 'instock', 'taxonomy' => 'product_brand', 'slug' => 'metzeler', 'name' => 'Metzeler' ),
+		);
+		$snapshot = FacetEngine::assemble_snapshot_rows( $rows );
+		$res      = FacetEngine::compute_facets( $snapshot, new FilterState(), array( 'only_in_stock' => true, 'kit_ids' => array( 7 => true ) ) );
+		$this->assertSame( 1, $res['total'] );
+		$this->assertSame( array( 'metzeler' ), array_values( array_column( array_filter( $res['facets']['product_brand'], static fn( $i ) => $i['count'] > 0 ), 'slug' ) ) );
+
+		$labels = array(
+			TireSpecs::ATTR_WIDTH   => array( '4-10' => '4.10', '130' => '130' ),
+			TireSpecs::ATTR_PROFILE => array( '70' => '70' ),
+			TireSpecs::ATTR_RIM     => array( '18' => '18', '17' => '17' ),
+		);
+		$metric   = FilterState::from_query( array( 'filter_ancho' => '130', 'filter_perfil' => '70', 'filter_rodado' => '17' ) );
+		$imperial = FilterState::from_query( array( 'filter_ancho' => '4-10', 'filter_rodado' => '18' ) );
+		$two      = FilterState::from_query( array( 'filter_ancho' => '130,4-10', 'filter_rodado' => '17' ) );
+		$this->assertSame( '130/70-17', FilterRenderer::selected_size( $metric, $labels ) );
+		$this->assertSame( '4.10-18', FilterRenderer::selected_size( $imperial, $labels ) );
+		$this->assertSame( '', FilterRenderer::selected_size( $two, $labels ) );
+	}
+
+	public function test_search_snapshot_is_cached_and_multi_valued_sizes_sort_deterministically(): void {
+		$snap = array(
+			'products' => array(
+				array(
+					'id'       => 10,
+					'in_stock' => true,
+					'is_kit'   => false,
+					'cats'     => array(),
+					'brands'   => array(),
+					'attrs'    => array(
+						TireSpecs::ATTR_WIDTH   => array( '130', '110' ),
+						TireSpecs::ATTR_PROFILE => array( '80', '70' ),
+						TireSpecs::ATTR_RIM     => array( '18', '17' ),
+					),
+				),
+			),
+			'labels'   => array(),
+		);
+		$combos = FacetEngine::size_combinations( $snap, true );
+		$this->assertCount( 1, $combos );
+		$this->assertSame( '110', $combos[0]['w'] );
+		$this->assertSame( '70', $combos[0]['p'] );
+		$this->assertSame( '17', $combos[0]['r'] );
+
+		$this->fake_storage();
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( true );
+		\Motored\Core\Support\Cache::set( FacetEngine::SNAPSHOT_SEARCH_KEY, $snap, FacetEngine::SNAPSHOT_TTL, \Motored\Core\Modules\CatalogFilters\SnapshotInvalidator::BUCKET );
+		$wpdb = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->shouldReceive( 'get_results' )->never();
+		$GLOBALS['wpdb'] = $wpdb;
+		FacetEngine::reset();
+		$this->assertSame( $snap, FacetEngine::snapshot( true ) );
+		unset( $GLOBALS['wpdb'] );
+	}
 }
+

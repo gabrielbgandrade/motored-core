@@ -328,6 +328,28 @@ final class TireSpecs {
 	}
 
 	/**
+	 * Reads the load index + speed rating printed after a size ("130/70-17 62H", "120/70ZR17 M/C (58W) TL").
+	 *
+	 * Only a contiguous token preceded by a space or "(" counts, so the size itself ("120/70R17") never matches.
+	 *
+	 * @param string $raw Size as printed on the tire.
+	 * @return array{load:int|null,speed:string} Speed is an ETRTO code ("H", "(W)") or ''.
+	 */
+	public static function parse_load_speed_suffix( string $raw ): array {
+		$out = array(
+			'load'  => null,
+			'speed' => '',
+		);
+		$s   = strtoupper( trim( $raw ) );
+		if ( '' === $s || 1 !== preg_match( '/(?:^|[\s(])(\d{2,3})(\(W\)|[JKLMNPQRSTUHVWY])\)?(?=$|[\s)])/', $s, $m ) ) {
+			return $out;
+		}
+		$out['load']  = self::parse_load_index( $m[1] );
+		$out['speed'] = $m[2];
+		return $out;
+	}
+
+	/**
 	 * Returns the single-tire max load in kg for a load index (20..120), or null when unknown.
 	 *
 	 * @param int $load Load index.
@@ -405,6 +427,51 @@ final class TireSpecs {
 		$slug = strtolower( trim( $raw ) );
 		$slug = str_replace( array( ' / ', '/', ' ' ), array( '-', '-', '-' ), $slug );
 		return self::POSITION_SLUGS[ $slug ] ?? '';
+	}
+
+	/**
+	 * Single source of truth for tire position labels (call after init).
+	 *
+	 * @param string $position 'front'|'rear'|'both'|'kit'.
+	 * @param bool   $plural   Whether to return the plural tab label ('Front tires', 'Rear tires', 'Kits').
+	 */
+	public static function position_label( string $position, bool $plural = false ): string {
+		if ( self::POS_KIT === $position ) {
+			return $plural ? __( 'Kits', 'motored-core' ) : __( 'Complete kit', 'motored-core' );
+		}
+		// Context "tire position": the label qualifies a tire ("cubierta", feminine in es_AR), unlike the
+		// masculine axle/attribute terms that share the plain "Front"/"Rear" msgids in the admin.
+		if ( self::POS_BOTH === $position ) {
+			return _x( 'Front / Rear', 'tire position', 'motored-core' );
+		}
+		if ( self::POS_FRONT === $position ) {
+			return $plural ? __( 'Front tires', 'motored-core' ) : _x( 'Front', 'tire position', 'motored-core' );
+		}
+		if ( self::POS_REAR === $position ) {
+			return $plural ? __( 'Rear tires', 'motored-core' ) : _x( 'Rear', 'tire position', 'motored-core' );
+		}
+		return '';
+	}
+
+	/**
+	 * Human position label for matched axles ("Complete kit" only for kit products; dual-axle single tires get "Front / Rear").
+	 *
+	 * @param array<int,string> $positions        Matched axles.
+	 * @param string            $product_position Product position (front|rear|both|kit).
+	 */
+	public static function positions_label( array $positions, string $product_position = '' ): string {
+		if ( self::POS_KIT === $product_position ) {
+			return self::position_label( self::POS_KIT );
+		}
+		$front = in_array( self::POS_FRONT, $positions, true );
+		$rear  = in_array( self::POS_REAR, $positions, true );
+		if ( $front && $rear ) {
+			return self::position_label( self::POS_BOTH );
+		}
+		if ( $front ) {
+			return self::position_label( self::POS_FRONT );
+		}
+		return $rear ? self::position_label( self::POS_REAR ) : '';
 	}
 
 	/**

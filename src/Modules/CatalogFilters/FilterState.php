@@ -7,6 +7,7 @@
 
 namespace Motored\Core\Modules\CatalogFilters;
 
+use Motored\Core\Modules\Compatibility\SizeParser;
 use Motored\Core\Modules\Compatibility\TireSpecs;
 
 defined( 'ABSPATH' ) || exit;
@@ -68,6 +69,8 @@ final class FilterState {
 	 * @param string                     $pos        Active ?pos= key.
 	 * @param bool                       $on_sale    Whether ?oferta=1 is set.
 	 * @param array<string,string>       $extra      Unrelated scalar query params to preserve.
+	 * @param array<string,string>       $operators  Native WooCommerce attribute operators.
+	 * @param string                     $kit_size   Canonical size of the "kits with this size" view (?kit_medida=).
 	 */
 	public function __construct(
 		array $attributes = array(),
@@ -75,7 +78,9 @@ final class FilterState {
 		string $moto = '',
 		string $pos = '',
 		bool $on_sale = false,
-		array $extra = array()
+		array $extra = array(),
+		private array $operators = array(),
+		private string $kit_size = ''
 	) {
 		$this->attributes = $attributes;
 		$this->brands     = array_values( $brands );
@@ -96,8 +101,9 @@ final class FilterState {
 			$query = $_GET;
 		}
 
-		$known_keys = array( 'product_brand', 'oferta', 'moto', 'pos', 'paged', 'product-page' );
+		$known_keys = array( 'product_brand', 'oferta', 'moto', 'pos', 'paged', 'product-page', 'kit_medida' );
 		$attrs      = array();
+		$operators  = array();
 
 		foreach ( Config::ATTRIBUTE_SLUGS as $attr_slug ) {
 			$fk           = 'filter_' . $attr_slug;
@@ -108,7 +114,8 @@ final class FilterState {
 			if ( isset( $query[ $fk ] ) && is_scalar( $query[ $fk ] ) ) {
 				$terms = self::parse_slug_list( (string) wp_unslash( (string) $query[ $fk ] ) );
 				if ( ! empty( $terms ) ) {
-					$attrs[ $attr_slug ] = $terms;
+					$attrs[ $attr_slug ]     = $terms;
+					$operators[ $attr_slug ] = 'or' === ( $query[ $qk ] ?? '' ) ? 'or' : 'and';
 				}
 			}
 		}
@@ -131,6 +138,11 @@ final class FilterState {
 			}
 		}
 
+		$kit_size = '';
+		if ( isset( $query['kit_medida'] ) && is_scalar( $query['kit_medida'] ) ) {
+			$kit_size = (string) SizeParser::canonical( sanitize_text_field( (string) wp_unslash( (string) $query['kit_medida'] ) ) );
+		}
+
 		$on_sale = isset( $query['oferta'] ) && is_scalar( $query['oferta'] )
 			&& in_array( strtolower( trim( (string) wp_unslash( (string) $query['oferta'] ) ) ), array( '1', 'true', 'yes' ), true );
 
@@ -146,7 +158,7 @@ final class FilterState {
 			}
 		}
 
-		return new self( $attrs, $brands, $moto, $pos, $on_sale, $extra );
+		return new self( $attrs, $brands, $moto, $pos, $on_sale, $extra, $operators, $kit_size );
 	}
 
 	/**
@@ -225,6 +237,13 @@ final class FilterState {
 	}
 
 	/**
+	 * Canonical size of the "kits with this size" view (?kit_medida=), or ''.
+	 */
+	public function kit_size(): string {
+		return $this->kit_size;
+	}
+
+	/**
 	 * Whether ?oferta=1 is active.
 	 */
 	public function on_sale(): bool {
@@ -247,6 +266,7 @@ final class FilterState {
 		return ! empty( $this->attributes )
 			|| ! empty( $this->brands )
 			|| $this->on_sale
+			|| '' !== $this->kit_size
 			|| '' !== $this->moto;
 	}
 
@@ -256,13 +276,14 @@ final class FilterState {
 	public function has_catalog_filter(): bool {
 		return ! empty( $this->attributes )
 			|| ! empty( $this->brands )
-			|| $this->on_sale;
+			|| $this->on_sale
+			|| '' !== $this->kit_size;
 	}
 
 	/**
 	 * Checks if a specific facet value is currently active.
 	 *
-	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', or 'moto').
+	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', 'kit_medida' or 'moto').
 	 * @param string $slug  Term slug (ignored for 'oferta' / 'moto').
 	 */
 	public function is_active( string $facet, string $slug = '' ): bool {
@@ -271,6 +292,9 @@ final class FilterState {
 		}
 		if ( 'moto' === $facet ) {
 			return '' !== $this->moto;
+		}
+		if ( 'kit_medida' === $facet ) {
+			return '' !== $this->kit_size && $slug === $this->kit_size;
 		}
 		if ( 'product_brand' === $facet ) {
 			return in_array( $slug, $this->brands, true );
@@ -281,7 +305,7 @@ final class FilterState {
 	/**
 	 * Returns a new FilterState with a single facet option toggled (OR within group).
 	 *
-	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', or 'moto').
+	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', 'kit_medida' or 'moto').
 	 * @param string $slug  Term slug.
 	 */
 	public function with_toggled( string $facet, string $slug = '' ): self {
@@ -290,9 +314,13 @@ final class FilterState {
 		$moto    = $this->moto;
 		$pos     = $this->pos;
 		$on_sale = $this->on_sale;
+		$kit     = $this->kit_size;
 
 		if ( 'oferta' === $facet ) {
 			$on_sale = ! $on_sale;
+		} elseif ( 'kit_medida' === $facet ) {
+			$clean = (string) SizeParser::canonical( $slug );
+			$kit   = $clean === $kit ? '' : $clean;
 		} elseif ( 'moto' === $facet ) {
 			$moto = '';
 			$pos  = '';
@@ -309,7 +337,21 @@ final class FilterState {
 			}
 		}
 
-		return new self( $attrs, $brands, $moto, $pos, $on_sale, $this->extra );
+		return new self( $attrs, $brands, $moto, $pos, $on_sale, $this->extra, $this->operators, $kit );
+	}
+
+	/**
+	 * The "kits with this size" view: unit-tire facets (width, profile, rim, load, speed) never match kits, so they
+	 * are dropped; everything else (brand, sale, motorcycle) is kept.
+	 *
+	 * @param string $canonical Canonical size.
+	 */
+	public function kits_view( string $canonical ): self {
+		$attrs = $this->attributes;
+		foreach ( Config::UNIT_ONLY_ATTRIBUTES as $unit_attr ) {
+			unset( $attrs[ $unit_attr ] );
+		}
+		return new self( $attrs, $this->brands, $this->moto, $this->pos, $this->on_sale, $this->extra, $this->operators, (string) SizeParser::canonical( $canonical ) );
 	}
 
 	/**
@@ -337,7 +379,7 @@ final class FilterState {
 		foreach ( Config::ATTRIBUTE_SLUGS as $attr_slug ) {
 			if ( ! empty( $this->attributes[ $attr_slug ] ) ) {
 				$args[ 'filter_' . $attr_slug ]     = implode( ',', $this->attributes[ $attr_slug ] );
-				$args[ 'query_type_' . $attr_slug ] = 'or';
+				$args[ 'query_type_' . $attr_slug ] = $this->operator( $attr_slug );
 			}
 		}
 
@@ -347,6 +389,10 @@ final class FilterState {
 
 		if ( $this->on_sale ) {
 			$args['oferta'] = '1';
+		}
+
+		if ( '' !== $this->kit_size ) {
+			$args['kit_medida'] = $this->kit_size;
 		}
 
 		return $args;
@@ -387,14 +433,36 @@ final class FilterState {
 	}
 
 	/**
-	 * Strips query string and `/page/N/` suffix from a base archive URL.
+	 * Removes pagination and mutable filters while preserving routing parameters.
 	 *
 	 * @param string $url Raw URL.
 	 */
 	public static function strip_query_and_pagination( string $url ): string {
-		$no_query = (string) strtok( $url, '?' );
-		$stripped = (string) preg_replace( '#/page/\d+/?$#', '/', $no_query );
+		$keys = array( 'paged', 'product-page', 'moto', 'pos', 'oferta', 'kit_medida' );
+		foreach ( Config::ATTRIBUTE_SLUGS as $slug ) {
+			$keys[] = 'filter_' . $slug;
+			$keys[] = 'query_type_' . $slug;
+		}
+		$stripped = (string) preg_replace( '#/page/\d+/?(?=\?|\#|$)#', '/', remove_query_arg( $keys, $url ) );
 		return '' !== $stripped ? $stripped : '/';
+	}
+
+	/**
+	 * Returns the attribute operator, defaulting new Motored filters to OR.
+	 *
+	 * @param string $slug Attribute slug.
+	 */
+	public function operator( string $slug ): string {
+		return $this->operators[ $slug ] ?? 'or';
+	}
+
+	/**
+	 * The operators explicitly carried by the current URL.
+	 *
+	 * @return array<string,string>
+	 */
+	public function operators(): array {
+		return $this->operators;
 	}
 
 	/**

@@ -65,7 +65,7 @@ final class ProductIndexRepository {
 		$rows = $wpdb->get_results(
 			"SELECT i.product_id, i.position, i.front_size_id, fs.canonical AS front_canonical,
 				i.rear_size_id, rs.canonical AS rear_canonical,
-				i.front_load, i.rear_load, i.front_speed_rank, i.rear_speed_rank, i.construction, i.in_stock, i.terms_hash
+				i.front_load, i.rear_load, i.front_speed_rank, i.rear_speed_rank, i.construction, i.front_construction, i.rear_construction, i.in_stock, i.terms_hash
 			FROM {$idx} i
 			LEFT JOIN {$s} fs ON fs.id = i.front_size_id
 			LEFT JOIN {$s} rs ON rs.id = i.rear_size_id
@@ -77,19 +77,21 @@ final class ProductIndexRepository {
 		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
 			$pid         = (int) $row['product_id'];
 			$map[ $pid ] = array(
-				'product_id'       => $pid,
-				'position'         => (string) $row['position'],
-				'front_size_id'    => null !== $row['front_size_id'] ? (int) $row['front_size_id'] : null,
-				'front_canonical'  => null !== $row['front_canonical'] ? (string) $row['front_canonical'] : null,
-				'rear_size_id'     => null !== $row['rear_size_id'] ? (int) $row['rear_size_id'] : null,
-				'rear_canonical'   => null !== $row['rear_canonical'] ? (string) $row['rear_canonical'] : null,
-				'front_load'       => null !== $row['front_load'] ? (int) $row['front_load'] : null,
-				'rear_load'        => null !== $row['rear_load'] ? (int) $row['rear_load'] : null,
-				'front_speed_rank' => null !== $row['front_speed_rank'] ? (int) $row['front_speed_rank'] : null,
-				'rear_speed_rank'  => null !== $row['rear_speed_rank'] ? (int) $row['rear_speed_rank'] : null,
-				'construction'     => null !== $row['construction'] ? (string) $row['construction'] : null,
-				'in_stock'         => isset( $row['in_stock'] ) ? ( 0 !== (int) $row['in_stock'] ) : true,
-				'terms_hash'       => (string) $row['terms_hash'],
+				'product_id'         => $pid,
+				'position'           => (string) $row['position'],
+				'front_size_id'      => null !== $row['front_size_id'] ? (int) $row['front_size_id'] : null,
+				'front_canonical'    => null !== $row['front_canonical'] ? (string) $row['front_canonical'] : null,
+				'rear_size_id'       => null !== $row['rear_size_id'] ? (int) $row['rear_size_id'] : null,
+				'rear_canonical'     => null !== $row['rear_canonical'] ? (string) $row['rear_canonical'] : null,
+				'front_load'         => null !== $row['front_load'] ? (int) $row['front_load'] : null,
+				'rear_load'          => null !== $row['rear_load'] ? (int) $row['rear_load'] : null,
+				'front_speed_rank'   => null !== $row['front_speed_rank'] ? (int) $row['front_speed_rank'] : null,
+				'rear_speed_rank'    => null !== $row['rear_speed_rank'] ? (int) $row['rear_speed_rank'] : null,
+				'construction'       => null !== $row['construction'] ? (string) $row['construction'] : null,
+				'front_construction' => isset( $row['front_construction'] ) ? (string) $row['front_construction'] : null,
+				'rear_construction'  => isset( $row['rear_construction'] ) ? (string) $row['rear_construction'] : null,
+				'in_stock'           => isset( $row['in_stock'] ) ? ( 0 !== (int) $row['in_stock'] ) : true,
+				'terms_hash'         => (string) $row['terms_hash'],
 			);
 		}
 		return $map;
@@ -110,7 +112,7 @@ final class ProductIndexRepository {
 	/**
 	 * Inserts or replaces a product index row.
 	 *
-	 * @param array{product_id:int,position:string,front_size_id:int|null,rear_size_id:int|null,front_load:int|null,rear_load:int|null,front_speed_rank:int|null,rear_speed_rank:int|null,construction:string|null,in_stock?:int,terms_hash:string} $row Index row.
+	 * @param array{product_id:int,position:string,front_size_id:int|null,rear_size_id:int|null,front_load:int|null,rear_load:int|null,front_speed_rank:int|null,rear_speed_rank:int|null,construction:string|null,front_construction?:string|null,rear_construction?:string|null,in_stock?:int,terms_hash:string} $row Index row.
 	 */
 	public static function upsert( array $row ): bool {
 		global $wpdb;
@@ -124,6 +126,8 @@ final class ProductIndexRepository {
 		$fsr      = null === $row['front_speed_rank'] ? 'NULL' : $wpdb->prepare( '%d', $row['front_speed_rank'] );
 		$rsr      = null === $row['rear_speed_rank'] ? 'NULL' : $wpdb->prepare( '%d', $row['rear_speed_rank'] );
 		$const    = null === $row['construction'] ? 'NULL' : $wpdb->prepare( '%s', $row['construction'] );
+		$f_const  = empty( $row['front_construction'] ) ? 'NULL' : $wpdb->prepare( '%s', $row['front_construction'] );
+		$r_const  = empty( $row['rear_construction'] ) ? 'NULL' : $wpdb->prepare( '%s', $row['rear_construction'] );
 		$in_stock = isset( $row['in_stock'] ) ? ( 0 !== (int) $row['in_stock'] ? 1 : 0 ) : 1;
 		$hash     = (string) $row['terms_hash'];
 		$now      = gmdate( 'Y-m-d H:i:s' );
@@ -131,8 +135,8 @@ final class ProductIndexRepository {
 		$ok = $wpdb->query(
 			$wpdb->prepare(
 				"REPLACE INTO {$idx}
-					(product_id, position, front_size_id, rear_size_id, front_load, rear_load, front_speed_rank, rear_speed_rank, construction, in_stock, terms_hash, updated_gmt)
-				VALUES (%d, %s, {$fs}, {$rs}, {$fl}, {$rl}, {$fsr}, {$rsr}, {$const}, %d, %s, %s)",
+					(product_id, position, front_size_id, rear_size_id, front_load, rear_load, front_speed_rank, rear_speed_rank, construction, front_construction, rear_construction, in_stock, terms_hash, updated_gmt)
+				VALUES (%d, %s, {$fs}, {$rs}, {$fl}, {$rl}, {$fsr}, {$rsr}, {$const}, {$f_const}, {$r_const}, %d, %s, %s)",
 				$pid,
 				$pos,
 				$in_stock,
@@ -142,6 +146,9 @@ final class ProductIndexRepository {
 		);
 		if ( false !== $ok ) {
 			CompatCache::bump_matches();
+			if ( function_exists( 'do_action' ) ) {
+				do_action( 'motored_compat_product_index_changed', $pid );
+			}
 			return true;
 		}
 		return false;
@@ -172,6 +179,9 @@ final class ProductIndexRepository {
 		);
 		if ( is_int( $updated ) && $updated > 0 ) {
 			CompatCache::bump_matches();
+			if ( function_exists( 'do_action' ) ) {
+				do_action( 'motored_compat_product_index_changed', $product_id );
+			}
 			return true;
 		}
 		return false;
@@ -187,9 +197,11 @@ final class ProductIndexRepository {
 		$deleted = $wpdb->delete( self::table(), array( 'product_id' => $product_id ), array( '%d' ) );
 		if ( is_int( $deleted ) && $deleted > 0 ) {
 			CompatCache::bump_matches();
-			return true;
+			if ( function_exists( 'do_action' ) ) {
+				do_action( 'motored_compat_product_index_changed', $product_id );
+			}
 		}
-		return false;
+		return false !== $deleted;
 	}
 
 	/**
@@ -208,7 +220,7 @@ final class ProductIndexRepository {
 		$r_ids  = array_values( array_unique( array_filter( array_map( 'intval', $rear_size_ids ), static fn( int $id ): bool => $id > 0 ) ) );
 		$select = "SELECT i.product_id, i.position, i.front_size_id, fs.canonical AS front_canonical,
 				i.rear_size_id, rs.canonical AS rear_canonical,
-				i.front_load, i.rear_load, i.front_speed_rank, i.rear_speed_rank, i.construction
+				i.front_load, i.rear_load, i.front_speed_rank, i.rear_speed_rank, i.construction, i.front_construction, i.rear_construction
 			FROM {$idx} i
 			LEFT JOIN {$s} fs ON fs.id = i.front_size_id
 			LEFT JOIN {$s} rs ON rs.id = i.rear_size_id";
@@ -243,17 +255,19 @@ final class ProductIndexRepository {
 		foreach ( $rows as $row ) {
 			$pid             = (int) $row['product_id'];
 			$deduped[ $pid ] = array(
-				'product_id'       => $pid,
-				'position'         => (string) $row['position'],
-				'front_size_id'    => null !== $row['front_size_id'] ? (int) $row['front_size_id'] : null,
-				'front_canonical'  => null !== $row['front_canonical'] ? (string) $row['front_canonical'] : null,
-				'rear_size_id'     => null !== $row['rear_size_id'] ? (int) $row['rear_size_id'] : null,
-				'rear_canonical'   => null !== $row['rear_canonical'] ? (string) $row['rear_canonical'] : null,
-				'front_load'       => null !== $row['front_load'] ? (int) $row['front_load'] : null,
-				'rear_load'        => null !== $row['rear_load'] ? (int) $row['rear_load'] : null,
-				'front_speed_rank' => null !== $row['front_speed_rank'] ? (int) $row['front_speed_rank'] : null,
-				'rear_speed_rank'  => null !== $row['rear_speed_rank'] ? (int) $row['rear_speed_rank'] : null,
-				'construction'     => null !== $row['construction'] ? (string) $row['construction'] : null,
+				'product_id'         => $pid,
+				'position'           => (string) $row['position'],
+				'front_size_id'      => null !== $row['front_size_id'] ? (int) $row['front_size_id'] : null,
+				'front_canonical'    => null !== $row['front_canonical'] ? (string) $row['front_canonical'] : null,
+				'rear_size_id'       => null !== $row['rear_size_id'] ? (int) $row['rear_size_id'] : null,
+				'rear_canonical'     => null !== $row['rear_canonical'] ? (string) $row['rear_canonical'] : null,
+				'front_load'         => null !== $row['front_load'] ? (int) $row['front_load'] : null,
+				'rear_load'          => null !== $row['rear_load'] ? (int) $row['rear_load'] : null,
+				'front_speed_rank'   => null !== $row['front_speed_rank'] ? (int) $row['front_speed_rank'] : null,
+				'rear_speed_rank'    => null !== $row['rear_speed_rank'] ? (int) $row['rear_speed_rank'] : null,
+				'construction'       => null !== $row['construction'] ? (string) $row['construction'] : null,
+				'front_construction' => isset( $row['front_construction'] ) ? (string) $row['front_construction'] : null,
+				'rear_construction'  => isset( $row['rear_construction'] ) ? (string) $row['rear_construction'] : null,
 			);
 		}
 		return array_values( $deduped );
@@ -301,7 +315,10 @@ final class ProductIndexRepository {
 		if ( ! empty( $equivs ) ) {
 			$src_map = array();
 			foreach ( $equivs as $eq ) {
-				$src_map[ $eq['source_size_id'] ] = $eq['source_canonical'];
+				$id = $eq['source_size_id'];
+				if ( ! isset( $src_map[ $id ] ) || $eq['is_approximate'] < $src_map[ $id ]['is_approximate'] ) {
+					$src_map[ $id ] = $eq;
+				}
 			}
 			$src_in     = implode( ',', array_map( 'intval', array_keys( $src_map ) ) );
 			$equiv_rows = $wpdb->get_results(
@@ -323,7 +340,8 @@ final class ProductIndexRepository {
 				$sid               = (int) $row['size_id'];
 				$row['fit_type']   = TireSpecs::FIT_EQUIV;
 				$row['is_equiv']   = '1';
-				$row['equiv_from'] = $src_map[ $sid ] ?? '';
+				$row['equiv_from'] = $src_map[ $sid ]['source_canonical'];
+				$row['approx']     = $src_map[ $sid ]['is_approximate'];
 				$rows[]            = $row;
 			}
 		}
@@ -392,6 +410,72 @@ final class ProductIndexRepository {
 				'product_id' => (int) $row['product_id'],
 				'title'      => (string) $row['title'],
 				'reason'     => (string) $row['raw_terms'],
+			);
+		}
+		return array(
+			'items' => $items,
+			'total' => $total,
+		);
+	}
+
+	/**
+	 * Kits whose front OR rear tire has the given canonical size (Catalog Filters "kits with this size").
+	 *
+	 * @param string $canonical Canonical size (e.g. "130/70-17").
+	 * @return array<int,bool> Product ID => in stock.
+	 */
+	public static function kit_ids_with_size( string $canonical ): array {
+		$size = CatalogRepository::find_size_by_canonical( $canonical );
+		if ( null === $size ) {
+			return array();
+		}
+		global $wpdb;
+		$idx  = self::table();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT product_id, in_stock FROM {$idx} WHERE position = 'kit' AND ( front_size_id = %d OR rear_size_id = %d )",
+				$size['id'],
+				$size['id']
+			),
+			ARRAY_A
+		);
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[ (int) $row['product_id'] ] = 0 !== (int) $row['in_stock'];
+		}
+		return $out;
+	}
+
+	/**
+	 * Indexed kits without any per-axle rating (load, speed or construction): filled in before the kit sheet existed.
+	 *
+	 * @param int $limit  Page size.
+	 * @param int $offset Offset.
+	 * @return array{items:list<array{product_id:int,title:string}>,total:int}
+	 */
+	public static function kits_without_axle_sheet( int $limit = 30, int $offset = 0 ): array {
+		global $wpdb;
+		$idx   = self::table();
+		$where = "i.position = 'kit' AND i.front_load IS NULL AND i.rear_load IS NULL AND i.front_speed_rank IS NULL
+			AND i.rear_speed_rank IS NULL AND i.front_construction IS NULL AND i.rear_construction IS NULL";
+		$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$idx} i WHERE {$where}" );
+		$rows  = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT i.product_id, p.post_title AS title FROM {$idx} i
+				INNER JOIN {$wpdb->posts} p ON p.ID = i.product_id
+				WHERE {$where}
+				ORDER BY i.product_id DESC
+				LIMIT %d OFFSET %d",
+				$limit,
+				$offset
+			),
+			ARRAY_A
+		);
+		$items = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$items[] = array(
+				'product_id' => (int) $row['product_id'],
+				'title'      => (string) $row['title'],
 			);
 		}
 		return array(

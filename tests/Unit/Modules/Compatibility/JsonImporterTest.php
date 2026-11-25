@@ -10,7 +10,17 @@ use Motored\Core\Tests\Unit\TestCase;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 
+require_once dirname( __DIR__, 3 ) . '/stubs/object-cache.php';
+
 final class JsonImporterTest extends TestCase {
+
+	private function mock_import_lock(): void {
+		$wpdb = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->options = 'wp_options';
+		$wpdb->shouldReceive( 'prepare' )->andReturnArg( 0 );
+		$wpdb->shouldReceive( 'query' )->with( \Mockery::pattern( '/^INSERT IGNORE/' ) )->andReturn( 1 );
+		$GLOBALS['wpdb'] = $wpdb;
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -160,6 +170,7 @@ final class JsonImporterTest extends TestCase {
 	#[PreserveGlobalState( false )]
 	public function test_import_runner_concurrency_lock_partial_status_and_as_failure_fallback(): void {
 		$this->fake_storage();
+		$this->mock_import_lock();
 		Functions\when( 'sanitize_key' )->alias( static fn( $k ) => strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', (string) $k ) ) );
 
 		// Concurrency guard blocks when a fresh active job exists with staged payload.
@@ -182,7 +193,7 @@ final class JsonImporterTest extends TestCase {
 		$this->assertSame( 'cancelled', $this->options[ ImportRunner::LAST_STATUS_OPT ]['status'] );
 
 		// When rejected items occur (invalid equivalence below), status must be 'partial' with rejected count in message.
-		// Also verify Action Scheduler schedule failure (> 50 versions with as_schedule_single_action returning 0) falls back to sync.
+		// A failed queue submission leaves a staged job that can be resumed one batch at a time.
 		$versions = array();
 		for ( $i = 0; $i <= ImportRunner::BATCH_SIZE; $i++ ) {
 			$versions[] = array( 'year_from' => 1900 ); // Invalid year -> rejected without DB brand/model calls.
@@ -207,9 +218,11 @@ final class JsonImporterTest extends TestCase {
 
 		$res = ImportRunner::start( $payload );
 		$this->assertTrue( $res['ok'] );
-		$this->assertSame( 'sync', $res['mode'] );
-		$this->assertSame( 51, $res['stats']['rejected'] );
-		$this->assertStringContainsString( 'Partial import completed', $res['message'] );
+		$this->assertSame( 'queued', $res['mode'] );
+		$this->assertTrue( ImportRunner::resume_active() );
+		$this->assertSame( 50, $this->options[ ImportRunner::LAST_STATUS_OPT ]['offset'] );
+		$this->assertTrue( ImportRunner::resume_active() );
+		$this->assertSame( 51, $this->options[ ImportRunner::LAST_STATUS_OPT ]['rejected'] );
 		$this->assertSame( 'partial', $this->options[ ImportRunner::LAST_STATUS_OPT ]['status'] );
 	}
 
@@ -359,6 +372,7 @@ final class JsonImporterTest extends TestCase {
 	#[PreserveGlobalState( false )]
 	public function test_import_runner_sync_option_bypasses_action_scheduler_queueing(): void {
 		$this->fake_storage();
+		$this->mock_import_lock();
 		Functions\expect( 'as_schedule_single_action' )->never();
 
 		$versions = array();
@@ -408,5 +422,29 @@ final class JsonImporterTest extends TestCase {
 		$this->assertNull( $out[1]['designation'] );
 		$this->assertNull( $out[1]['req_construction'] );
 		$this->assertSame( 'alt', $out[1]['fit_type'] );
+	}
+
+	public function test_partial_import_preserves_existing_model_cc_and_aliases(): void {
+		$this->fake_storage();
+		$wpdb         = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->prefix = 'wp_';
+		$captured     = array();
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) use ( &$captured ) {
+				$captured[] = $args;
+				return $sql;
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+		$wpdb->shouldReceive( 'get_row' )->andReturn(
+			array( 'id' => 2, 'brand_id' => 1, 'name' => 'XR 250 Tornado', 'slug' => 'xr-250-tornado', 'cc' => 250, 'aliases' => 'Tornado, XR250' )
+		);
+		$GLOBALS['wpdb'] = $wpdb;
+
+		$id = \Motored\Core\Modules\Compatibility\CatalogRepository::upsert_model( 1, 'XR 250 Tornado', 'xr-250-tornado', null, '' );
+		$this->assertSame( 2, $id );
+		$update_args = end( $captured );
+		$this->assertSame( 250, $update_args[1] );
+		$this->assertSame( 'Tornado, XR250', $update_args[2] );
 	}
 }

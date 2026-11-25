@@ -3,6 +3,7 @@ namespace Motored\Core\Tests\Unit\Modules\Compatibility;
 
 use Brain\Monkey\Functions;
 use Motored\Core\Modules\Compatibility\Config;
+use Motored\Core\Modules\Compatibility\KitSpec;
 use Motored\Core\Modules\Compatibility\RestController;
 use Motored\Core\Modules\Compatibility\Storefront;
 use Motored\Core\Modules\Compatibility\TireSpecs;
@@ -116,6 +117,7 @@ final class StorefrontTabsTest extends TestCase {
 		$product = \Mockery::mock( 'WC_Product' );
 		$product->shouldReceive( 'get_id' )->andReturn( 22 );
 		$product->shouldReceive( 'get_meta' )->with( Storefront::FULL_SIZE_META )->andReturn( '' );
+		$product->shouldReceive( 'get_meta' )->with( KitSpec::META )->andReturn( '' );
 		$GLOBALS['product'] = $product;
 
 		$wpdb         = \Mockery::mock( 'wpdb_fake' );
@@ -169,6 +171,103 @@ final class StorefrontTabsTest extends TestCase {
 		$this->assertArrayNotHasKey( 'motored_load_speed', $rows );
 	}
 
+	public function test_kit_with_sheet_shows_one_row_per_tire_and_rated_size_label(): void {
+		$product = \Mockery::mock( 'WC_Product' );
+		$product->shouldReceive( 'get_id' )->andReturn( 23 );
+		$product->shouldReceive( 'get_meta' )->with( Storefront::FULL_SIZE_META )->andReturn( '' );
+		$product->shouldReceive( 'get_meta' )->with( KitSpec::META )->andReturn(
+			array(
+				'v'     => 1,
+				'front' => array( 'size' => '120/70-17', 'designation' => '120/70ZR17', 'line' => 'Angel GT', 'load' => 58, 'speed' => 'W', 'construction' => 'radial', 'tube' => 'tl' ),
+				'rear'  => array( 'size' => '180/55-17', 'designation' => '180/55ZR17', 'line' => 'Angel GT', 'load' => 73, 'speed' => 'W', 'construction' => 'radial', 'tube' => 'tl' ),
+			)
+		);
+
+		$wpdb         = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array(
+				array(
+					'product_id'         => 23,
+					'position'           => TireSpecs::POS_KIT,
+					'front_size_id'      => 1,
+					'front_canonical'    => '120/70-17',
+					'rear_size_id'       => 2,
+					'rear_canonical'     => '180/55-17',
+					'front_load'         => 58,
+					'rear_load'          => 73,
+					'front_speed_rank'   => TireSpecs::speed_rank( 'W' ),
+					'rear_speed_rank'    => TireSpecs::speed_rank( 'W' ),
+					'construction'       => 'radial',
+					'front_construction' => 'radial',
+					'rear_construction'  => 'radial',
+					'terms_hash'         => 'kit2',
+				),
+			)
+		);
+		$GLOBALS['wpdb'] = $wpdb;
+
+		Functions\when( 'taxonomy_exists' )->justReturn( true );
+		Functions\when( 'wp_get_object_terms' )->justReturn( array( (object) array( 'term_id' => 9, 'name' => 'Pirelli', 'slug' => 'pirelli' ) ) );
+
+		$rows = ( new Storefront() )->append_full_size_attribute_row(
+			array(
+				'attribute_pa_posicion'     => array( 'label' => 'Posición', 'value' => '<p>Kit</p>' ),
+				'attribute_pa_linea'        => array( 'label' => 'Línea', 'value' => '<p>Angel GT</p>' ),
+				'attribute_pa_construccion' => array( 'label' => 'Construcción', 'value' => '<p>Radial</p>' ),
+				'attribute_pa_camara'       => array( 'label' => 'Cámara', 'value' => '<p>TL</p>' ),
+			),
+			$product
+		);
+
+		$this->assertSame(
+			array( 'motored_brand', 'motored_full_size', 'motored_front_tire', 'motored_rear_tire', 'attribute_pa_posicion' ),
+			array_keys( $rows )
+		);
+		$this->assertSame( '<p>120/70ZR17 + 180/55ZR17</p>', $rows['motored_full_size']['value'] );
+		$this->assertSame( '<p>120/70ZR17 · Angel GT · 58W (up to 236 kg · 270 km/h) · Radial · Tubeless (TL)</p>', $rows['motored_front_tire']['value'] );
+		$this->assertStringContainsString( '73W', $rows['motored_rear_tire']['value'] );
+	}
+
+	public function test_kit_full_size_label_preserves_saved_axle_designations_instead_of_rewriting_r_to_zr(): void {
+		$product = \Mockery::mock( 'WC_Product' );
+		$product->shouldReceive( 'get_id' )->andReturn( 24 );
+		$product->shouldReceive( 'get_meta' )->with( Storefront::FULL_SIZE_META )->andReturn( '' );
+		$product->shouldReceive( 'get_meta' )->with( KitSpec::META )->andReturn(
+			array(
+				'v'     => 1,
+				'front' => array( 'size' => '120/70-17', 'designation' => '120/70R17', 'line' => '', 'load' => 58, 'speed' => 'W', 'construction' => 'radial', 'tube' => 'tl' ),
+				'rear'  => array( 'size' => '160/60-17', 'designation' => '160/60R17', 'line' => '', 'load' => 69, 'speed' => 'H', 'construction' => 'radial', 'tube' => 'tl' ),
+			)
+		);
+
+		$wpdb         = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array(
+				array(
+					'product_id'         => 24,
+					'position'           => TireSpecs::POS_KIT,
+					'front_size_id'      => 1,
+					'front_canonical'    => '120/70-17',
+					'rear_size_id'       => 2,
+					'rear_canonical'     => '160/60-17',
+					'front_load'         => 58,
+					'rear_load'          => 69,
+					'front_speed_rank'   => TireSpecs::speed_rank( 'W' ),
+					'rear_speed_rank'    => TireSpecs::speed_rank( 'H' ),
+					'construction'       => 'radial',
+					'front_construction' => 'radial',
+					'rear_construction'  => 'radial',
+					'terms_hash'         => 'kit3',
+				),
+			)
+		);
+		$GLOBALS['wpdb'] = $wpdb;
+
+		$this->assertSame( '120/70R17 + 160/60R17', Storefront::resolve_full_size_label( $product ) );
+	}
+
 	public function test_leaves_non_tire_product_attributes_untouched(): void {
 		$product = \Mockery::mock( 'WC_Product' );
 		$product->shouldReceive( 'get_id' )->andReturn( 33 );
@@ -210,7 +309,7 @@ final class StorefrontTabsTest extends TestCase {
 				'model_name' => 'TRK 502',
 			)
 		);
-		$wpdb->shouldReceive( 'get_results' )->times( 3 )->andReturn(
+		$wpdb->shouldReceive( 'get_results' )->times( 4 )->andReturn(
 			array(
 				array(
 					'id'               => 1,
@@ -242,6 +341,7 @@ final class StorefrontTabsTest extends TestCase {
 				),
 			),
 			array(),
+			array(),
 			array()
 		);
 		$GLOBALS['wpdb'] = $wpdb;
@@ -263,6 +363,17 @@ final class StorefrontTabsTest extends TestCase {
 			),
 			$res->data['oem']
 		);
+
+		$hidden = \Mockery::mock( 'WC_Product' );
+		$hidden->shouldReceive( 'get_status' )->andReturn( 'publish' );
+		$hidden->shouldReceive( 'is_visible' )->andReturn( false );
+		Functions\when( 'wc_get_product' )->justReturn( $hidden );
+		Functions\when( 'absint' )->alias( static fn( $id ) => abs( (int) $id ) );
+		$request = \Mockery::mock( \WP_REST_Request::class );
+		$request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 21 );
+		$result = ( new RestController() )->get_product_motos( $request );
+		$this->assertSame( 404, $result->status );
+		$this->assertSame( array(), $result->data['motos'] );
 	}
 
 	public function test_omits_compatibility_tab_for_non_tire_products(): void {
@@ -286,11 +397,19 @@ final class StorefrontTabsTest extends TestCase {
 
 	public function test_robots_noindex_and_intersect_post_in_and_nav_link_preservation(): void {
 		$sf = new Storefront();
+		Functions\when( 'is_shop' )->justReturn( false );
+		Functions\when( 'is_product_taxonomy' )->justReturn( false );
+		Functions\when( 'is_search' )->justReturn( false );
 		$this->assertSame( array(), $sf->robots_noindex( array() ) );
 
+		// S0-2: ?moto= on a non-catalog page (single product / home) must NEVER add noindex.
 		$_GET['moto'] = 'honda-tornado';
 		$_GET['pos']  = 'rear';
-		$robots       = $sf->robots_noindex( array( 'max-image-preview' => 'large' ) );
+		$this->assertSame( array( 'max-image-preview' => 'large' ), $sf->robots_noindex( array( 'max-image-preview' => 'large' ) ) );
+
+		// On a catalog page, ?moto= adds noindex, follow.
+		Functions\when( 'is_shop' )->justReturn( true );
+		$robots = $sf->robots_noindex( array( 'max-image-preview' => 'large' ) );
 		$this->assertTrue( $robots['noindex'] );
 		$this->assertTrue( $robots['follow'] );
 

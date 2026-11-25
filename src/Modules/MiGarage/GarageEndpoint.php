@@ -1,0 +1,276 @@
+<?php
+/**
+ * My Account -> Mi Garage endpoint and logout cleanup signal.
+ *
+ * @package Motored\Core
+ */
+
+namespace Motored\Core\Modules\MiGarage;
+
+use Motored\Core\Support\StorefrontAssets;
+
+use Motored\Core\Modules\Compatibility\Config;
+use Motored\Core\Modules\Compatibility\Storefront;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Registers the `mi-garage` WooCommerce account endpoint using core hooks only (theme-agnostic).
+ */
+final class GarageEndpoint {
+
+	public const ENDPOINT          = 'mi-garage';
+	public const SHORTCODE         = 'motored_mi_garage';
+	public const REWRITE_VERSION   = '2';
+	public const REWRITE_OPT       = 'motored_compat_rewrite_ver';
+	public const REWRITE_HEAL_LOCK = 'motored_garage_rewrite_heal';
+	public const LOGOUT_COOKIE     = 'motored_garage_logout';
+
+	/**
+	 * Avoids calling add_rewrite_endpoint() twice in the same request.
+	 *
+	 * @var bool
+	 */
+	private bool $endpoint_added = false;
+
+	/**
+	 * Registers only the zero-cost rewrite and query-var hooks so flushes from CLI, cron,
+	 * REST or AJAX never strip the `mi-garage` endpoint from saved rewrite rules.
+	 */
+	public function register_rewrite_hooks(): void {
+		add_action( 'init', array( $this, 'add_endpoint' ), 0 );
+		add_filter( 'query_vars', array( $this, 'add_query_vars' ), 0 );
+		add_filter( 'woocommerce_get_query_vars', array( $this, 'add_wc_query_vars' ) );
+	}
+
+	/**
+	 * Registers endpoint and account menu hooks.
+	 */
+	public function register(): void {
+		$this->register_rewrite_hooks();
+		add_shortcode( self::SHORTCODE, array( $this, 'shortcode' ) );
+		add_filter( 'woocommerce_account_menu_items', array( $this, 'menu_item' ) );
+		add_filter( 'woocommerce_endpoint_' . self::ENDPOINT . '_title', array( $this, 'endpoint_title' ) );
+		add_action( 'woocommerce_account_' . self::ENDPOINT . '_endpoint', array( $this, 'render_page' ) );
+		add_filter( 'wp_robots', array( $this, 'robots_noindex' ) );
+		add_action( 'wp_logout', array( $this, 'set_logout_cookie' ) );
+		add_action( 'admin_init', array( $this, 'maybe_flush_rewrite_rules' ) );
+	}
+
+	/**
+	 * Adds `noindex, follow` to the Mi Garage account endpoint (logged-out visitors redirect to login).
+	 *
+	 * @param mixed $robots Robots directives.
+	 * @return array<string,mixed>
+	 */
+	public function robots_noindex( $robots ): array {
+		$robots = is_array( $robots ) ? $robots : array();
+		global $post;
+		$public_garage = $post instanceof \WP_Post && has_shortcode( $post->post_content, self::SHORTCODE );
+		if ( $public_garage || ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( self::ENDPOINT ) ) ) {
+			unset( $robots['index'] );
+			$robots['noindex']  = true;
+			$robots['nofollow'] = false;
+			$robots['follow']   = true;
+		}
+		return $robots;
+	}
+
+	/**
+	 * Flushes rewrite rules when the endpoint version changes or when pretty rewrite rules
+	 * are missing our endpoint (admin_init only, never on frontend or AJAX).
+	 */
+	public function maybe_flush_rewrite_rules(): void {
+		if ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() ) {
+			return;
+		}
+		$version_mismatch = self::REWRITE_VERSION !== (string) get_option( self::REWRITE_OPT, '' );
+		$missing_rule     = ! $version_mismatch && $this->is_missing_from_rewrite_rules();
+		if ( ! $version_mismatch && ! $missing_rule ) {
+			return;
+		}
+		if ( $missing_rule && false !== get_transient( self::REWRITE_HEAL_LOCK ) ) {
+			return;
+		}
+		$this->add_endpoint();
+		if ( function_exists( 'flush_rewrite_rules' ) ) {
+			flush_rewrite_rules( false );
+		}
+		update_option( self::REWRITE_OPT, self::REWRITE_VERSION, false );
+		if ( $missing_rule ) {
+			set_transient( self::REWRITE_HEAL_LOCK, '1', 300 );
+		}
+	}
+
+	/**
+	 * Returns true when pretty permalinks are active (rewrite_rules is a non-empty array)
+	 * and none of the compiled rules mention our endpoint.
+	 */
+	public function is_missing_from_rewrite_rules(): bool {
+		$rules = get_option( 'rewrite_rules' );
+		if ( ! is_array( $rules ) || array() === $rules ) {
+			return false;
+		}
+		foreach ( array_keys( $rules ) as $pattern ) {
+			if ( false !== strpos( (string) $pattern, self::ENDPOINT ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Registers the rewrite endpoint on init.
+	 */
+	public function add_endpoint(): void {
+		if ( $this->endpoint_added ) {
+			return;
+		}
+		$this->endpoint_added = true;
+		if ( function_exists( 'add_rewrite_endpoint' ) ) {
+			add_rewrite_endpoint( self::ENDPOINT, EP_ROOT | EP_PAGES );
+		}
+	}
+
+	/**
+	 * Registers the endpoint as a public WordPress query var (also covers Plain permalinks).
+	 *
+	 * @param mixed $vars Existing query vars.
+	 * @return array<int,string>
+	 */
+	public function add_query_vars( $vars ): array {
+		$out = array();
+		if ( is_array( $vars ) ) {
+			foreach ( $vars as $var ) {
+				$out[] = (string) $var;
+			}
+		}
+		if ( ! in_array( self::ENDPOINT, $out, true ) ) {
+			$out[] = self::ENDPOINT;
+		}
+		return $out;
+	}
+
+	/**
+	 * Registers the endpoint in WooCommerce WC_Query so My Account routing, titles and
+	 * active-item checks recognize `mi-garage` natively.
+	 *
+	 * @param mixed $vars Existing WooCommerce endpoint query vars.
+	 * @return array<string,string>
+	 */
+	public function add_wc_query_vars( $vars ): array {
+		$out = array();
+		if ( is_array( $vars ) ) {
+			foreach ( $vars as $key => $val ) {
+				$out[ (string) $key ] = (string) $val;
+			}
+		}
+		$out[ self::ENDPOINT ] = self::ENDPOINT;
+		return $out;
+	}
+
+	/**
+	 * Endpoint page title inside My Account.
+	 *
+	 * @param mixed $title Default page title.
+	 */
+	public function endpoint_title( $title ): string {
+		return Config::enabled() ? __( 'My Garage', 'motored-core' ) : (string) $title;
+	}
+
+	/**
+	 * Adds "My Garage" to the My Account navigation before Logout when enabled.
+	 *
+	 * @param mixed $items Existing menu items.
+	 * @return array<string,string>
+	 */
+	public function menu_item( $items ): array {
+		$items = is_array( $items ) ? $items : array();
+		if ( ! Config::enabled() ) {
+			return $items;
+		}
+		$out   = array();
+		$added = false;
+		foreach ( $items as $key => $label ) {
+			if ( 'customer-logout' === $key && ! $added ) {
+				$out[ self::ENDPOINT ] = __( 'My Garage', 'motored-core' );
+				$added                 = true;
+			}
+			$out[ (string) $key ] = (string) $label;
+		}
+		if ( ! $added ) {
+			$out[ self::ENDPOINT ] = __( 'My Garage', 'motored-core' );
+		}
+		return $out;
+	}
+
+	/**
+	 * Shortcode [motored_mi_garage] so guests can also list, activate and remove saved bikes (B5).
+	 */
+	public function shortcode(): string {
+		ob_start();
+		$this->render_page();
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Renders the My Account -> My Garage page (empty shell hydrated/controlled by compat-garage.js + selector shortcode).
+	 */
+	public function render_page(): void {
+		if ( ! Config::enabled() ) {
+			echo '<p>' . esc_html__( 'Vehicle compatibility is currently disabled.', 'motored-core' ) . '</p>';
+			return;
+		}
+		StorefrontAssets::enqueue_compat_css();
+		GarageAssets::enqueue();
+		wp_enqueue_script(
+			'motored-compat-garage-page',
+			MOTORED_CORE_URL . 'assets/js/compat-garage-page.js',
+			array( GarageAssets::HANDLE ),
+			MOTORED_CORE_VERSION . '-garage8',
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
+		);
+		wp_add_inline_script( 'motored-compat-garage-page', 'window.motoredGaragePageI18n=' . wp_json_encode( GarageAssets::page_i18n() ) . ';', 'before' );
+		$shop_url    = Config::shop_url();
+		$account_url = function_exists( 'wc_get_page_permalink' ) ? (string) wc_get_page_permalink( 'myaccount' ) : '';
+		echo '<div class="motored-garage-page" data-shop-url="' . esc_url( $shop_url ) . '">';
+		echo '<div class="motored-garage-page__head">';
+		echo '<h2>' . esc_html__( 'My Garage', 'motored-core' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Save your motorcycles to filter tires and verify compatibility automatically across the store.', 'motored-core' ) . '</p>';
+		if ( ! is_user_logged_in() && '' !== $account_url ) {
+			echo '<p class="motored-garage-page__login"><a href="' . esc_url( $account_url ) . '">' . esc_html__( 'Log in to save your garage permanently across devices', 'motored-core' ) . '</a></p>';
+		}
+		echo '</div>';
+		echo '<p class="motored-garage-notice" role="status" aria-live="polite" hidden></p>';
+		echo '<div class="motored-garage-list" aria-live="polite"></div>';
+		echo '<div class="motored-garage-add">';
+		echo '<h3>' . esc_html__( 'Add a motorcycle', 'motored-core' ) . '</h3>';
+		echo do_shortcode( '[' . Storefront::SELECTOR_SHORTCODE . ' mode="garage"]' );
+		echo '</div>';
+		echo '<p class="motored-compat-disclaimer"><small>' . esc_html( Config::disclaimer() ) . '</small></p>';
+		echo '</div>';
+	}
+
+	/**
+	 * Signals the browser on logout so shared-computer guest localStorage is cleared cleanly.
+	 */
+	public function set_logout_cookie(): void {
+		if ( headers_sent() ) {
+			return;
+		}
+		setcookie(
+			self::LOGOUT_COOKIE,
+			'1',
+			array(
+				'expires'  => time() + 300,
+				'path'     => '/',
+				'secure'   => is_ssl(),
+				'httponly' => false,
+				'samesite' => 'Lax',
+			)
+		);
+	}
+}

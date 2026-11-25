@@ -46,7 +46,7 @@ final class CompatibilityMigrationTest extends TestCase {
 			}
 		);
 		$this->assertTrue( CompatibilityMigration::up() );
-		$this->assertSame( 7, $calls );
+		$this->assertSame( 14, $calls );
 	}
 
 	public function test_migration_2026112101_backfills_in_stock_from_postmeta(): void {
@@ -54,7 +54,7 @@ final class CompatibilityMigrationTest extends TestCase {
 		$wpdb->prefix   = 'wp_';
 		$wpdb->postmeta = 'wp_postmeta';
 		$wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET=utf8mb4' );
-		$wpdb->shouldReceive( 'query' )->once()->with( \Mockery::pattern( '/UPDATE wp_motored_compat_product_index i.*_stock_status/s' ) )->andReturn( 5 );
+		$wpdb->shouldReceive( 'query' )->once()->with( \Mockery::pattern( '/UPDATE wp_motored_compat_product_index.*_stock_status/s' ) )->andReturn( 5 );
 		$GLOBALS['wpdb'] = $wpdb;
 
 		Functions\when( 'dbDelta' )->justReturn( array() );

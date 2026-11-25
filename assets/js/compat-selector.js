@@ -1,11 +1,12 @@
 /**
  * [motored_compat_selector] and the product-page "check" picker: cascade -> save to Mi Garage -> redirect or stay.
- * Depends on motored-ui.js (cascade) and compat-garage.js (motoredGarageSave).
+ * Uses motored-ui.js for the cascade and optional Mi Garage integration for saving.
  */
 (function () {
 	'use strict';
-	var c = window.motoredCompatCfg || {};
+	var c = window.motoredCompatSelectorCfg || window.motoredCompatCfg || {};
 	var t = c.i18n || {};
+	var garageText = (window.motoredCompatCfg || {}).i18n || {};
 	var base = (c.restBase || '').replace(/\/$/, '');
 	var ui = window.motoredUi;
 	if (!base || !ui) {
@@ -76,7 +77,7 @@
 			var mode = form.dataset.mode;
 			submit.disabled = true;
 			message('');
-			ui.getJson(base + '/compat/bike/' + encodeURIComponent(slug))
+			ui.getJson(ui.restUrl ? ui.restUrl(base, '/compat/bike/' + encodeURIComponent(slug)) : base + '/compat/bike/' + encodeURIComponent(slug))
 				.then(function (profile) {
 					var banner = form.closest('.motored-compat-banner');
 					var picker = form.closest('[data-role="picker"]');
@@ -92,7 +93,7 @@
 							if (mode === 'check' && picker) {
 								picker.hidden = true;
 							} else {
-								message(dropped ? (t.garageFull || '').replace('%s', dropped) : t.savedOk || '', false);
+								message(dropped ? (garageText.garageFull || '').replace('%s', dropped) : garageText.savedOk || '', false);
 							}
 							return;
 						}

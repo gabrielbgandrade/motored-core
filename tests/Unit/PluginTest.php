@@ -80,7 +80,10 @@ final class PluginTest extends TestCase {
 				\Motored\Core\Modules\ReviewRequests\ReviewRequestsModule::class,
 				\Motored\Core\Modules\PaymentPlans\PaymentPlansModule::class,
 				\Motored\Core\Modules\Compatibility\CompatibilityModule::class,
+				\Motored\Core\Modules\MiGarage\MiGarageModule::class,
 				\Motored\Core\Modules\CatalogFilters\CatalogFiltersModule::class,
+				\Motored\Core\Modules\Seo\SeoModule::class,
+				\Motored\Core\Modules\BikePages\BikePagesModule::class,
 			),
 			Plugin::MODULES
 		);
@@ -101,28 +104,25 @@ final class PluginTest extends TestCase {
 	public function test_activation_creates_general_option_without_autoload(): void {
 		$wpdb         = \Mockery::mock( 'wpdb_fake' );
 		$wpdb->prefix = 'wp_';
+		$wpdb->options = 'wp_options';
+		$wpdb->shouldReceive( 'prepare' )->andReturnArg( 0 );
+		$wpdb->shouldReceive( 'query' )->andReturn( 1 );
 		$wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET=utf8mb4' );
 		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 		$GLOBALS['wpdb'] = $wpdb;
 		Functions\when( 'dbDelta' )->justReturn( array() );
 		Functions\when( 'get_comments' )->justReturn( array() );
-		Functions\expect( 'add_option' )->once()->with( 'motored_general', Plugin::GENERAL_DEFAULTS, '', false );
+		Functions\when( 'as_schedule_single_action' )->justReturn( 1 );
 		Plugin::activate();
-		$this->assertSame( '2026112401', $this->options['motored_schema_version'] );
+		$this->assertFalse( $this->autoload['motored_general'] );
+		$this->assertSame( '2026112407', $this->options['motored_schema_version'] );
 	}
 
 	public function test_deactivation_removes_every_scheduled_job_and_keeps_data(): void {
-		$hooks = array();
-		Functions\expect( 'as_unschedule_all_actions' )->times( count( Plugin::ACTION_HOOKS ) )->andReturnUsing(
-			function ( $hook, $args, $group ) use ( &$hooks ) {
-				$this->assertSame( 'motored-core', $group );
-				$hooks[] = $hook;
-			}
-		);
+		Functions\expect( 'as_unschedule_all_actions' )->once()->with( '', array(), 'motored-core' );
 		Functions\expect( 'delete_option' )->never();
 
 		Plugin::deactivate();
 
-		$this->assertSame( Plugin::ACTION_HOOKS, $hooks );
 	}
 }

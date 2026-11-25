@@ -106,7 +106,8 @@ final class FileRules {
 			return null;
 		}
 		$type = self::TYPES[ (int) $info[2] ] ?? null;
-		if ( null === $type || ( $check['type'] ?? false ) !== $type[1] || ! in_array( $check['ext'] ?? false, array( 'jpg', 'jpeg', 'jpe', 'png', 'webp' ), true ) ) {
+		$ext  = strtolower( (string) ( $check['ext'] ?? '' ) );
+		if ( null === $type || ( $check['type'] ?? false ) !== $type[1] || ! in_array( $ext, array( 'jpg', 'jpeg', 'jpe', 'png', 'webp' ), true ) ) {
 			return null;
 		}
 		$width  = (int) $info[0];

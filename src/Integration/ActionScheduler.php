@@ -20,7 +20,8 @@ final class ActionScheduler {
 	 * Whether Action Scheduler functions exist.
 	 */
 	public static function available(): bool {
-		return function_exists( 'as_schedule_single_action' );
+		return function_exists( 'as_schedule_single_action' )
+			&& ( ! class_exists( \Action_Scheduler::class ) || \Action_Scheduler::is_initialized() );
 	}
 
 	/**
@@ -29,13 +30,16 @@ final class ActionScheduler {
 	 * @param int              $timestamp Unix time.
 	 * @param string           $hook      Action hook.
 	 * @param array<int,mixed> $args      Scalar args only (IDs; never phone numbers or text).
+	 * @param bool             $unique    Whether to suppress duplicates.
 	 * @return bool True when scheduled.
 	 */
-	public static function schedule( int $timestamp, string $hook, array $args ): bool {
+	public static function schedule( int $timestamp, string $hook, array $args, bool $unique = false ): bool {
 		if ( ! self::available() ) {
 			return false;
 		}
-		return (int) as_schedule_single_action( $timestamp, $hook, $args, self::GROUP ) > 0;
+		return (int) ( $unique
+			? as_schedule_single_action( $timestamp, $hook, $args, self::GROUP, true )
+			: as_schedule_single_action( $timestamp, $hook, $args, self::GROUP ) ) > 0;
 	}
 
 	/**
@@ -47,10 +51,10 @@ final class ActionScheduler {
 	 * @return bool True when scheduled.
 	 */
 	public static function schedule_recurring( int $timestamp, int $interval, string $hook ): bool {
-		if ( ! function_exists( 'as_schedule_recurring_action' ) ) {
+		if ( ! self::available() || ! function_exists( 'as_schedule_recurring_action' ) ) {
 			return false;
 		}
-		return (int) as_schedule_recurring_action( $timestamp, $interval, $hook, array(), self::GROUP ) > 0;
+		return (int) as_schedule_recurring_action( $timestamp, $interval, $hook, array(), self::GROUP, true ) > 0;
 	}
 
 	/**
@@ -59,7 +63,7 @@ final class ActionScheduler {
 	 * @param string $hook Action hook.
 	 */
 	public static function has_scheduled( string $hook ): bool {
-		return function_exists( 'as_has_scheduled_action' ) && (bool) as_has_scheduled_action( $hook, null, self::GROUP );
+		return self::available() && function_exists( 'as_has_scheduled_action' ) && (bool) as_has_scheduled_action( $hook, null, self::GROUP );
 	}
 
 	/**
@@ -67,7 +71,7 @@ final class ActionScheduler {
 	 *
 	 * @param string $hook Action hook.
 	 */
-	public static function unschedule_all( string $hook ): void {
+	public static function unschedule_all( string $hook = '' ): void {
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( $hook, array(), self::GROUP );
 		}

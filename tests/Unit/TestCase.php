@@ -40,6 +40,8 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 		$this->transients     = array();
 		$this->transient_ttls = array();
 		$GLOBALS['motored_fake_cache'] = array();
+		// Context-aware translations (e.g. "tire position") return the English source, like `__` stubs do.
+		Functions\when( '_x' )->returnArg();
 	}
 
 	protected function tearDown(): void {
@@ -53,6 +55,16 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 	protected function fake_storage(): void {
 		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
 		Functions\when( 'get_option' )->alias( fn( $name, $default = false ) => $this->options[ $name ] ?? $default );
+		Functions\when( 'add_option' )->alias(
+			function ( $name, $value, $deprecated = '', $autoload = null ) {
+				if ( array_key_exists( $name, $this->options ) ) {
+					return false;
+				}
+				$this->options[ $name ]  = $value;
+				$this->autoload[ $name ] = $autoload;
+				return true;
+			}
+		);
 		Functions\when( 'update_option' )->alias(
 			function ( $name, $value, $autoload = null ) {
 				$this->options[ $name ]  = $value;

@@ -2,15 +2,15 @@
 
 ## Layers
 1. **Bootstrap** (`motored-core.php`): constants, autoloader, HPOS/Blocks compatibility, activation hook,
-   `plugins_loaded@20` -> `Plugin::instance()->boot()`. This (plus `Autoloader` and `Plugin`) is ALL
-   that loads on a public request.
+   `plugins_loaded@20` -> `Plugin::instance()->boot()`. This registers the core and the module entry points
+   on public requests.
 2. **Core** (`Plugin`, `Contracts\Module`): lifecycle and module registry.
 3. **Support** (`Context`, `Options`, `Logger`, `Cache`, `Db`, `Migrations`): small, static-friendly
    helpers loaded on demand by the autoloader.
 4. **Admin** (`SettingsTab`, `SectionRegistry`): only autoloaded inside WooCommerce settings screens.
 5. **Integration** (`src/Integration/`): adapters for anything unverified (WC hooks, Mercado Pago,
    WAHA, Action Scheduler). Modules talk to adapters, never to raw third-party hooks.
-6. **Modules** (`src/Modules/`): functional units. Empty in stage 1.
+6. **Modules** (`src/Modules/`): functional units. See `Plugin::MODULES` for the current registry.
 
 ## Lifecycle
 - **Activation:** `Plugin::activate()` -> `Options::ensure('general')` (autoload=false) -> `Migrations::run()`.
@@ -24,6 +24,16 @@
   "Delete data on uninstall" is enabled.
 
 ## Contexts
+
+Schema upgrades run during activation or on interactive admin screens for users with
+`manage_woocommerce`. An insert-only lock in the options table serializes upgrades across
+requests. If the PHP process was forcibly terminated and the lock remains, confirm no
+upgrade is running before removing `motored_schema_lock` with WP-CLI or the site's database
+administration tools. The next eligible admin request retries the pending migration.
+
+InstallGallery queues its upgrade backfill in 50-product slices. The pending option lets an
+interactive admin request restart an interrupted backfill. Action Scheduler jobs use a single
+`motored-core` group for deactivation and uninstall.
 `Context` exposes `is_admin`, `is_ajax` (admin-ajax and `wc-ajax`), `is_rest` (early URL detection,
 because `REST_REQUEST` is defined late), `is_cron`, `is_cli`, `is_frontend`. Evaluation is lazy and memoized.
 Modules use it inside `should_load()` so their hooks exist only where needed.
@@ -73,9 +83,13 @@ Module -> `Sender::enqueue( kind, id, step, delay )` -> Action Scheduler (`motor
 The core filter `motored_status_rows` lets modules add rows to the Status section.
 
 ## Compatibility + Mi Garage flow (Compatibility module)
-Product save / `set_object_terms` on tire taxonomies -> `ProductIndexSync` (`shutdown` <= 20, AS `motored_compat_reindex` > 20; MD5 `terms_hash` skips ERP price/stock updates) -> `motored_compat_product_index` (`product_id` PK). Storefront remains 100% page-cache safe: `the_posts` batch-primes markers, `<span hidden data-motored-fit>` prints uniform HTML, `compat-garage.js` matches client-side from `localStorage` (0 REST calls during browsing, 12 h TTL revalidation), `?moto=` filters via `post__in` + `noindex`, and the `Compatibility` product tab lazy-loads via REST on open (`CompatCache` uses `Support\Cache` only when persistent).
+Product save / `set_object_terms` on tire taxonomies -> `ProductIndexSync` (`shutdown` <= 20, AS `motored_compat_reindex` > 20; MD5 `terms_hash` skips ERP price/stock updates) -> `motored_compat_product_index` (`product_id` PK; kits read per-axle ratings from the `_motored_tire_spec` meta, which is part of the hash). Storefront remains 100% page-cache safe: `the_posts` batch-primes markers, `<span hidden data-motored-fit>` prints uniform HTML, `compat-garage.js` matches client-side from `localStorage` (0 REST calls during browsing, 12 h TTL revalidation), `?moto=` filters via `post__in` + `noindex`, and the `Compatibility` product tab lazy-loads via REST on open (`CompatCache` uses `Support\Cache` only when persistent).
 
 ## Image pipeline & galleries (ImageProcessor, InstallGallery, ImageOptimizer)
 - **Shared image pipeline (`Support\ImageProcessor`):** centralizes GD/Imagick editor selection (preferring GD for predictable memory/WebP behavior), `supports_webp()`, max-side containment, EXIF/IPTC stripping, and atomic same-directory `optimize_in_place()`. Used by `ReviewPhotos` on upload, `ImageOptimizer` on bulk runs, and status diagnostics.
 - **Storefront gallery (`InstallGallery`):** reads pre-primed `_motored_install_photos` and derived `_motored_review_gallery` (`GallerySync` / migration `2026112401` / admin backfill) BEFORE reading module options, ensuring 0 queries and 0 assets on products without photos; when present, enqueues `assets/css/install-gallery.css` and `assets/js/install-gallery.js` (`defer`, capture-phase dialog isolation).
 - **Store optimization (`ImageOptimizer`):** `should_load()` returns `! $context->is_frontend()` (0 public overhead); registers native upload filters cleanly and executes bulk in-place optimization (preserving original attachment URLs/names by default for ERP compatibility) in cursor-paginated Action Scheduler slices (`motored_image_opt_batch`) guarded by a `Cache::add` lock.
+
+## Motorcycle landing pages & core SEO (`BikePages` + `Seo`)
+- **BikePages (`src/Modules/BikePages/`):** `CatalogRepository` emits `motored_compat_catalog_changed` (including pre-delete/pre-update context) and `ProductIndexRepository` emits `motored_compat_product_index_changed`. `BikePageSync` schedules batched Action Scheduler jobs to group each model's versions by `Signature` (OEM tire-size SHA-1) into `motored_bike` CPT posts (`_motored_sig`), preserving manual titles/content and registering 301 redirects on slug changes or trashed orphans. `HubLinks` builds a cached `slug => permalink` map so product Compatibility tabs (`CompatListRenderer`) and banners link directly to bike pages without N+1 queries. `BikeRenderer` (`[motored_moto]`) renders live WooCommerce product sections, "Complete the set", and data-driven FAQs. `DemandStore` + `POST /motored/v1/compat/notify` record out-of-stock requests in `motored_bike_demand` and emit `Integration\BikeDemandHooks` without calling mail/WAHA directly.
+- **Seo (`src/Modules/Seo/`):** `SeoContext` collects title, meta description, canonical, robots and JSON-LD (`BreadcrumbList`, `ItemList`, `FAQPage`, `Motorcycle`) populated by landing renderers; `HeadRenderer` outputs head metadata via native WP hooks, `SitemapFilters` excludes non-indexable (`_motored_indexable = '0'`) posts and empty brand hubs from `wp_sitemaps`, and `Redirects` resolves 301s only on 404 responses.

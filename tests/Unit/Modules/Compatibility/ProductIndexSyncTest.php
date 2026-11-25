@@ -8,6 +8,24 @@ use Motored\Core\Tests\Unit\TestCase;
 
 final class ProductIndexSyncTest extends TestCase {
 
+	public function test_failed_batch_query_preserves_cursor_instead_of_reporting_completion(): void {
+		$this->fake_storage();
+		$wpdb = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->posts = 'wp_posts';
+		$wpdb->prefix = 'wp_';
+		$wpdb->last_error = 'Database unavailable';
+		$wpdb->shouldReceive( 'prepare' )->andReturnArg( 0 );
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+		$GLOBALS['wpdb'] = $wpdb;
+
+		try {
+			ProductIndexSync::reindex_batch( 50 );
+			$this->fail( 'Database failure was reported as a completed batch.' );
+		} catch ( \RuntimeException $exception ) {
+			$this->assertSame( 'yes', $this->options['motored_compat_reindex_after_50'] );
+		}
+	}
+
 	protected function setUp(): void {
 		parent::setUp();
 		ProductIndexSync::reset();
@@ -23,6 +41,7 @@ final class ProductIndexSyncTest extends TestCase {
 	public function test_sync_product_skips_db_write_when_terms_hash_is_unchanged(): void {
 		$this->fake_storage();
 		Functions\when( 'get_post' )->justReturn( (object) array( 'ID' => 55, 'post_type' => 'product', 'post_status' => 'publish' ) );
+		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'taxonomy_exists' )->justReturn( true );
 		Functions\when( 'wc_attribute_taxonomy_name' )->alias( static fn( $s ) => 'pa_' . $s );
 		Functions\when( 'wp_get_object_terms' )->alias(
@@ -113,6 +132,7 @@ final class ProductIndexSyncTest extends TestCase {
 		$this->options['motored_compatibility'] = array_merge( \Motored\Core\Modules\Compatibility\Config::DEFAULTS, array( 'auto_fill_dimensions' => 'yes' ) );
 
 		Functions\when( 'get_post' )->justReturn( (object) array( 'ID' => 77, 'post_type' => 'product', 'post_status' => 'publish' ) );
+		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'taxonomy_exists' )->justReturn( true );
 		Functions\when( 'wc_attribute_taxonomy_name' )->alias( static fn( $s ) => 'pa_' . $s );
 		Functions\when( 'wc_attribute_taxonomy_slug' )->alias( static fn( $s ) => str_replace( 'pa_', '', $s ) );
@@ -168,6 +188,7 @@ final class ProductIndexSyncTest extends TestCase {
 		// Kits NEVER auto-fill ancho/perfil/rodado even when auto_fill_dimensions is enabled.
 		$kit_assigned = array();
 		Functions\when( 'get_post' )->justReturn( (object) array( 'ID' => 78, 'post_type' => 'product', 'post_status' => 'publish' ) );
+		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'wp_get_object_terms' )->alias(
 			static function ( $pid, $tax ) {
 				unset( $pid );
@@ -207,6 +228,7 @@ final class ProductIndexSyncTest extends TestCase {
 	public function test_non_simple_products_are_excluded_from_index_and_deleted(): void {
 		$this->fake_storage();
 		Functions\when( 'get_post' )->justReturn( (object) array( 'ID' => 91, 'post_type' => 'product', 'post_status' => 'publish' ) );
+		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'taxonomy_exists' )->justReturn( true );
 		Functions\when( 'wc_attribute_taxonomy_name' )->alias( static fn( $s ) => 'pa_' . $s );
 		Functions\when( 'wp_get_object_terms' )->alias(

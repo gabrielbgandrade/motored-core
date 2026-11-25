@@ -39,26 +39,12 @@ final class CompatibilityAdmin {
 		);
 		add_action( 'woocommerce_admin_field_motored_compat_tools', array( $this, 'render_tools_field' ) );
 		add_action( 'admin_menu', array( $this, 'add_menu' ) );
-		add_action( 'admin_init', array( $this, 'maybe_flush_rewrite_rules' ) );
 		add_action( 'admin_notices', array( $this, 'render_settings_notice' ) );
 		add_action( 'admin_post_' . self::TOOL_ACTION, array( $this, 'handle_tool_action' ) );
 		add_action( 'admin_post_' . self::EXPORT_ACTION, array( $this, 'handle_export' ) );
 		add_action( 'admin_post_' . self::CRUD_ACTION, array( $this, 'handle_crud_post' ) );
 
 		( new ProductTireAdmin() )->register();
-	}
-
-	/**
-	 * Flushes rewrite rules once when Mi Garage endpoint version changes (admin_init only).
-	 */
-	public function maybe_flush_rewrite_rules(): void {
-		if ( GarageEndpoint::REWRITE_VERSION === (string) get_option( GarageEndpoint::REWRITE_OPT, '' ) ) {
-			return;
-		}
-		if ( function_exists( 'flush_rewrite_rules' ) ) {
-			flush_rewrite_rules( false );
-		}
-		update_option( GarageEndpoint::REWRITE_OPT, GarageEndpoint::REWRITE_VERSION, false );
 	}
 
 	/**
@@ -181,15 +167,6 @@ final class CompatibilityAdmin {
 				'autoload' => false,
 			),
 			array(
-				'title'    => __( 'Motorcycle search page URL', 'motored-core' ),
-				'desc'     => __( 'Page with the motorcycle search ([motored_buscador]). Product pages send shoppers there when no motorcycle is selected. Leave blank to use the home page.', 'motored-core' ),
-				'id'       => 'motored_compatibility[selector_url]',
-				'type'     => 'url',
-				'class'    => 'motored-input-wide',
-				'default'  => '',
-				'autoload' => false,
-			),
-			array(
 				'type' => 'motored_compat_tools',
 			),
 			array(
@@ -266,23 +243,9 @@ final class CompatibilityAdmin {
 			$res  = AttributeInstaller::install_attributes();
 			$seed = AttributeInstaller::seed_fixed_terms();
 			$msg  = sprintf( 'setup:%d:%d:%d', $res['created'], $res['existing'], $seed['seeded'] );
-		} elseif ( 'install_attributes' === $tool ) {
-			$res = AttributeInstaller::install_attributes();
-			$msg = sprintf( 'attrs:%d:%d', $res['created'], $res['existing'] );
-		} elseif ( 'seed_terms' === $tool ) {
-			$res = AttributeInstaller::seed_fixed_terms();
-			$msg = sprintf( 'terms:%d:%d', $res['seeded'], $res['skipped'] );
 		} elseif ( 'reindex' === $tool ) {
 			$queued = ProductIndexSync::schedule_full_reindex();
-			if ( ! $queued ) {
-				$cursor = 0;
-				$loops  = 0;
-				do {
-					$cursor = ProductIndexSync::reindex_batch( (int) $cursor, ProductIndexSync::REINDEX_BATCH );
-					++$loops;
-				} while ( null !== $cursor && $loops < 50 );
-			}
-			$msg = $queued ? 'reindex_queued' : 'reindex_sync';
+			$msg    = $queued ? 'reindex_queued' : 'reindex_error';
 		} elseif ( 'prefill_base_data' === $tool ) {
 			$raw_json = self::load_base_json();
 			if ( '' === $raw_json ) {
@@ -424,6 +387,8 @@ final class CompatibilityAdmin {
 			$text = __( 'Catalog compatibility reindex queued in Action Scheduler.', 'motored-core' );
 		} elseif ( 'reindex_sync' === $raw ) {
 			$text = __( 'Catalog compatibility reindex batch completed.', 'motored-core' );
+		} elseif ( 'reindex_error' === $raw ) {
+			$text = __( 'Action could not be completed.', 'motored-core' );
 		} elseif ( 'prefill_queued' === $raw ) {
 			$text       = __( 'Base catalog import queued in Action Scheduler.', 'motored-core' );
 			$link_url   = admin_url( 'edit.php?post_type=product&page=' . self::PAGE );
@@ -504,7 +469,7 @@ final class CompatibilityAdmin {
 			$aliases    = $this->post_text( 'aliases' );
 			$year_from  = $this->post_int( 'year_from' );
 			$year_to    = $this->post_int( 'year_to' );
-			$variant    = $this->post_text( 'variant' );
+			$variant    = CatalogRepository::clean_variant( $this->post_text( 'variant' ) );
 			$front_raw  = $this->post_text( 'front_size' );
 			$rear_raw   = $this->post_text( 'rear_size' );
 			$ver_stat   = 'published' === $this->post_key( 'status' ) ? 'published' : 'draft';
@@ -516,6 +481,11 @@ final class CompatibilityAdmin {
 			$var_slug     = '' !== $variant ? sanitize_title( $variant ) : '';
 			$front_parsed = '' !== $front_raw ? SizeParser::parse( $front_raw ) : null;
 			$rear_parsed  = '' !== $rear_raw ? SizeParser::parse( $rear_raw ) : null;
+			$no_sizes     = false;
+			if ( 'published' === $ver_stat && '' === $front_raw && '' === $rear_raw ) {
+				$ver_stat = 'draft';
+				$no_sizes = true;
+			}
 
 			if ( '' === $brand_name || '' === $brand_slug || '' === $model_name || '' === $model_slug ) {
 				$status = 'error';
@@ -561,7 +531,7 @@ final class CompatibilityAdmin {
 					if ( $new_id <= 0 ) {
 						$status = 'error';
 					} else {
-						$status                = 'saved';
+						$status                = $no_sizes ? 'no_sizes' : 'saved';
 						$extra['edit_version'] = $new_id;
 						$this->replace_oem_fitment( $new_id, TireSpecs::POS_FRONT, $front_raw );
 						$this->replace_oem_fitment( $new_id, TireSpecs::POS_REAR, $rear_raw );
@@ -580,8 +550,12 @@ final class CompatibilityAdmin {
 				$act   = sanitize_key( $parts[0] );
 				$vid   = absint( $parts[1] );
 				if ( $vid > 0 && 'publish' === $act ) {
-					CatalogRepository::set_version_status( $vid, 'published' );
-					$status = 'saved';
+					if ( empty( CatalogRepository::fitments_for_version( $vid ) ) ) {
+						$status = 'no_sizes';
+					} else {
+						CatalogRepository::set_version_status( $vid, 'published' );
+						$status = 'saved';
+					}
 				} elseif ( $vid > 0 && 'draft' === $act ) {
 					CatalogRepository::set_version_status( $vid, 'draft' );
 					$status = 'saved';
@@ -601,9 +575,13 @@ final class CompatibilityAdmin {
 				} else {
 					foreach ( $ids as $vid ) {
 						if ( 'publish_verify' === $bulk_action ) {
-							CatalogRepository::set_version_status( $vid, 'published', 1 );
+							if ( ! empty( CatalogRepository::fitments_for_version( $vid ) ) ) {
+								CatalogRepository::set_version_status( $vid, 'published', 1 );
+							}
 						} elseif ( 'publish' === $bulk_action ) {
-							CatalogRepository::set_version_status( $vid, 'published' );
+							if ( ! empty( CatalogRepository::fitments_for_version( $vid ) ) ) {
+								CatalogRepository::set_version_status( $vid, 'published' );
+							}
 						} elseif ( 'draft' === $bulk_action ) {
 							CatalogRepository::set_version_status( $vid, 'draft' );
 						} elseif ( 'delete' === $bulk_action ) {
@@ -612,14 +590,6 @@ final class CompatibilityAdmin {
 					}
 					$status = 'delete' === $bulk_action ? 'deleted' : 'bulk_done';
 				}
-			}
-		} elseif ( 'publish_verify_version' === $op ) {
-			$vid = $this->post_int( 'id' );
-			if ( $vid > 0 && CatalogRepository::set_version_status( $vid, 'published', 1 ) ) {
-				$status                = 'saved';
-				$extra['edit_version'] = $vid;
-			} else {
-				$status = 'error';
 			}
 		} elseif ( 'save_brand' === $op ) {
 			$name   = $this->post_text( 'name' );
@@ -661,14 +631,15 @@ final class CompatibilityAdmin {
 			$status = $ok ? 'deleted' : 'has_children';
 			$extra  = $this->posted_filter_args();
 		} elseif ( 'save_version' === $op ) {
-			$vid       = $this->post_int( 'id' );
-			$model_id  = $this->post_int( 'model_id' );
-			$year_from = $this->post_int( 'year_from' );
-			$year_to   = $this->post_int( 'year_to' );
-			$variant   = $this->post_text( 'variant' );
-			$ver_stat  = 'published' === $this->post_key( 'status' ) ? 'published' : 'draft';
-			$verified  = isset( $_POST['verified'] ) ? 1 : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$notes     = $this->post_text( 'notes' );
+			$vid            = $this->post_int( 'id' );
+			$model_id       = $this->post_int( 'model_id' );
+			$year_from      = $this->post_int( 'year_from' );
+			$year_to        = $this->post_int( 'year_to' );
+			$variant        = CatalogRepository::clean_variant( $this->post_text( 'variant' ) );
+			$publish_verify = '1' === $this->post_key( 'publish_verify' );
+			$ver_stat       = ( $publish_verify || 'published' === $this->post_key( 'status' ) ) ? 'published' : 'draft';
+			$verified       = ( $publish_verify || isset( $_POST['verified'] ) ) ? 1 : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$notes          = $this->post_text( 'notes' );
 
 			$var_slug = '' !== $variant ? sanitize_title( $variant ) : '';
 			if ( $year_from < 1950 || $year_from > 2100 || ( $year_to > 0 && $year_to < $year_from ) ) {
@@ -682,27 +653,31 @@ final class CompatibilityAdmin {
 					$extra['edit_version'] = $vid;
 				}
 			} elseif ( $vid > 0 ) {
-				$front_raw = $this->post_text( 'front_size' );
-				$rear_raw  = $this->post_text( 'rear_size' );
-				if ( ( '' !== $front_raw && null === SizeParser::parse( $front_raw ) ) || ( '' !== $rear_raw && null === SizeParser::parse( $rear_raw ) ) ) {
-					$status                = 'invalid_size';
-					$extra['edit_version'] = $vid;
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified at top of handle_crud_post().
+				$fit_ok   = isset( $_POST['has_fitments'] ) ? $this->save_fitment_rows( $vid ) : true;
+				$no_sizes = false;
+				if ( 'published' === $ver_stat && empty( CatalogRepository::fitments_for_version( $vid ) ) ) {
+					$ver_stat = 'draft';
+					$no_sizes = true;
+				}
+				CatalogRepository::update_version(
+					$vid,
+					array(
+						'year_from' => $year_from,
+						'year_to'   => $year_to,
+						'variant'   => $variant,
+						'status'    => $ver_stat,
+						'verified'  => $verified,
+						'notes'     => $notes,
+					)
+				);
+				$extra['edit_version'] = $vid;
+				if ( ! $fit_ok ) {
+					$status = 'invalid_size';
+				} elseif ( $no_sizes ) {
+					$status = 'no_sizes';
 				} else {
-					CatalogRepository::update_version(
-						$vid,
-						array(
-							'year_from' => $year_from,
-							'year_to'   => $year_to,
-							'variant'   => $variant,
-							'status'    => $ver_stat,
-							'verified'  => $verified,
-							'notes'     => $notes,
-						)
-					);
-					$this->replace_oem_fitment( $vid, TireSpecs::POS_FRONT, $front_raw );
-					$this->replace_oem_fitment( $vid, TireSpecs::POS_REAR, $rear_raw );
-					$extra['edit_version'] = $vid;
-					$status                = 'saved';
+					$status = 'saved';
 				}
 			} else {
 				$models = CatalogRepository::models();
@@ -746,42 +721,10 @@ final class CompatibilityAdmin {
 			CatalogRepository::delete_version( $this->post_int( 'id' ) );
 			$status = 'deleted';
 			$extra  = $this->posted_filter_args();
-		} elseif ( 'save_fitment' === $op ) {
+		} elseif ( 'save_fitments' === $op ) {
 			$vid                   = $this->post_int( 'version_id' );
 			$extra['edit_version'] = $vid;
-			$size                  = CatalogRepository::ensure_size( $this->post_text( 'size' ) );
-			$pos                   = TireSpecs::normalize_position( $this->post_key( 'position' ) );
-			if ( null === $size || ! in_array( $pos, array( TireSpecs::POS_FRONT, TireSpecs::POS_REAR ), true ) ) {
-				$status = 'invalid_size';
-			} else {
-				$min_load  = TireSpecs::parse_load_index( $this->post_text( 'min_load' ) );
-				$min_speed = TireSpecs::speed_rank( $this->post_text( 'min_speed' ) );
-				$req_const = TireSpecs::normalize_construction( $this->post_text( 'req_construction' ) );
-				$desig     = SizeParser::designation( $this->post_text( 'size' ) );
-				if ( '' === $req_const && null !== $desig ) {
-					$req_const = $desig['construction'];
-				}
-				CatalogRepository::upsert_fitment(
-					array(
-						'version_id'       => $vid,
-						'position'         => $pos,
-						'size_id'          => $size['id'],
-						'fit_type'         => $this->post_key( 'fit_type' ),
-						'min_load'         => $min_load,
-						'min_speed_rank'   => $min_speed,
-						'req_construction' => '' !== $req_const ? $req_const : null,
-						'designation'      => ( null !== $desig && $desig['designation'] !== $size['canonical'] ) ? $desig['designation'] : null,
-						'source'           => $this->post_key( 'source' ),
-						'note'             => $this->post_text( 'note' ),
-					)
-				);
-				$status = 'saved';
-			}
-		} elseif ( 'delete_fitment' === $op ) {
-			$vid                   = $this->post_int( 'version_id' );
-			$extra['edit_version'] = $vid;
-			CatalogRepository::delete_fitment( $this->post_int( 'id' ) );
-			$status = 'deleted';
+			$status                = $this->save_fitment_rows( $vid ) ? 'saved' : 'invalid_size';
 		} elseif ( 'save_size' === $op ) {
 			$size   = CatalogRepository::ensure_size( $this->post_text( 'raw_size' ) );
 			$status = null !== $size ? 'saved' : 'invalid_size';
@@ -818,8 +761,7 @@ final class CompatibilityAdmin {
 			$status = 'deleted';
 			$extra  = $this->posted_filter_args();
 		} elseif ( 'sync_product' === $op ) {
-			ProductIndexSync::sync_product( $this->post_int( 'product_id' ) );
-			$status = 'saved';
+			$status = 'failed' === ProductIndexSync::sync_product( $this->post_int( 'product_id' ) ) ? 'error' : 'saved';
 		} elseif ( 'resume_import' === $op ) {
 			$status = ImportRunner::resume_active() ? 'resumed' : 'error';
 		} elseif ( 'cancel_import' === $op ) {
@@ -854,7 +796,14 @@ final class CompatibilityAdmin {
 		if ( '' === $raw_size ) {
 			return;
 		}
-		$size = CatalogRepository::ensure_size( $raw_size );
+		$row  = FitmentRow::parse(
+			array(
+				'size'     => $raw_size,
+				'position' => $position,
+				'fit_type' => TireSpecs::FIT_OEM,
+			)
+		);
+		$size = $row['ok'] ? CatalogRepository::ensure_size( $row['canonical'] ) : null;
 		if ( null === $size ) {
 			return;
 		}
@@ -863,19 +812,93 @@ final class CompatibilityAdmin {
 				CatalogRepository::delete_fitment( $f['id'] );
 			}
 		}
-		$desig = SizeParser::designation( $raw_size );
+		$this->store_fitment( $version_id, $row, $size );
+	}
+
+	/**
+	 * Saves the rows of the tire sizes table: updates, removals and new sizes in one submit.
+	 *
+	 * Runs in two phases (deletes first, then upserts) so swapping sizes or positions across rows
+	 * in the same save never deletes a row that was just written.
+	 *
+	 * @param int $version_id Version ID.
+	 * @return bool False when at least one row had an invalid size, load or speed (valid rows are still saved).
+	 */
+	private function save_fitment_rows( int $version_id ): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce checked in handle_crud_post(); each value is sanitized below.
+		$posted = isset( $_POST['fit'] ) && is_array( $_POST['fit'] ) ? wp_unslash( $_POST['fit'] ) : array();
+		$owned  = array();
+		foreach ( CatalogRepository::fitments_for_version( $version_id ) as $f ) {
+			$owned[ $f['id'] ] = $f;
+		}
+		$all_ok    = true;
+		$to_delete = array();
+		$to_upsert = array();
+		foreach ( $posted as $raw ) {
+			if ( ! is_array( $raw ) ) {
+				continue;
+			}
+			$in = array();
+			foreach ( array( 'id', 'position', 'size', 'fit_type', 'min_load', 'min_speed', 'req_construction', 'note', 'remove' ) as $key ) {
+				$in[ $key ] = isset( $raw[ $key ] ) && is_string( $raw[ $key ] ) ? sanitize_text_field( $raw[ $key ] ) : '';
+			}
+			$id = absint( $in['id'] );
+			if ( $id > 0 && ! isset( $owned[ $id ] ) ) {
+				continue; // Not a size of this motorcycle.
+			}
+			if ( $id > 0 && '1' === $in['remove'] ) {
+				$to_delete[ $id ] = $id;
+				continue;
+			}
+			if ( '' === trim( $in['size'] ) ) {
+				continue; // Empty "add" row (or a cleared size: removing is explicit).
+			}
+			$row  = FitmentRow::parse( $in );
+			$size = $row['ok'] ? CatalogRepository::ensure_size( $row['canonical'] ) : null;
+			if ( null === $size ) {
+				$all_ok = false;
+				continue;
+			}
+			// Position or size changed: the row key (version, position, size) changes, so remove the old row first.
+			if ( $id > 0 && ( $owned[ $id ]['position'] !== $row['position'] || $owned[ $id ]['size_id'] !== $size['id'] ) ) {
+				$to_delete[ $id ] = $id;
+			}
+			$to_upsert[] = array(
+				'row'    => $row,
+				'size'   => $size,
+				'source' => $id > 0 ? (string) $owned[ $id ]['source'] : 'manual',
+			);
+		}
+		foreach ( $to_delete as $del_id ) {
+			CatalogRepository::delete_fitment( $del_id );
+		}
+		foreach ( $to_upsert as $item ) {
+			$this->store_fitment( $version_id, $item['row'], $item['size'], $item['source'] );
+		}
+		return $all_ok;
+	}
+
+	/**
+	 * Writes one parsed fitment row.
+	 *
+	 * @param int                 $version_id Version ID.
+	 * @param array<string,mixed> $row        FitmentRow::parse() result (ok).
+	 * @param array<string,mixed> $size       Size row from ensure_size().
+	 * @param string              $source     Data source.
+	 */
+	private function store_fitment( int $version_id, array $row, array $size, string $source = 'manual' ): void {
 		CatalogRepository::upsert_fitment(
 			array(
 				'version_id'       => $version_id,
-				'position'         => $position,
-				'size_id'          => $size['id'],
-				'fit_type'         => TireSpecs::FIT_OEM,
-				'min_load'         => null,
-				'min_speed_rank'   => null,
-				'req_construction' => ( null !== $desig && '' !== $desig['construction'] ) ? $desig['construction'] : null,
-				'designation'      => ( null !== $desig && $desig['designation'] !== $size['canonical'] ) ? $desig['designation'] : null,
-				'source'           => 'manual',
-				'note'             => '',
+				'position'         => (string) $row['position'],
+				'size_id'          => (int) $size['id'],
+				'fit_type'         => (string) $row['fit_type'],
+				'min_load'         => $row['min_load'],
+				'min_speed_rank'   => $row['min_speed_rank'],
+				'req_construction' => $row['req_construction'],
+				'designation'      => $row['designation'] !== $size['canonical'] ? (string) $row['designation'] : null,
+				'source'           => $source,
+				'note'             => (string) $row['note'],
 			)
 		);
 	}
@@ -891,22 +914,29 @@ final class CompatibilityAdmin {
 		$tab = $this->get_key( 'tab', 'versions' );
 		// Primary flow: Motorcycles (moto -> years -> front/rear tire size) and Import / Export.
 		// Everything else is "Advanced" (catalog maintenance), reachable from one secondary menu.
-		$advanced = array(
+		$advanced   = array(
 			'brands'       => __( 'Brands', 'motored-core' ),
 			'models'       => __( 'Models', 'motored-core' ),
 			'sizes'        => __( 'Sizes', 'motored-core' ),
 			'equivalences' => __( 'Equivalences', 'motored-core' ),
-			'report'       => __( 'Product Index', 'motored-core' ),
+			'report'       => __( 'Readiness & Product Index', 'motored-core' ),
 		);
-		$tabs     = array(
+		$tabs       = array(
 			'versions' => __( 'Motorcycles', 'motored-core' ),
 			'import'   => __( 'Import / Export', 'motored-core' ),
+			'report'   => __( 'Readiness', 'motored-core' ),
 			'brands'   => __( 'Advanced', 'motored-core' ),
 		);
+		$extra_tabs = (array) apply_filters( 'motored_compat_admin_tabs', array() );
+		foreach ( $extra_tabs as $extra_key => $extra_cfg ) {
+			if ( is_string( $extra_key ) && is_array( $extra_cfg ) && ! empty( $extra_cfg['label'] ) ) {
+				$tabs[ $extra_key ] = (string) $extra_cfg['label'];
+			}
+		}
 		if ( ! isset( $tabs[ $tab ] ) && ! isset( $advanced[ $tab ] ) ) {
 			$tab = 'versions';
 		}
-		$nav_active = isset( $advanced[ $tab ] ) ? 'brands' : $tab;
+		$nav_active = ( isset( $advanced[ $tab ] ) && ! isset( $tabs[ $tab ] ) ) ? 'brands' : $tab;
 
 		echo '<div class="wrap motored-admin">';
 		echo '<h1>' . esc_html__( 'Motorcycle Compatibility', 'motored-core' ) . '</h1>';
@@ -960,6 +990,8 @@ final class CompatibilityAdmin {
 			$this->render_import_tab();
 		} elseif ( 'report' === $tab ) {
 			$this->render_report_tab();
+		} elseif ( isset( $extra_tabs[ $tab ]['callback'] ) && is_callable( $extra_tabs[ $tab ]['callback'] ) ) {
+			call_user_func( $extra_tabs[ $tab ]['callback'] );
 		}
 
 		echo '</div>';
@@ -1057,9 +1089,9 @@ final class CompatibilityAdmin {
 		Ui::field( __( 'Brand', 'motored-core' ), 'compat-qa-brand', '<input id="compat-qa-brand" type="text" name="brand_name" list="motored-brands-list" required placeholder="Honda" />' );
 		Ui::field( __( 'Model', 'motored-core' ), 'compat-qa-model', '<input id="compat-qa-model" type="text" name="model_name" list="motored-models-list" required placeholder="XR 250 Tornado" />' );
 		Ui::field( __( 'Year from', 'motored-core' ), 'compat-qa-yf', '<input id="compat-qa-yf" type="number" name="year_from" min="1950" max="2100" required placeholder="2018" />' );
-		Ui::field( __( 'Year to (0 = present)', 'motored-core' ), 'compat-qa-yt', '<input id="compat-qa-yt" type="number" name="year_to" min="0" max="2100" value="0" />' );
-		Ui::field( __( 'Front tire size (OEM)', 'motored-core' ), 'compat-qa-front', '<input id="compat-qa-front" type="text" name="front_size" list="motored-sizes-list" placeholder="110/80-19 / 120/70ZR17" />' );
-		Ui::field( __( 'Rear tire size (OEM)', 'motored-core' ), 'compat-qa-rear', '<input id="compat-qa-rear" type="text" name="rear_size" list="motored-sizes-list" placeholder="150/70R17" />' );
+		Ui::field( __( 'Year to', 'motored-core' ), 'compat-qa-yt', '<input id="compat-qa-yt" type="number" name="year_to" min="1950" max="2100" />', __( 'Leave empty while it is still made: shown as 2017+.', 'motored-core' ) );
+		Ui::field( __( 'Front tire size (OEM)', 'motored-core' ), 'compat-qa-front', '<input id="compat-qa-front" type="text" name="front_size" list="motored-sizes-list" placeholder="120/70ZR17 58W" />', __( 'As printed in the manual. Load and speed are optional.', 'motored-core' ) );
+		Ui::field( __( 'Rear tire size (OEM)', 'motored-core' ), 'compat-qa-rear', '<input id="compat-qa-rear" type="text" name="rear_size" list="motored-sizes-list" placeholder="160/60ZR17 69W" />', __( 'As printed in the manual. Load and speed are optional.', 'motored-core' ) );
 		Ui::field( __( 'Version (optional)', 'motored-core' ), 'compat-qa-var', '<input id="compat-qa-var" type="text" name="variant" placeholder="ABS, Rally, SC28" />' );
 		Ui::field( __( 'Displacement cc (new model)', 'motored-core' ), 'compat-qa-cc', '<input id="compat-qa-cc" type="number" name="cc" min="1" max="3000" placeholder="250" />' );
 		Ui::field( __( 'Search aliases (new model)', 'motored-core' ), 'compat-qa-aliases', '<input id="compat-qa-aliases" type="text" name="aliases" placeholder="Tornado, XR250" />' );
@@ -1410,7 +1442,7 @@ final class CompatibilityAdmin {
 		echo '<option value="draft">' . esc_html__( 'Set as draft', 'motored-core' ) . '</option>';
 		echo '<option value="delete">' . esc_html__( 'Delete', 'motored-core' ) . '</option>';
 		echo '</select>';
-		echo '<button type="submit" class="button">' . esc_html__( 'Apply', 'motored-core' ) . '</button>';
+		echo '<button type="submit" class="button" onclick="return this.form.bulk_action.value !== \'delete\' || confirm(\'' . esc_js( __( 'Delete the selected motorcycles permanently?', 'motored-core' ) ) . '\');">' . esc_html__( 'Apply', 'motored-core' ) . '</button>';
 		echo '</div>';
 
 		Ui::table_open();
@@ -1481,7 +1513,7 @@ final class CompatibilityAdmin {
 				echo '<button type="submit" class="button button-primary" name="row_action" value="' . esc_attr( 'publish:' . $vid ) . '">' . esc_html__( 'Publish', 'motored-core' ) . '</button>';
 			}
 			echo '<a class="button" href="' . esc_url( $edit_url ) . '">' . esc_html__( 'Edit', 'motored-core' ) . '</a>';
-			echo '<button type="submit" class="button" name="row_action" value="' . esc_attr( 'delete:' . $vid ) . '">' . esc_html__( 'Delete', 'motored-core' ) . '</button>';
+			echo '<button type="submit" class="button" name="row_action" value="' . esc_attr( 'delete:' . $vid ) . '" onclick="return confirm(\'' . esc_js( __( 'Delete this motorcycle and its tire sizes permanently?', 'motored-core' ) ) . '\');">' . esc_html__( 'Delete', 'motored-core' ) . '</button>';
 			echo '</div></td>';
 			echo '</tr>';
 		}
@@ -1515,13 +1547,6 @@ final class CompatibilityAdmin {
 
 		echo '<div class="motored-actions">';
 		echo '<a class="button" href="' . esc_url( $back_url ) . '">&larr; ' . esc_html__( 'Back to motorcycles', 'motored-core' ) . '</a>';
-		if ( 'published' !== (string) $ver['status'] ) {
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php?action=' . self::CRUD_ACTION ) ) . '">';
-			wp_nonce_field( self::CRUD_ACTION );
-			echo '<input type="hidden" name="op" value="publish_verify_version" /><input type="hidden" name="tab" value="versions" /><input type="hidden" name="id" value="' . esc_attr( (string) $version_id ) . '" />';
-			echo '<button type="submit" class="button button-primary">' . esc_html__( 'Publish & verify now', 'motored-core' ) . '</button>';
-			echo '</form>';
-		}
 		echo '</div>';
 
 		$preview = $this->compute_store_match_preview( $fitments );
@@ -1541,106 +1566,130 @@ final class CompatibilityAdmin {
 		}
 		Ui::box_close();
 
-		Ui::box_open();
-		echo '<h2 class="motored-box__title">' . esc_html( MatchEngine::version_label( (string) $ver['brand_name'], (string) $ver['model_name'], (string) $ver['variant'], (int) $ver['year_from'], (int) $ver['year_to'] ) ) . '</h2>';
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php?action=' . self::CRUD_ACTION ) ) . '">';
 		wp_nonce_field( self::CRUD_ACTION );
 		echo '<input type="hidden" name="op" value="save_version" /><input type="hidden" name="tab" value="versions" />';
 		echo '<input type="hidden" name="id" value="' . esc_attr( (string) $version_id ) . '" /><input type="hidden" name="model_id" value="' . esc_attr( (string) $ver['model_id'] ) . '" />';
-		$oem_front = '';
-		$oem_rear  = '';
-		foreach ( $fitments as $f ) {
-			if ( TireSpecs::FIT_OEM !== $f['fit_type'] ) {
-				continue;
-			}
-			if ( TireSpecs::POS_FRONT === $f['position'] && '' === $oem_front ) {
-				$oem_front = (string) $f['designation'];
-			} elseif ( TireSpecs::POS_REAR === $f['position'] && '' === $oem_rear ) {
-				$oem_rear = (string) $f['designation'];
-			}
-		}
+		echo '<input type="hidden" name="has_fitments" value="1" />';
+
+		Ui::box_open();
+		echo '<div class="motored-box__head">';
+		echo '<h2 class="motored-box__title">' . esc_html( MatchEngine::version_label( (string) $ver['brand_name'], (string) $ver['model_name'], (string) $ver['variant'], (int) $ver['year_from'], (int) $ver['year_to'] ) ) . '</h2>';
+		echo '<span class="motored-mono description">' . esc_html( (string) $ver['slug'] ) . '</span>';
+		echo '</div>';
 		echo '<div class="motored-box__grid">';
-		Ui::field( __( 'Front tire size (OEM, as printed in the manual)', 'motored-core' ), 'compat-ev-front', '<input id="compat-ev-front" type="text" name="front_size" list="motored-sizes-list" value="' . esc_attr( $oem_front ) . '" placeholder="110/80-19 / 120/70ZR17" />' );
-		Ui::field( __( 'Rear tire size (OEM, as printed in the manual)', 'motored-core' ), 'compat-ev-rear', '<input id="compat-ev-rear" type="text" name="rear_size" list="motored-sizes-list" value="' . esc_attr( $oem_rear ) . '" placeholder="150/70R17" />' );
-		Ui::field( __( 'Year from', 'motored-core' ), 'compat-ev-yf', '<input id="compat-ev-yf" type="number" name="year_from" value="' . esc_attr( (string) $ver['year_from'] ) . '" required />' );
-		Ui::field( __( 'Year to (0 = present)', 'motored-core' ), 'compat-ev-yt', '<input id="compat-ev-yt" type="number" name="year_to" value="' . esc_attr( (string) $ver['year_to'] ) . '" />' );
+		Ui::field( __( 'Year from', 'motored-core' ), 'compat-ev-yf', '<input id="compat-ev-yf" type="number" name="year_from" min="1950" max="2100" value="' . esc_attr( (string) $ver['year_from'] ) . '" required />' );
+		Ui::field(
+			__( 'Year to', 'motored-core' ),
+			'compat-ev-yt',
+			'<input id="compat-ev-yt" type="number" name="year_to" min="1950" max="2100" value="' . esc_attr( (int) $ver['year_to'] > 0 ? (string) $ver['year_to'] : '' ) . '" />',
+			__( 'Leave empty while it is still made: shown as 2017+.', 'motored-core' )
+		);
 		Ui::field( __( 'Version (optional)', 'motored-core' ), 'compat-ev-var', '<input id="compat-ev-var" type="text" name="variant" placeholder="ABS, Rally, SC28" value="' . esc_attr( (string) $ver['variant'] ) . '" />' );
 		$st_sel = '<select id="compat-ev-st" name="status"><option value="draft"' . selected( $ver['status'], 'draft', false ) . '>' . esc_html__( 'Draft', 'motored-core' ) . '</option><option value="published"' . selected( $ver['status'], 'published', false ) . '>' . esc_html__( 'Published', 'motored-core' ) . '</option></select>';
 		Ui::field( __( 'Status', 'motored-core' ), 'compat-ev-st', $st_sel );
-		Ui::field( __( 'Notes', 'motored-core' ), 'compat-ev-notes', '<input id="compat-ev-notes" type="text" name="notes" value="' . esc_attr( (string) $ver['notes'] ) . '" />' );
 		Ui::field( __( 'Verified', 'motored-core' ), 'compat-ev-ver', '<label class="motored-field__check"><input id="compat-ev-ver" type="checkbox" name="verified" value="1"' . checked( ! empty( $ver['verified'] ), true, false ) . ' /> ' . esc_html__( 'Verified specification', 'motored-core' ) . '</label>' );
 		echo '</div>';
-		echo '<div class="motored-actions"><button type="submit" class="button button-primary">' . esc_html__( 'Update motorcycle', 'motored-core' ) . '</button></div>';
+		Ui::field( __( 'Notes (source, manual, exceptions)', 'motored-core' ), 'compat-ev-notes', '<textarea id="compat-ev-notes" name="notes" rows="3">' . esc_textarea( (string) $ver['notes'] ) . '</textarea>' );
+		Ui::box_close();
+
+		$this->render_fitments_table( $fitments, 'published' !== (string) $ver['status'] );
 		echo '</form>';
-		Ui::box_close();
+	}
 
-		$has_front = false;
-		$has_rear  = false;
-		foreach ( $fitments as $f ) {
-			if ( TireSpecs::POS_FRONT === $f['position'] ) {
-				$has_front = true;
-			} elseif ( TireSpecs::POS_REAR === $f['position'] ) {
-				$has_rear = true;
-			}
-		}
-		$default_pos = ( $has_front && ! $has_rear ) ? TireSpecs::POS_REAR : TireSpecs::POS_FRONT;
-
+	/**
+	 * Editable list of the tire sizes a motorcycle accepts: one row per size, plus empty rows to add front/rear sizes.
+	 *
+	 * @param list<array<string,mixed>> $fitments Current fitments.
+	 * @param bool                      $is_draft Whether the motorcycle is currently a draft.
+	 */
+	private function render_fitments_table( array $fitments, bool $is_draft ): void {
 		Ui::box_open();
-		echo '<details class="motored-box__details"><summary>' . esc_html__( 'Add an alternative size or a size with safety limits (optional)', 'motored-core' ) . '</summary><p></p>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php?action=' . self::CRUD_ACTION ) ) . '">';
-		wp_nonce_field( self::CRUD_ACTION );
-		echo '<input type="hidden" name="op" value="save_fitment" /><input type="hidden" name="tab" value="versions" /><input type="hidden" name="version_id" value="' . esc_attr( (string) $version_id ) . '" />';
-		echo '<div class="motored-box__grid">';
-		Ui::field( __( 'Position', 'motored-core' ), 'compat-fit-pos', '<select id="compat-fit-pos" name="position"><option value="front"' . selected( $default_pos, TireSpecs::POS_FRONT, false ) . '>' . esc_html__( 'Front', 'motored-core' ) . '</option><option value="rear"' . selected( $default_pos, TireSpecs::POS_REAR, false ) . '>' . esc_html__( 'Rear', 'motored-core' ) . '</option></select>' );
-		Ui::field( __( 'Tire size', 'motored-core' ), 'compat-fit-size', '<input id="compat-fit-size" type="text" name="size" list="motored-sizes-list" required placeholder="120/70-17 or 4.10-18" />' );
-		Ui::field( __( 'Fitment type', 'motored-core' ), 'compat-fit-type', '<select id="compat-fit-type" name="fit_type"><option value="oem">' . esc_html__( 'OEM (original)', 'motored-core' ) . '</option><option value="alt">' . esc_html__( 'Alternative', 'motored-core' ) . '</option></select>' );
-		Ui::field( __( 'Source', 'motored-core' ), 'compat-fit-src', '<select id="compat-fit-src" name="source"><option value="manual">' . esc_html__( 'Manual', 'motored-core' ) . '</option><option value="manufacturer">' . esc_html__( 'Manufacturer', 'motored-core' ) . '</option><option value="third_party">' . esc_html__( 'Third party', 'motored-core' ) . '</option></select>' );
-		Ui::field( __( 'Note', 'motored-core' ), 'compat-fit-note', '<input id="compat-fit-note" type="text" name="note" />' );
-		echo '</div>';
-		echo '<details class="motored-box__details"><summary>' . esc_html__( 'Optional safety limits (leave empty unless needed for high-speed / heavy motorcycles)', 'motored-core' ) . '</summary><p></p>';
-		echo '<div class="motored-box__grid">';
-		Ui::field( __( 'Min load index (optional)', 'motored-core' ), 'compat-fit-load', '<input id="compat-fit-load" type="number" name="min_load" min="20" max="120" />' );
-		Ui::field( __( 'Min speed rating (optional)', 'motored-core' ), 'compat-fit-spd', '<input id="compat-fit-spd" type="text" name="min_speed" placeholder="H, V, W" />' );
-		Ui::field( __( 'Required construction (optional)', 'motored-core' ), 'compat-fit-const', '<select id="compat-fit-const" name="req_construction"><option value="">&mdash;</option><option value="radial">Radial</option><option value="diagonal">Diagonal</option><option value="cinturado">Belted (B)</option></select>' );
-		echo '</div></details><p></p>';
-		echo '<div class="motored-actions"><button type="submit" class="button button-primary">' . esc_html__( 'Save fitment', 'motored-core' ) . '</button></div>';
-		echo '</form></details>';
-		Ui::box_close();
+		echo '<h2 class="motored-box__title">' . esc_html__( 'Tire sizes this motorcycle accepts', 'motored-core' ) . '</h2>';
+		echo '<ul class="motored-notes">';
+		echo '<li>' . esc_html__( 'One row per size. OEM = the factory size from the manual; Alternative = another size that also fits.', 'motored-core' ) . '</li>';
+		echo '<li>' . esc_html__( 'Type the size as printed in the manual, with load and speed if it has them: 120/70ZR17 58W. Load and speed become the minimum a tire must meet to be shown for this motorcycle.', 'motored-core' ) . '</li>';
+		echo '<li>' . esc_html__( 'Construction is read from the size (ZR/R = radial, B = belted); change it only to override.', 'motored-core' ) . '</li>';
+		echo '</ul>';
 
-		Ui::table_open();
+		Ui::table_open( false, true );
 		Ui::table_head(
 			array(
-				__( 'Position', 'motored-core' ) => 'sm',
-				__( 'Size', 'motored-core' )     => 'md',
-				__( 'Type', 'motored-core' )     => 'sm',
-				__( 'Limits', 'motored-core' )   => 'md',
-				__( 'Note', 'motored-core' )     => 'grow',
-				__( 'Actions', 'motored-core' )  => 'xs',
+				__( 'Position', 'motored-core' )          => 'sm',
+				__( 'Size (as printed)', 'motored-core' ) => 'md',
+				__( 'Type', 'motored-core' )              => 'md',
+				__( 'Min load', 'motored-core' )          => 'xs',
+				__( 'Min speed', 'motored-core' )         => 'xs',
+				__( 'Construction', 'motored-core' )      => 'md',
+				__( 'Note', 'motored-core' )              => 'grow',
+				__( 'Remove', 'motored-core' )            => 'xs',
 			)
 		);
 		echo '<tbody>';
-		foreach ( $fitments as $f ) {
-			$limits = array();
-			if ( null !== $f['min_load'] ) {
-				$limits[] = 'L>=' . $f['min_load'];
-			}
-			if ( null !== $f['min_speed_rank'] ) {
-				$limits[] = 'S>=' . TireSpecs::speed_code_for_rank( $f['min_speed_rank'] );
-			}
-			if ( null !== $f['req_construction'] ) {
-				$limits[] = $f['req_construction'];
-			}
-			echo '<tr><td>' . esc_html( self::position_label( (string) $f['position'] ) ) . '</td><td class="motored-mono"><strong>' . esc_html( $f['designation'] ) . '</strong></td>';
-			echo '<td>' . esc_html( TireSpecs::FIT_ALT === $f['fit_type'] ? __( 'Alternative', 'motored-core' ) : __( 'OEM (original)', 'motored-core' ) ) . '</td><td>' . esc_html( implode( ', ', $limits ) ) . '</td>';
-			echo '<td>' . esc_html( $f['note'] ) . '</td><td>';
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php?action=' . self::CRUD_ACTION ) ) . '">';
-			wp_nonce_field( self::CRUD_ACTION );
-			echo '<input type="hidden" name="op" value="delete_fitment" /><input type="hidden" name="tab" value="versions" />';
-			echo '<input type="hidden" name="version_id" value="' . esc_attr( (string) $version_id ) . '" /><input type="hidden" name="id" value="' . esc_attr( (string) $f['id'] ) . '" />';
-			echo '<button type="submit" class="button">' . esc_html__( 'Delete', 'motored-core' ) . '</button></form></td></tr>';
+		$rows   = $fitments;
+		$rows[] = array(
+			'id'       => 0,
+			'position' => TireSpecs::POS_FRONT,
+		);
+		$rows[] = array(
+			'id'       => 0,
+			'position' => TireSpecs::POS_REAR,
+		);
+		foreach ( $rows as $i => $f ) {
+			$this->render_fitment_row( (int) $i, $f );
 		}
 		echo '</tbody>';
 		Ui::table_close();
+		echo '<p class="description">' . esc_html__( 'The two last rows are empty: fill one to add a size. Tick Remove to delete a size.', 'motored-core' ) . '</p>';
+		echo '<div class="motored-actions">';
+		echo '<button type="submit" class="button button-primary">' . esc_html__( 'Save motorcycle', 'motored-core' ) . '</button>';
+		if ( $is_draft ) {
+			echo '<button type="submit" name="publish_verify" value="1" class="button">' . esc_html__( 'Save & publish', 'motored-core' ) . '</button>';
+		}
+		echo '</div>';
+		Ui::box_close();
+	}
+
+	/**
+	 * One editable fitment row (id 0 = new row).
+	 *
+	 * @param int                 $i Row index.
+	 * @param array<string,mixed> $f Fitment (or a blank row with id 0 and a position).
+	 */
+	private function render_fitment_row( int $i, array $f ): void {
+		$id    = (int) ( $f['id'] ?? 0 );
+		$name  = static fn( string $key ): string => esc_attr( 'fit[' . $i . '][' . $key . ']' );
+		$pos   = (string) ( $f['position'] ?? TireSpecs::POS_FRONT );
+		$type  = (string) ( $f['fit_type'] ?? TireSpecs::FIT_OEM );
+		$speed = isset( $f['min_speed_rank'] ) ? TireSpecs::speed_code_for_rank( (int) $f['min_speed_rank'] ) : '';
+		$const = (string) ( $f['req_construction'] ?? '' );
+
+		$speed_opts = '<option value="">&mdash;</option>';
+		foreach ( array_keys( TireSpecs::SPEED_RANKS ) as $code ) {
+			if ( in_array( $code, array( 'VR', 'ZR' ), true ) && $speed !== $code ) {
+				continue;
+			}
+			$speed_opts .= '<option value="' . esc_attr( $code ) . '"' . selected( $speed, $code, false ) . '>' . esc_html( $code ) . '</option>';
+		}
+		$const_opts = '<option value="">' . esc_html__( 'From the size', 'motored-core' ) . '</option>';
+		foreach ( (array) AttributeInstaller::fixed_term_sets()[ TireSpecs::ATTR_CONSTRUCTION ] as $slug => $label ) {
+			$const_opts .= '<option value="' . esc_attr( (string) $slug ) . '"' . selected( $const, (string) $slug, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+
+		echo '<tr>';
+		echo '<td><input type="hidden" name="' . $name( 'id' ) . '" value="' . esc_attr( (string) $id ) . '" />'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in $name.
+		echo '<select name="' . $name( 'position' ) . '" aria-label="' . esc_attr__( 'Position', 'motored-core' ) . '"><option value="front"' . selected( $pos, TireSpecs::POS_FRONT, false ) . '>' . esc_html__( 'Front', 'motored-core' ) . '</option><option value="rear"' . selected( $pos, TireSpecs::POS_REAR, false ) . '>' . esc_html__( 'Rear', 'motored-core' ) . '</option></select></td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in $name.
+		echo '<td><input type="text" name="' . $name( 'size' ) . '" list="motored-sizes-list" value="' . esc_attr( (string) ( $f['designation'] ?? '' ) ) . '" placeholder="' . esc_attr( TireSpecs::POS_REAR === $pos ? '160/60ZR17 69W' : '120/70ZR17 58W' ) . '" aria-label="' . esc_attr__( 'Size (as printed)', 'motored-core' ) . '" /></td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in $name.
+		echo '<td><select name="' . $name( 'fit_type' ) . '" aria-label="' . esc_attr__( 'Type', 'motored-core' ) . '"><option value="oem"' . selected( $type, TireSpecs::FIT_OEM, false ) . '>' . esc_html__( 'OEM (original)', 'motored-core' ) . '</option><option value="alt"' . selected( $type, TireSpecs::FIT_ALT, false ) . '>' . esc_html__( 'Alternative', 'motored-core' ) . '</option></select></td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in $name.
+		echo '<td><input type="number" min="20" max="120" name="' . $name( 'min_load' ) . '" value="' . esc_attr( isset( $f['min_load'] ) ? (string) $f['min_load'] : '' ) . '" aria-label="' . esc_attr__( 'Min load', 'motored-core' ) . '" /></td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in $name.
+		echo '<td><select name="' . $name( 'min_speed' ) . '" aria-label="' . esc_attr__( 'Min speed', 'motored-core' ) . '">' . $speed_opts . '</select></td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+		echo '<td><select name="' . $name( 'req_construction' ) . '" aria-label="' . esc_attr__( 'Construction', 'motored-core' ) . '">' . $const_opts . '</select></td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+		echo '<td><input type="text" name="' . $name( 'note' ) . '" value="' . esc_attr( (string) ( $f['note'] ?? '' ) ) . '" aria-label="' . esc_attr__( 'Note', 'motored-core' ) . '" /></td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in $name.
+		echo '<td class="motored-cell-center">';
+		if ( $id > 0 ) {
+			echo '<input type="checkbox" name="' . $name( 'remove' ) . '" value="1" aria-label="' . esc_attr__( 'Remove', 'motored-core' ) . '" />'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in $name.
+		}
+		echo '</td></tr>';
 	}
 
 	/**
@@ -1842,14 +1891,24 @@ final class CompatibilityAdmin {
 			$total_v  = (int) ( $last_status['total_versions'] ?? 0 );
 			$finished = (string) ( $last_status['finished_gmt'] ?? '' );
 
+			$st_labels = array(
+				'queued'    => __( 'Queued', 'motored-core' ),
+				'running'   => __( 'Running', 'motored-core' ),
+				'completed' => __( 'Completed', 'motored-core' ),
+				'partial'   => __( 'Completed with warnings', 'motored-core' ),
+				'cancelled' => __( 'Cancelled', 'motored-core' ),
+				'failed'    => __( 'Failed', 'motored-core' ),
+			);
+			$st_label  = $st_labels[ $st_code ] ?? $st_code;
+
 			Ui::box_open();
 			echo '<h2 class="motored-box__title">' . esc_html__( 'Last import status', 'motored-core' ) . '</h2>';
 			echo '<ul class="motored-notes">';
 			echo '<li>' . esc_html(
 				sprintf(
-					/* translators: %s: import status code */
+					/* translators: %s: human-readable import status label. */
 					__( 'Status: %s', 'motored-core' ),
-					$st_code
+					$st_label
 				)
 			) . '</li>';
 			if ( $is_busy && $total_v > 0 ) {
@@ -1911,11 +1970,50 @@ final class CompatibilityAdmin {
 		if ( is_array( $dry_result ) ) {
 			echo '<h3>' . esc_html__( 'Dry-run summary', 'motored-core' ) . '</h3>';
 			echo '<ul class="motored-notes">';
-			echo '<li>' . esc_html( sprintf( 'Brands: +%d new / %d existing', (int) $dry_result['brands_new'], (int) $dry_result['brands_existing'] ) ) . '</li>';
-			echo '<li>' . esc_html( sprintf( 'Models: +%d new / %d existing', (int) $dry_result['models_new'], (int) $dry_result['models_existing'] ) ) . '</li>';
-			echo '<li>' . esc_html( sprintf( 'Versions: +%d new / %d updated / %d unchanged', (int) $dry_result['versions_new'], (int) $dry_result['versions_updated'], (int) $dry_result['versions_unchanged'] ) ) . '</li>';
-			echo '<li>' . esc_html( sprintf( 'Fitments: +%d new / %d updated · Equivalences: +%d · New sizes: +%d', (int) $dry_result['fitments_new'], (int) $dry_result['fitments_updated'], (int) $dry_result['equivalences_new'], (int) $dry_result['sizes_new'] ) ) . '</li>';
-			echo '<li>' . esc_html( sprintf( 'Rejected: %d · Suspicious rim: %d · Year overlaps: %d', (int) $dry_result['rejected'], (int) $dry_result['suspicious'], (int) $dry_result['overlaps'] ) ) . '</li>';
+			echo '<li>' . esc_html(
+				sprintf(
+					/* translators: 1: new brands, 2: existing brands. */
+					__( 'Brands: +%1$d new / %2$d existing', 'motored-core' ),
+					(int) $dry_result['brands_new'],
+					(int) $dry_result['brands_existing']
+				)
+			) . '</li>';
+			echo '<li>' . esc_html(
+				sprintf(
+					/* translators: 1: new models, 2: existing models. */
+					__( 'Models: +%1$d new / %2$d existing', 'motored-core' ),
+					(int) $dry_result['models_new'],
+					(int) $dry_result['models_existing']
+				)
+			) . '</li>';
+			echo '<li>' . esc_html(
+				sprintf(
+					/* translators: 1: new versions, 2: updated versions, 3: unchanged versions. */
+					__( 'Versions: +%1$d new / %2$d updated / %3$d unchanged', 'motored-core' ),
+					(int) $dry_result['versions_new'],
+					(int) $dry_result['versions_updated'],
+					(int) $dry_result['versions_unchanged']
+				)
+			) . '</li>';
+			echo '<li>' . esc_html(
+				sprintf(
+					/* translators: 1: new fitments, 2: updated fitments, 3: new equivalences, 4: new sizes. */
+					__( 'Fitments: +%1$d new / %2$d updated · Equivalences: +%3$d · New sizes: +%4$d', 'motored-core' ),
+					(int) $dry_result['fitments_new'],
+					(int) $dry_result['fitments_updated'],
+					(int) $dry_result['equivalences_new'],
+					(int) $dry_result['sizes_new']
+				)
+			) . '</li>';
+			echo '<li>' . esc_html(
+				sprintf(
+					/* translators: 1: rejected items, 2: suspicious rims, 3: year overlaps. */
+					__( 'Rejected: %1$d · Suspicious rim: %2$d · Year overlaps: %3$d', 'motored-core' ),
+					(int) $dry_result['rejected'],
+					(int) $dry_result['suspicious'],
+					(int) $dry_result['overlaps']
+				)
+			) . '</li>';
 			foreach ( $dry_result['messages'] as $msg ) {
 				echo '<li>' . esc_html( (string) $msg ) . '</li>';
 			}
@@ -1934,6 +2032,8 @@ final class CompatibilityAdmin {
 	 * Product Index & Invalid sizes report tab.
 	 */
 	private function render_report_tab(): void {
+		$this->render_readiness_scorecard();
+
 		$paged   = max( 1, $this->get_int( 'paged', 1 ) );
 		$indexed = ProductIndexRepository::count_indexed();
 		$data    = ProductIndexRepository::find_products_with_invalid_sizes( 30, ( $paged - 1 ) * 30 );
@@ -1979,6 +2079,101 @@ final class CompatibilityAdmin {
 		echo '</tbody>';
 		Ui::table_close();
 		$this->render_pagination( 'report', $paged, $data['total'], 30 );
+		$this->render_kits_without_sheet();
+	}
+
+	/**
+	 * Renders the Compatibility readiness scorecard (B4): indexed %, size attrs %, bike coverage and gaps.
+	 */
+	private function render_readiness_scorecard(): void {
+		$r        = ReadinessReport::summary( 20 );
+		$base_url = admin_url( 'edit.php?post_type=product&page=' . self::PAGE );
+
+		Ui::box_open();
+		echo '<div class="motored-box__head"><h2 class="motored-box__title">' . esc_html__( 'Compatibility readiness scorecard', 'motored-core' ) . '</h2></div>';
+		echo '<div class="motored-box__stats">';
+		echo '<span class="motored-box__stat"><strong>' . esc_html( $r['indexed_tires'] . ' / ' . $r['published_tires'] . ' (' . $r['indexed_pct'] . '%)' ) . '</strong> ' . esc_html__( 'Published tires indexed', 'motored-core' ) . '</span>';
+		echo '<span class="motored-box__stat"><strong>' . esc_html( $r['unit_complete_attrs'] . ' / ' . $r['unit_tires'] . ' (' . $r['attrs_pct'] . '%)' ) . '</strong> ' . esc_html__( 'Unit tires with width & rim attributes', 'motored-core' ) . '</span>';
+		echo '<span class="motored-box__stat"><strong>' . esc_html( $r['covered_versions'] . ' / ' . $r['published_versions'] . ' (' . $r['coverage_pct'] . '%)' ) . '</strong> ' . esc_html__( 'Published motorcycles with in-stock products', 'motored-core' ) . '</span>';
+		echo '</div>';
+
+		if ( empty( $r['offenders'] ) ) {
+			echo '<p>' . esc_html__( 'Every published motorcycle currently has at least one in-stock front and rear tire option.', 'motored-core' ) . '</p>';
+		} else {
+			echo '<p class="description">' . esc_html__( 'Top published motorcycles missing in-stock front or rear tire coverage:', 'motored-core' ) . '</p>';
+			Ui::table_open( true );
+			Ui::table_head(
+				array(
+					__( 'Motorcycle', 'motored-core' )  => 'grow',
+					__( 'Front stock', 'motored-core' ) => 'xs',
+					__( 'Rear stock', 'motored-core' )  => 'xs',
+					__( 'Kit stock', 'motored-core' )   => 'xs',
+					__( 'Edit', 'motored-core' )        => 'sm',
+				)
+			);
+			echo '<tbody>';
+			foreach ( $r['offenders'] as $row ) {
+				$edit_url = add_query_arg(
+					array(
+						'tab'          => 'versions',
+						'edit_version' => $row['id'],
+					),
+					$base_url
+				);
+				echo '<tr>';
+				echo '<td><strong>' . esc_html( $row['label'] ) . '</strong></td>';
+				echo '<td class="motored-cell-center">' . esc_html( (string) $row['front_count'] ) . '</td>';
+				echo '<td class="motored-cell-center">' . esc_html( (string) $row['rear_count'] ) . '</td>';
+				echo '<td class="motored-cell-center">' . esc_html( (string) $row['kit_count'] ) . '</td>';
+				echo '<td><a class="button" href="' . esc_url( $edit_url ) . '">' . esc_html__( 'Edit sizes', 'motored-core' ) . '</a></td>';
+				echo '</tr>';
+			}
+			echo '</tbody>';
+			Ui::table_close();
+		}
+		Ui::box_close();
+	}
+
+	/**
+	 * Kits indexed before the per-axle sheet existed: they match by size only until someone fills both tires.
+	 */
+	private function render_kits_without_sheet(): void {
+		$kits = ProductIndexRepository::kits_without_axle_sheet( 50, 0 );
+		Ui::box_open();
+		echo '<h2 class="motored-box__title">' . esc_html__( 'Kits without a per-tire sheet', 'motored-core' ) . '</h2>';
+		if ( 0 === $kits['total'] ) {
+			echo '<p>' . esc_html__( 'Every kit has load, speed or construction per tire.', 'motored-core' ) . '</p>';
+			Ui::box_close();
+			return;
+		}
+		echo '<p>' . esc_html(
+			sprintf(
+				/* translators: %d: number of kits. */
+				_n(
+					'%d kit has no load, speed or construction per tire. It still matches motorcycles by size, but the rating checks cannot run. Open it and fill in the Front tire and Rear tire sections of Technical information.',
+					'%d kits have no load, speed or construction per tire. They still match motorcycles by size, but the rating checks cannot run. Open each one and fill in the Front tire and Rear tire sections of Technical information.',
+					$kits['total'],
+					'motored-core'
+				),
+				$kits['total']
+			)
+		) . '</p>';
+		echo '<ul class="motored-notes">';
+		foreach ( $kits['items'] as $row ) {
+			$edit_link = get_edit_post_link( $row['product_id'] );
+			echo '<li><a href="' . esc_url( is_string( $edit_link ) ? $edit_link : '#' ) . '">' . esc_html( '' !== $row['title'] ? $row['title'] : '#' . $row['product_id'] ) . '</a></li>';
+		}
+		echo '</ul>';
+		if ( $kits['total'] > count( $kits['items'] ) ) {
+			echo '<p>' . esc_html(
+				sprintf(
+					/* translators: %d: number of motorcycles not listed. */
+					__( '...and %d more.', 'motored-core' ),
+					$kits['total'] - count( $kits['items'] )
+				)
+			) . '</p>';
+		}
+		Ui::box_close();
 	}
 
 	/**
@@ -1997,7 +2192,8 @@ final class CompatibilityAdmin {
 			'deleted'       => array( 'notice-success', __( 'Deleted successfully.', 'motored-core' ) ),
 			'overlap'       => array( 'notice-error', __( 'Overlapping year range for this model and variant.', 'motored-core' ) ),
 			'invalid_years' => array( 'notice-error', __( 'Invalid year range.', 'motored-core' ) ),
-			'invalid_size'  => array( 'notice-error', __( 'Invalid or missing tire size.', 'motored-core' ) ),
+			'invalid_size'  => array( 'notice-error', __( 'Some sizes were not saved: check the size (for example 120/70ZR17 58W), the load index (20-120) and the speed rating.', 'motored-core' ) ),
+			'no_sizes'      => array( 'notice-warning', __( 'Saved as draft: add at least one tire size before publishing this motorcycle.', 'motored-core' ) ),
 			'rim_mismatch'  => array( 'notice-error', __( 'Source and target tire sizes must have the same rim diameter.', 'motored-core' ) ),
 			'has_children'  => array( 'notice-error', __( 'Cannot delete while child records still exist.', 'motored-core' ) ),
 			'error'         => array( 'notice-error', __( 'Action could not be completed.', 'motored-core' ) ),
@@ -2043,62 +2239,20 @@ final class CompatibilityAdmin {
 	/**
 	 * Evaluates matching indexed products in the store for a version's fitments (works for drafts too).
 	 *
-	 * @param list<array{id:int,version_id:int,position:string,size_id:int,canonical:string,fit_type:string,min_load:int|null,min_speed_rank:int|null,req_construction:string|null,source:string,note:string}> $fitments Version fitments.
+	 * Uses MatchEngine::build_axes_from_fitments() so minimum load, speed, construction and OEM equivalence
+	 * inheritance match the storefront engine identically.
+	 *
+	 * @param list<array<string,mixed>> $fitments Version fitments.
 	 * @return array{front:int,rear:int,kit:int}
 	 */
 	private function compute_store_match_preview( array $fitments ): array {
-		$axes    = array(
-			TireSpecs::POS_FRONT => array(),
-			TireSpecs::POS_REAR  => array(),
-		);
-		$oem_ids = array(
-			TireSpecs::POS_FRONT => array(),
-			TireSpecs::POS_REAR  => array(),
-		);
-		foreach ( $fitments as $f ) {
-			$pos = (string) $f['position'];
-			if ( ! isset( $axes[ $pos ] ) ) {
-				continue;
-			}
-			$canon                  = (string) $f['canonical'];
-			$is_oem                 = TireSpecs::FIT_OEM === (string) $f['fit_type'];
-			$axes[ $pos ][ $canon ] = array(
-				'size_id' => (int) $f['size_id'],
-				'type'    => $is_oem ? TireSpecs::FIT_OEM : TireSpecs::FIT_ALT,
-				'from'    => '',
-				'l'       => $f['min_load'],
-				's'       => $f['min_speed_rank'],
-				'c'       => $f['req_construction'],
-			);
-			if ( $is_oem ) {
-				$oem_ids[ $pos ][ (int) $f['size_id'] ] = true;
-			}
-		}
-		foreach ( array( TireSpecs::POS_FRONT, TireSpecs::POS_REAR ) as $pos ) {
-			if ( empty( $oem_ids[ $pos ] ) ) {
-				continue;
-			}
-			foreach ( CatalogRepository::equivalences_from_sizes( array_keys( $oem_ids[ $pos ] ), $pos ) as $eq ) {
-				$target = (string) $eq['target_canonical'];
-				if ( isset( $axes[ $pos ][ $target ] ) ) {
-					continue;
-				}
-				$axes[ $pos ][ $target ] = array(
-					'size_id' => (int) $eq['target_size_id'],
-					'type'    => TireSpecs::FIT_EQUIV,
-					'from'    => (string) $eq['source_canonical'],
-					'l'       => null,
-					's'       => null,
-					'c'       => null,
-				);
-			}
-		}
+		$profile   = MatchEngine::build_axes_from_fitments( $fitments );
 		$front_ids = array();
-		foreach ( $axes[ TireSpecs::POS_FRONT ] as $item ) {
+		foreach ( $profile[ TireSpecs::POS_FRONT ] as $item ) {
 			$front_ids[] = (int) $item['size_id'];
 		}
 		$rear_ids = array();
-		foreach ( $axes[ TireSpecs::POS_REAR ] as $item ) {
+		foreach ( $profile[ TireSpecs::POS_REAR ] as $item ) {
 			$rear_ids[] = (int) $item['size_id'];
 		}
 		if ( empty( $front_ids ) && empty( $rear_ids ) ) {
@@ -2108,10 +2262,6 @@ final class CompatibilityAdmin {
 				'kit'   => 0,
 			);
 		}
-		$profile    = array(
-			'front' => $axes[ TireSpecs::POS_FRONT ],
-			'rear'  => $axes[ TireSpecs::POS_REAR ],
-		);
 		$candidates = ProductIndexRepository::query_candidates_for_sizes( $front_ids, $rear_ids );
 		$strict     = Config::strict_specs();
 		$counts     = array(
@@ -2136,27 +2286,6 @@ final class CompatibilityAdmin {
 			}
 		}
 		return $counts;
-	}
-
-	/**
-	 * Translates a canonical position key for admin display.
-	 *
-	 * @param string $pos Position key.
-	 */
-	private static function position_label( string $pos ): string {
-		if ( TireSpecs::POS_FRONT === $pos ) {
-			return __( 'Front', 'motored-core' );
-		}
-		if ( TireSpecs::POS_REAR === $pos ) {
-			return __( 'Rear', 'motored-core' );
-		}
-		if ( TireSpecs::POS_BOTH === $pos ) {
-			return __( 'Front / Rear', 'motored-core' );
-		}
-		if ( TireSpecs::POS_KIT === $pos ) {
-			return __( 'Kit (Front + Rear)', 'motored-core' );
-		}
-		return $pos;
 	}
 
 	/**
@@ -2252,25 +2381,32 @@ final class CompatibilityAdmin {
 			}
 			$clean_extra[ $k ] = $v;
 		}
-		echo '<div class="tablenav"><div class="tablenav-pages">';
-		for ( $i = 1; $i <= $pages; $i++ ) {
-			$url = add_query_arg(
-				array_merge(
-					array(
-						'post_type' => 'product',
-						'page'      => self::PAGE,
-						'tab'       => $tab,
-						'paged'     => $i,
+		$links = paginate_links(
+			array(
+				'base'      => add_query_arg(
+					array_merge(
+						array(
+							'post_type' => 'product',
+							'page'      => self::PAGE,
+							'tab'       => $tab,
+							'paged'     => '%#%',
+						),
+						$clean_extra
 					),
-					$clean_extra
+					admin_url( 'edit.php' )
 				),
-				admin_url( 'edit.php' )
-			);
-			echo $i === $paged
-				? '<span class="tablenav-pages-navspan button disabled">' . esc_html( (string) $i ) . '</span> '
-				: '<a class="button" href="' . esc_url( $url ) . '">' . esc_html( (string) $i ) . '</a> ';
+				'format'    => '',
+				'current'   => $paged,
+				'total'     => $pages,
+				'mid_size'  => 2,
+				'end_size'  => 1,
+				'prev_text' => '&laquo;',
+				'next_text' => '&raquo;',
+			)
+		);
+		if ( is_string( $links ) && '' !== $links ) {
+			echo '<div class="tablenav"><div class="tablenav-pages"><span class="pagination-links">' . wp_kses_post( $links ) . '</span></div></div>';
 		}
-		echo '</div></div>';
 	}
 
 	/**
@@ -2286,7 +2422,7 @@ final class CompatibilityAdmin {
 		wp_nonce_field( self::CRUD_ACTION );
 		echo '<input type="hidden" name="op" value="' . esc_attr( $op ) . '" /><input type="hidden" name="tab" value="' . esc_attr( $tab ) . '" /><input type="hidden" name="id" value="' . esc_attr( (string) $id ) . '" />';
 		$this->render_filter_hidden_inputs( $filters );
-		echo '<button type="submit" class="button">' . esc_html__( 'Delete', 'motored-core' ) . '</button></form>';
+		echo '<button type="submit" class="button" onclick="return confirm(\'' . esc_js( __( 'Delete this item permanently?', 'motored-core' ) ) . '\');">' . esc_html__( 'Delete', 'motored-core' ) . '</button></form>';
 	}
 
 	// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- Callers check capability and nonces on POST handlers.

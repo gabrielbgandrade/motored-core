@@ -32,6 +32,13 @@ final class Context {
 	}
 
 	/**
+	 * Whether this is an interactive admin screen suitable for maintenance.
+	 */
+	public function is_admin_screen(): bool {
+		return $this->is_admin() && ! wp_doing_ajax() && 'admin-post.php' !== ( $GLOBALS['pagenow'] ?? '' );
+	}
+
+	/**
 	 * True for admin-ajax.php and WooCommerce's wc-ajax endpoint.
 	 */
 	public function is_ajax(): bool {

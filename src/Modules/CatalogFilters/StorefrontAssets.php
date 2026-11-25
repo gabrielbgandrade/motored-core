@@ -7,6 +7,8 @@
 
 namespace Motored\Core\Modules\CatalogFilters;
 
+use Motored\Core\Support\StorefrontAssets as SharedAssets;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -17,11 +19,9 @@ defined( 'ABSPATH' ) || exit;
  */
 final class StorefrontAssets {
 
-	public const HANDLE_CSS        = 'motored-catalog-filters';
-	public const HANDLE_COMPAT_CSS = 'motored-compat';
-	public const HANDLE_UI         = 'motored-ui';
-	public const HANDLE_SEARCH     = 'motored-catalog-search';
-	public const HANDLE_FILTERS    = 'motored-catalog-filters-js';
+	public const HANDLE_CSS     = 'motored-catalog-filters';
+	public const HANDLE_SEARCH  = 'motored-catalog-search';
+	public const HANDLE_FILTERS = 'motored-catalog-filters-js';
 
 	/**
 	 * Per-request guards keyed by handle.
@@ -31,57 +31,32 @@ final class StorefrontAssets {
 	private static array $done = array();
 
 	/**
+	 * Preloads styles before head printing for explicit shortcodes and configured catalog widgets.
+	 * Unrelated pages do not read module options or enqueue assets.
+	 */
+	public static function preload(): void {
+		global $post;
+		$shortcode = $post instanceof \WP_Post && ( has_shortcode( $post->post_content, SearchShortcode::SHORTCODE ) || has_shortcode( $post->post_content, FilterRenderer::SHORTCODE ) );
+		$catalog   = function_exists( 'is_shop' ) && ( is_shop() || is_product_taxonomy() );
+		$widget    = $catalog && is_active_widget( false, false, 'motored_catalog_filters', true );
+		if ( ( $shortcode || $widget ) && Config::enabled() ) {
+			self::enqueue_css();
+		}
+	}
+
+	/**
 	 * Enqueues the search/filters stylesheet (plus the shared compat stylesheet it builds on).
 	 */
 	public static function enqueue_css(): void {
-		self::enqueue_compat_css();
+		SharedAssets::enqueue_compat_css();
 		if ( self::once( self::HANDLE_CSS ) ) {
 			wp_enqueue_style(
 				self::HANDLE_CSS,
 				MOTORED_CORE_URL . 'assets/css/catalog-filters.css',
-				array( self::HANDLE_COMPAT_CSS ),
+				array( SharedAssets::HANDLE_COMPAT_CSS ),
 				MOTORED_CORE_VERSION
 			);
 		}
-	}
-
-	/**
-	 * Enqueues the shared compat stylesheet (design tokens + Compatibility/Mi Garage components).
-	 */
-	public static function enqueue_compat_css(): void {
-		if ( ! self::once( self::HANDLE_COMPAT_CSS ) ) {
-			return;
-		}
-		wp_enqueue_style(
-			self::HANDLE_COMPAT_CSS,
-			MOTORED_CORE_URL . 'assets/css/compat.css',
-			array(),
-			MOTORED_CORE_VERSION
-		);
-		$accent = Config::accent_color();
-		if ( '' !== $accent ) {
-			// Components read --motored-accent from --motored-accent-color, so a :root value is not shadowed.
-			wp_add_inline_style( self::HANDLE_COMPAT_CSS, ':root{--motored-accent-color:' . $accent . ';}' );
-		}
-	}
-
-	/**
-	 * Enqueues the shared vanilla helpers (cascade, text normalization, optional analytics events).
-	 */
-	public static function enqueue_ui_js(): void {
-		if ( ! self::once( self::HANDLE_UI ) ) {
-			return;
-		}
-		wp_enqueue_script(
-			self::HANDLE_UI,
-			MOTORED_CORE_URL . 'assets/js/motored-ui.js',
-			array(),
-			MOTORED_CORE_VERSION,
-			array(
-				'strategy'  => 'defer',
-				'in_footer' => true,
-			)
-		);
 	}
 
 	/**
@@ -89,14 +64,14 @@ final class StorefrontAssets {
 	 */
 	public static function enqueue_search_js(): void {
 		self::enqueue_css();
-		self::enqueue_ui_js();
+		SharedAssets::enqueue_ui_js();
 		if ( ! self::once( self::HANDLE_SEARCH ) ) {
 			return;
 		}
 		wp_enqueue_script(
 			self::HANDLE_SEARCH,
 			MOTORED_CORE_URL . 'assets/js/catalog-search.js',
-			array( self::HANDLE_UI ),
+			array( SharedAssets::HANDLE_UI ),
 			MOTORED_CORE_VERSION,
 			array(
 				'strategy'  => 'defer',
@@ -105,7 +80,8 @@ final class StorefrontAssets {
 		);
 		$cfg = array(
 			'restBase'      => untrailingslashit( rest_url( RestController::NAMESPACE ) ),
-			'sizesVer'      => SnapshotInvalidator::version(),
+			'sizesUrl'      => rest_url( RestController::NAMESPACE . '/filters/sizes' ),
+			'suggestUrl'    => rest_url( RestController::NAMESPACE . '/filters/suggest' ),
 			'shopUrl'       => Config::shop_url(),
 			'compatEnabled' => \Motored\Core\Modules\Compatibility\Config::enabled(),
 			'events'        => \Motored\Core\Modules\Compatibility\Config::analytics_events(),

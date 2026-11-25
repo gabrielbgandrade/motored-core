@@ -8,6 +8,8 @@
 namespace Motored\Core\Modules\CatalogFilters;
 
 use Motored\Core\Modules\Compatibility\MatchEngine;
+use Motored\Core\Modules\Compatibility\ProductIndexRepository;
+use Motored\Core\Modules\Compatibility\SizeParser;
 use Motored\Core\Modules\Compatibility\TireSpecs;
 
 defined( 'ABSPATH' ) || exit;
@@ -67,11 +69,15 @@ final class FilterRenderer {
 			return '';
 		}
 
-		StorefrontAssets::enqueue_filters_js();
-
 		$state    = FilterState::from_query();
 		$base_url = self::current_base_url();
-		$snapshot = FacetEngine::snapshot();
+		try {
+			$snapshot = FacetEngine::snapshot( function_exists( 'is_search' ) && is_search() );
+		} catch ( \RuntimeException $exception ) {
+			\Motored\Core\Support\Logger::warning( 'Catalog facets are temporarily unavailable.' );
+			return '';
+		}
+		StorefrontAssets::enqueue_filters_js();
 
 		$moto_ids = null;
 		$moto_lbl = '';
@@ -82,6 +88,11 @@ final class FilterRenderer {
 			$moto_lbl = is_array( $prof ) && ! empty( $prof['label'] ) ? (string) $prof['label'] : $state->moto();
 		}
 
+		$kit_ids = null;
+		if ( '' !== $state->kit_size() ) {
+			$kit_ids = ProductIndexRepository::kit_ids_with_size( $state->kit_size() );
+		}
+
 		$scope    = self::archive_scope();
 		$computed = FacetEngine::compute_facets(
 			$snapshot,
@@ -90,6 +101,7 @@ final class FilterRenderer {
 				// Counts must match the grid, which only hides out-of-stock items when WooCommerce does.
 				'only_in_stock' => Config::grid_hides_out_of_stock(),
 				'moto_ids'      => $moto_ids,
+				'kit_ids'       => $kit_ids,
 				'cat_slugs'     => $scope['cat_slugs'],
 				'universe_ids'  => $scope['universe_ids'],
 				'sale_ids'      => FacetEngine::on_sale_id_map(),
@@ -98,11 +110,16 @@ final class FilterRenderer {
 
 		$labels = self::facet_titles();
 		$chips  = self::build_active_chips( $state, $base_url, $snapshot['labels'] ?? array(), $moto_lbl );
+		$kits   = self::kits_hint( $state, $base_url, $snapshot['labels'] ?? array() );
 		$uid    = 'motored-flt-' . wp_unique_id();
+		global $wp_query;
+		$total = $wp_query instanceof \WP_Query && 'product_query' === $wp_query->get( 'wc_query' )
+			? (int) $wp_query->found_posts
+			: $computed['total'];
 
 		ob_start();
 		?>
-		<aside class="motored-filters" data-motored-filters data-base-url="<?php echo esc_url( FilterState::strip_query_and_pagination( $base_url ) ); ?>" data-extra="<?php echo esc_attr( (string) wp_json_encode( $state->extra() ) ); ?>" data-moto="<?php echo esc_attr( $state->moto() ); ?>" data-pos="<?php echo esc_attr( $state->pos() ); ?>">
+		<aside class="motored-filters" data-motored-filters data-base-url="<?php echo esc_url( FilterState::strip_query_and_pagination( $base_url ) ); ?>" data-extra="<?php echo esc_attr( (string) wp_json_encode( $state->extra() ) ); ?>" data-moto="<?php echo esc_attr( $state->moto() ); ?>" data-pos="<?php echo esc_attr( $state->pos() ); ?>" data-kit="<?php echo esc_attr( $state->kit_size() ); ?>" data-operators="<?php echo esc_attr( (string) wp_json_encode( $state->operators() ) ); ?>">
 			<div class="motored-filters__head">
 				<?php if ( '' !== $title ) : ?>
 					<h3 class="motored-filters__title"><?php echo esc_html( $title ); ?></h3>
@@ -112,8 +129,8 @@ final class FilterRenderer {
 					echo esc_html(
 						sprintf(
 							/* translators: %d: number of matching products. */
-							_n( '%d result', '%d results', $computed['total'], 'motored-core' ),
-							$computed['total']
+							_n( '%d result', '%d results', $total, 'motored-core' ),
+							$total
 						)
 					);
 					?>
@@ -129,6 +146,12 @@ final class FilterRenderer {
 						</a>
 					<?php endforeach; ?>
 				</div>
+			<?php endif; ?>
+
+			<?php if ( null !== $kits ) : ?>
+				<p class="motored-filters__kits">
+					<a href="<?php echo esc_url( $kits['url'] ); ?>"><?php echo esc_html( $kits['label'] ); ?></a>
+				</p>
 			<?php endif; ?>
 
 			<div class="motored-filters__groups">
@@ -232,7 +255,67 @@ final class FilterRenderer {
 			);
 		}
 
+		if ( '' !== $state->kit_size() ) {
+			$chips[] = array(
+				/* translators: %s: tire size, e.g. 130/70-17. */
+				'label' => sprintf( __( 'Kits with %s', 'motored-core' ), $state->kit_size() ),
+				'url'   => $state->toggle_url( $base_url, 'kit_medida', $state->kit_size() ),
+			);
+		}
+
 		return $chips;
+	}
+
+	/**
+	 * Link to the kits that include the size the shopper filtered (kits never enter the width/profile/rim facets).
+	 *
+	 * Shown only when the filters name exactly one size: one width, one rim and at most one profile.
+	 *
+	 * @param FilterState                        $state     Active state.
+	 * @param string                             $base_url  Base archive URL.
+	 * @param array<string,array<string,string>> $label_map Snapshot labels map.
+	 * @return array{label:string,url:string}|null
+	 */
+	public static function kits_hint( FilterState $state, string $base_url, array $label_map ): ?array {
+		$canonical = self::selected_size( $state, $label_map );
+		if ( '' === $canonical || '' !== $state->kit_size() ) {
+			return null;
+		}
+		$kits  = ProductIndexRepository::kit_ids_with_size( $canonical );
+		$count = Config::grid_hides_out_of_stock() ? count( array_filter( $kits ) ) : count( $kits );
+		if ( $count <= 0 ) {
+			return null;
+		}
+		return array(
+			'label' => sprintf(
+				/* translators: 1: number of kits, 2: tire size. */
+				_n( 'There is also %1$d front + rear kit with %2$s. View kit', 'There are also %1$d front + rear kits with %2$s. View kits', $count, 'motored-core' ),
+				$count,
+				$canonical
+			),
+			'url'   => $state->kits_view( $canonical )->build_url( $base_url ),
+		);
+	}
+
+	/**
+	 * Canonical size named by the width/profile/rim filters, or '' when they do not name exactly one size.
+	 *
+	 * @param FilterState                        $state     Active state.
+	 * @param array<string,array<string,string>> $label_map Snapshot labels map.
+	 */
+	public static function selected_size( FilterState $state, array $label_map ): string {
+		$w = $state->attribute_terms( TireSpecs::ATTR_WIDTH );
+		$p = $state->attribute_terms( TireSpecs::ATTR_PROFILE );
+		$r = $state->attribute_terms( TireSpecs::ATTR_RIM );
+		if ( 1 !== count( $w ) || 1 !== count( $r ) || count( $p ) > 1 ) {
+			return '';
+		}
+		$wl  = (string) ( $label_map[ TireSpecs::ATTR_WIDTH ][ $w[0] ] ?? $w[0] );
+		$rl  = (string) ( $label_map[ TireSpecs::ATTR_RIM ][ $r[0] ] ?? $r[0] );
+		$raw = isset( $p[0] )
+			? $wl . '/' . (string) ( $label_map[ TireSpecs::ATTR_PROFILE ][ $p[0] ] ?? $p[0] ) . '-' . $rl
+			: $wl . '-' . $rl;
+		return (string) SizeParser::canonical( $raw );
 	}
 
 	/**

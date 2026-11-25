@@ -233,9 +233,19 @@ final class CatalogRepository {
 			return false;
 		}
 		global $wpdb;
-		$ok = false !== $wpdb->update( self::brands_table(), array( 'name' => $name ), array( 'id' => $brand_id ), array( '%s' ), array( '%d' ) );
+		$old = self::find_brand_by_id( $brand_id );
+		$ok  = false !== $wpdb->update( self::brands_table(), array( 'name' => $name ), array( 'id' => $brand_id ), array( '%s' ), array( '%d' ) );
 		if ( $ok ) {
 			CompatCache::bump_catalog();
+			self::notify_change(
+				'brand',
+				$brand_id,
+				'update',
+				array(
+					'old_name' => (string) ( $old['name'] ?? '' ),
+					'slug'     => (string) ( $old['slug'] ?? '' ),
+				)
+			);
 		}
 		return $ok;
 	}
@@ -259,6 +269,15 @@ final class CatalogRepository {
 			if ( $existing['name'] !== $name ) {
 				$wpdb->update( $b, array( 'name' => $name ), array( 'id' => $existing['id'] ), array( '%s' ), array( '%d' ) );
 				CompatCache::bump_catalog();
+				self::notify_change(
+					'brand',
+					(int) $existing['id'],
+					'upsert',
+					array(
+						'old_name' => (string) $existing['name'],
+						'slug'     => (string) $existing['slug'],
+					)
+				);
 			}
 			return $existing['id'];
 		}
@@ -273,8 +292,10 @@ final class CatalogRepository {
 		if ( false === $ok ) {
 			return 0;
 		}
+		$id = (int) $wpdb->insert_id;
 		CompatCache::bump_catalog();
-		return (int) $wpdb->insert_id;
+		self::notify_change( 'brand', $id, 'upsert', array( 'slug' => $slug ) );
+		return $id;
 	}
 
 	/**
@@ -289,9 +310,18 @@ final class CatalogRepository {
 		if ( $count > 0 ) {
 			return false;
 		}
-		$ok = false !== $wpdb->delete( self::brands_table(), array( 'id' => $brand_id ), array( '%d' ) );
+		$old = self::find_brand_by_id( $brand_id );
+		$ok  = false !== $wpdb->delete( self::brands_table(), array( 'id' => $brand_id ), array( '%d' ) );
 		if ( $ok ) {
 			CompatCache::bump_catalog();
+			self::notify_change(
+				'brand',
+				$brand_id,
+				'delete',
+				array(
+					'slug' => (string) ( $old['slug'] ?? '' ),
+				)
+			);
 		}
 		return $ok;
 	}
@@ -475,8 +505,9 @@ final class CatalogRepository {
 			return false;
 		}
 		global $wpdb;
-		$m  = self::models_table();
-		$ok = false !== $wpdb->query(
+		$old = self::find_model_by_id( $model_id );
+		$m   = self::models_table();
+		$ok  = false !== $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE {$m} SET name = %s, cc = %d, aliases = %s WHERE id = %d",
 				$name,
@@ -490,6 +521,16 @@ final class CatalogRepository {
 		}
 		if ( $ok ) {
 			CompatCache::bump_catalog();
+			self::notify_change(
+				'model',
+				$model_id,
+				'update',
+				array(
+					'model_id' => $model_id,
+					'brand_id' => (int) ( $old['brand_id'] ?? 0 ),
+					'old_name' => (string) ( $old['name'] ?? '' ),
+				)
+			);
 		}
 		return $ok;
 	}
@@ -514,19 +555,31 @@ final class CatalogRepository {
 		$m        = self::models_table();
 		$existing = self::find_model( $brand_id, $slug );
 		if ( null !== $existing ) {
+			// Preserve existing displacement and aliases when a partial import omits them.
+			$final_cc      = null !== $cc ? $cc : $existing['cc'];
+			$final_aliases = '' !== $aliases ? $aliases : $existing['aliases'];
 			$wpdb->query(
 				$wpdb->prepare(
 					"UPDATE {$m} SET name = %s, cc = %d, aliases = %s WHERE id = %d",
 					$name,
-					null !== $cc ? $cc : 0,
-					$aliases,
+					null !== $final_cc ? $final_cc : 0,
+					$final_aliases,
 					$existing['id']
 				)
 			);
-			if ( null === $cc ) {
+			if ( null === $final_cc ) {
 				$wpdb->query( $wpdb->prepare( "UPDATE {$m} SET cc = NULL WHERE id = %d", $existing['id'] ) );
 			}
 			CompatCache::bump_catalog();
+			self::notify_change(
+				'model',
+				(int) $existing['id'],
+				'upsert',
+				array(
+					'model_id' => (int) $existing['id'],
+					'brand_id' => $brand_id,
+				)
+			);
 			return $existing['id'];
 		}
 		if ( null !== $cc ) {
@@ -554,8 +607,18 @@ final class CatalogRepository {
 		if ( false === $ok ) {
 			return 0;
 		}
+		$id = (int) $wpdb->insert_id;
 		CompatCache::bump_catalog();
-		return (int) $wpdb->insert_id;
+		self::notify_change(
+			'model',
+			$id,
+			'upsert',
+			array(
+				'model_id' => $id,
+				'brand_id' => $brand_id,
+			)
+		);
+		return $id;
 	}
 
 	/**
@@ -570,9 +633,19 @@ final class CatalogRepository {
 		if ( $count > 0 ) {
 			return false;
 		}
-		$ok = false !== $wpdb->delete( self::models_table(), array( 'id' => $model_id ), array( '%d' ) );
+		$old = self::find_model_by_id( $model_id );
+		$ok  = false !== $wpdb->delete( self::models_table(), array( 'id' => $model_id ), array( '%d' ) );
 		if ( $ok ) {
 			CompatCache::bump_catalog();
+			self::notify_change(
+				'model',
+				$model_id,
+				'delete',
+				array(
+					'model_id' => $model_id,
+					'brand_id' => (int) ( $old['brand_id'] ?? 0 ),
+				)
+			);
 		}
 		return $ok;
 	}
@@ -674,6 +747,45 @@ final class CatalogRepository {
 			ARRAY_A
 		);
 		return is_array( $row ) ? $row : null;
+	}
+
+	/**
+	 * Finds multiple versions by slug in a single query (used by MatchEngine::bike_profile_many()).
+	 *
+	 * @param array<int,string> $slugs          Version slugs.
+	 * @param bool              $published_only Whether to require status = published.
+	 * @return array<string,array<string,mixed>> Keyed by slug.
+	 */
+	public static function find_versions_by_slugs( array $slugs, bool $published_only = false ): array {
+		$clean = array_values( array_unique( array_filter( array_map( 'sanitize_title', $slugs ), static fn( string $s ): bool => '' !== $s ) ) );
+		if ( empty( $clean ) ) {
+			return array();
+		}
+		global $wpdb;
+		$v            = self::versions_table();
+		$m            = self::models_table();
+		$b            = self::brands_table();
+		$status       = $published_only ? "AND v.status = 'published'" : '';
+		$placeholders = implode( ',', array_fill( 0, count( $clean ), '%s' ) );
+		// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic placeholder count built from array_fill.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT v.id, v.model_id, v.slug, v.year_from, v.year_to, v.variant, v.variant_slug, v.status, v.verified, v.notes,
+					m.name AS model_name, m.slug AS model_slug, m.cc, m.aliases,
+					b.id AS brand_id, b.name AS brand_name, b.slug AS brand_slug
+				FROM {$v} v
+				INNER JOIN {$m} m ON m.id = v.model_id
+				INNER JOIN {$b} b ON b.id = m.brand_id
+				WHERE v.slug IN ({$placeholders}) {$status}",
+				$clean
+			),
+			ARRAY_A
+		);
+		$map  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$map[ (string) $row['slug'] ] = $row;
+		}
+		return $map;
 	}
 
 	/**
@@ -885,6 +997,15 @@ final class CatalogRepository {
 				array( '%d' )
 			);
 			CompatCache::bump_catalog();
+			self::notify_change(
+				'version',
+				(int) $existing['id'],
+				'upsert',
+				array(
+					'model_id' => $model_id,
+					'status'   => $status,
+				)
+			);
 			return (int) $existing['id'];
 		}
 
@@ -910,8 +1031,18 @@ final class CatalogRepository {
 		if ( false === $ok ) {
 			return 0;
 		}
+		$vid = (int) $wpdb->insert_id;
 		CompatCache::bump_catalog();
-		return (int) $wpdb->insert_id;
+		self::notify_change(
+			'version',
+			$vid,
+			'upsert',
+			array(
+				'model_id' => $model_id,
+				'status'   => $status,
+			)
+		);
+		return $vid;
 	}
 
 	/**
@@ -922,6 +1053,7 @@ final class CatalogRepository {
 	 */
 	public static function update_version( int $id, array $data ): bool {
 		global $wpdb;
+		$old          = self::find_version( $id );
 		$variant      = self::truncate( self::clean_variant( $data['variant'] ), 120 );
 		$variant_slug = self::truncate( '' !== $variant ? sanitize_title( $variant ) : '', 120 );
 		$status       = 'published' === $data['status'] ? 'published' : 'draft';
@@ -943,6 +1075,15 @@ final class CatalogRepository {
 		);
 		if ( $ok ) {
 			CompatCache::bump_catalog();
+			self::notify_change(
+				'version',
+				$id,
+				'update',
+				array(
+					'model_id' => (int) ( $old['model_id'] ?? 0 ),
+					'status'   => $status,
+				)
+			);
 		}
 		return $ok;
 	}
@@ -959,6 +1100,7 @@ final class CatalogRepository {
 			return false;
 		}
 		global $wpdb;
+		$old          = self::find_version( $version_id );
 		$clean_status = 'published' === $status ? 'published' : 'draft';
 		$fields       = array(
 			'status'      => $clean_status,
@@ -972,6 +1114,15 @@ final class CatalogRepository {
 		$ok = false !== $wpdb->update( self::versions_table(), $fields, array( 'id' => $version_id ), $formats, array( '%d' ) );
 		if ( $ok ) {
 			CompatCache::bump_catalog();
+			self::notify_change(
+				'version',
+				$version_id,
+				'status',
+				array(
+					'model_id' => (int) ( $old['model_id'] ?? 0 ),
+					'status'   => $clean_status,
+				)
+			);
 		}
 		return $ok;
 	}
@@ -983,10 +1134,20 @@ final class CatalogRepository {
 	 */
 	public static function delete_version( int $version_id ): bool {
 		global $wpdb;
+		$old = self::find_version( $version_id );
 		$wpdb->delete( self::fitments_table(), array( 'version_id' => $version_id ), array( '%d' ) );
 		$ok = false !== $wpdb->delete( self::versions_table(), array( 'id' => $version_id ), array( '%d' ) );
 		if ( $ok ) {
 			CompatCache::bump_catalog();
+			self::notify_change(
+				'version',
+				$version_id,
+				'delete',
+				array(
+					'model_id' => (int) ( $old['model_id'] ?? 0 ),
+					'slug'     => (string) ( $old['slug'] ?? '' ),
+				)
+			);
 		}
 		return $ok;
 	}
@@ -1030,12 +1191,14 @@ final class CatalogRepository {
 				)
 			);
 		}
-		if ( false === $ok ) {
+		// Read the new ID before sync_size_term(): it inserts terms and would overwrite $wpdb->insert_id.
+		$new_id = (int) $wpdb->insert_id;
+		if ( false === $ok || $new_id <= 0 ) {
 			return self::find_size_by_canonical( $parsed['canonical'] );
 		}
 		AttributeInstaller::sync_size_term( $parsed['canonical'] );
 		return array(
-			'id'        => (int) $wpdb->insert_id,
+			'id'        => $new_id,
 			'canonical' => $parsed['canonical'],
 			'notation'  => $parsed['notation'],
 			'width'     => $parsed['width'],
@@ -1209,6 +1372,90 @@ final class CatalogRepository {
 	}
 
 	/**
+	 * Batch-loads full fitment rows (including constraints) for multiple version IDs in one query.
+	 *
+	 * @param array<int,int> $version_ids Version IDs.
+	 * @return array<int,list<array<string,mixed>>> Keyed by version_id.
+	 */
+	public static function fitments_for_versions_full( array $version_ids ): array {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $version_ids ), static fn( int $id ): bool => $id > 0 ) ) );
+		if ( empty( $ids ) ) {
+			return array();
+		}
+		global $wpdb;
+		$f    = self::fitments_table();
+		$s    = self::sizes_table();
+		$in   = implode( ',', $ids );
+		$rows = $wpdb->get_results(
+			"SELECT f.id, f.version_id, f.position, f.size_id, s.canonical, f.fit_type, f.min_load, f.min_speed_rank, f.req_construction, f.designation, f.source, f.note
+			FROM {$f} f
+			INNER JOIN {$s} s ON s.id = f.size_id
+			WHERE f.version_id IN ({$in})
+			ORDER BY f.position ASC, f.fit_type DESC, s.canonical ASC",
+			ARRAY_A
+		);
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$vid           = (int) $row['version_id'];
+			$out[ $vid ][] = array(
+				'id'               => (int) $row['id'],
+				'version_id'       => $vid,
+				'position'         => (string) $row['position'],
+				'size_id'          => (int) $row['size_id'],
+				'canonical'        => (string) $row['canonical'],
+				'fit_type'         => (string) $row['fit_type'],
+				'min_load'         => null !== $row['min_load'] ? (int) $row['min_load'] : null,
+				'min_speed_rank'   => null !== $row['min_speed_rank'] ? (int) $row['min_speed_rank'] : null,
+				'req_construction' => null !== $row['req_construction'] ? (string) $row['req_construction'] : null,
+				'designation'      => null !== $row['designation'] ? (string) $row['designation'] : null,
+				'source'           => (string) $row['source'],
+				'note'             => (string) $row['note'],
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Batch-loads approved equivalences for multiple source size IDs across front and rear scopes in one query.
+	 *
+	 * @param array<int,int> $source_size_ids Source size IDs.
+	 * @return list<array{source_size_id:int,source_canonical:string,target_size_id:int,target_canonical:string,position_scope:string,is_approximate:int,note:string}>
+	 */
+	public static function equivalences_from_sizes_batch( array $source_size_ids ): array {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $source_size_ids ), static fn( int $id ): bool => $id > 0 ) ) );
+		if ( empty( $ids ) ) {
+			return array();
+		}
+		global $wpdb;
+		$e      = self::equivalences_table();
+		$s      = self::sizes_table();
+		$ids_in = implode( ',', $ids );
+		$rows   = $wpdb->get_results(
+			"SELECT e.source_size_id, src.canonical AS source_canonical, e.target_size_id, dst.canonical AS target_canonical, e.position_scope, e.is_approximate, e.note
+			FROM {$e} e
+			INNER JOIN {$s} src ON src.id = e.source_size_id
+			INNER JOIN {$s} dst ON dst.id = e.target_size_id
+			WHERE e.source_size_id IN ({$ids_in})
+				AND e.is_approved = 1
+			ORDER BY dst.canonical ASC",
+			ARRAY_A
+		);
+		$out    = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[] = array(
+				'source_size_id'   => (int) $row['source_size_id'],
+				'source_canonical' => (string) $row['source_canonical'],
+				'target_size_id'   => (int) $row['target_size_id'],
+				'target_canonical' => (string) $row['target_canonical'],
+				'position_scope'   => (string) $row['position_scope'],
+				'is_approximate'   => (int) $row['is_approximate'],
+				'note'             => (string) $row['note'],
+			);
+		}
+		return $out;
+	}
+
+	/**
 	 * Upserts a fitment row by (version_id, position, size_id).
 	 *
 	 * @param array{version_id:int,position:string,size_id:int,fit_type:string,min_load:int|null,min_speed_rank:int|null,req_construction:string|null,source:string,note:string,designation?:string|null} $data Fitment payload.
@@ -1255,6 +1502,7 @@ final class CatalogRepository {
 				)
 			);
 			CompatCache::bump_catalog();
+			self::notify_change( 'fitment', $existing_id, 'upsert', array( 'version_id' => $version_id ) );
 			return $existing_id;
 		}
 
@@ -1273,8 +1521,10 @@ final class CatalogRepository {
 		if ( false === $ok ) {
 			return 0;
 		}
+		$fid = (int) $wpdb->insert_id;
 		CompatCache::bump_catalog();
-		return (int) $wpdb->insert_id;
+		self::notify_change( 'fitment', $fid, 'upsert', array( 'version_id' => $version_id ) );
+		return $fid;
 	}
 
 	/**
@@ -1284,9 +1534,12 @@ final class CatalogRepository {
 	 */
 	public static function delete_fitment( int $fitment_id ): bool {
 		global $wpdb;
-		$ok = false !== $wpdb->delete( self::fitments_table(), array( 'id' => $fitment_id ), array( '%d' ) );
+		$f   = self::fitments_table();
+		$vid = (int) $wpdb->get_var( $wpdb->prepare( "SELECT version_id FROM {$f} WHERE id = %d LIMIT 1", $fitment_id ) );
+		$ok  = false !== $wpdb->delete( $f, array( 'id' => $fitment_id ), array( '%d' ) );
 		if ( $ok ) {
 			CompatCache::bump_catalog();
+			self::notify_change( 'fitment', $fitment_id, 'delete', array( 'version_id' => $vid ) );
 		}
 		return $ok;
 	}
@@ -1619,5 +1872,69 @@ final class CatalogRepository {
 		return function_exists( 'mb_substr' )
 			? mb_substr( $value, 0, $max_chars, 'UTF-8' )
 			: substr( $value, 0, $max_chars );
+	}
+
+	/**
+	 * Emits the compatibility catalog lifecycle event after a write succeeds.
+	 *
+	 * @param string              $entity  brand|model|version|fitment.
+	 * @param int                 $id      Record ID.
+	 * @param string              $op      upsert|update|status|delete.
+	 * @param array<string,mixed> $context Pre-mutation context (e.g. model_id, version_id, old slug).
+	 */
+	private static function notify_change( string $entity, int $id, string $op, array $context = array() ): void {
+		if ( function_exists( 'do_action' ) ) {
+			do_action( 'motored_compat_catalog_changed', $entity, $id, $op, $context );
+		}
+	}
+	/**
+	 * Loads the compact published motorcycle search array (cached in compat_catalog when Redis is active).
+	 *
+	 * @return list<array{slug:string,label:string,haystack:string}>
+	 */
+	public static function published_bike_search_index(): array {
+		if ( ! Config::enabled() ) {
+			return array();
+		}
+		return CompatCache::remember(
+			'suggest_bikes_v2',
+			static function (): array {
+				global $wpdb;
+				if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
+					return array();
+				}
+				$v = self::versions_table();
+				$m = self::models_table();
+				$b = self::brands_table();
+				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Cached in CompatCache; fixed validated table names.
+				$rows = $wpdb->get_results(
+					"SELECT v.slug, v.year_from, v.year_to, v.variant, m.name AS model_name, m.aliases, b.name AS brand_name
+					FROM {$v} v
+					INNER JOIN {$m} m ON m.id = v.model_id
+					INNER JOIN {$b} b ON b.id = m.brand_id
+					WHERE v.status = 'published'
+					ORDER BY b.name ASC, m.name ASC, v.year_from DESC",
+					ARRAY_A
+				);
+				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$out = array();
+				foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+					$years = MatchEngine::format_years( (int) $row['year_from'], (int) $row['year_to'] );
+					$var   = trim( (string) $row['variant'] );
+					$label = MatchEngine::version_label( (string) $row['brand_name'], (string) $row['model_name'], $var, (int) $row['year_from'], (int) $row['year_to'] );
+					$hay   = \Motored\Core\Support\SearchText::haystack(
+						(string) $row['brand_name'] . ' ' . (string) $row['model_name'] . ' ' . (string) $row['aliases'] . ' ' . $var . ' ' . $years
+					);
+					$out[] = array(
+						'slug'     => (string) $row['slug'],
+						'label'    => $label,
+						'haystack' => $hay,
+					);
+				}
+				return $out;
+			},
+			CompatCache::BUCKET_CATALOG,
+			CompatCache::TTL_CATALOG
+		);
 	}
 }

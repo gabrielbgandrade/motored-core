@@ -5,8 +5,8 @@ description: Explains what the motored-core WooCommerce plugin is, its architect
 
 # motored-core overview
 
-Base plugin for Motored Neumáticos (WordPress + WooCommerce). Features arrive as modules; stage 1 has
-none. Rules, conventions and commands are in `AGENTS.md` — do not restate them here.
+Base plugin for Motored Neumáticos (WordPress + WooCommerce). Features are organized into modules. See the current registry in
+src/Plugin.php. Rules, conventions and commands are in `AGENTS.md` — do not restate them here.
 
 ## Read first (in order)
 1. `AGENTS.md` — purpose, decisions, non-negotiable rules, commands.

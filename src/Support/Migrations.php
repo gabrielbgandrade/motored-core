@@ -16,11 +16,12 @@ defined( 'ABSPATH' ) || exit;
  * Each migration has an id of the form YYYYMMDDNN (10 digits, strictly increasing
  * over time) and an up() callable returning true/null on success or false on failure.
  * The highest applied id is stored in option "motored_schema_version" (autoload=false).
- * up() callables MUST be idempotent (e.g. dbDelta), because a lock is only best-effort.
+ * up() callables must be idempotent so failed upgrades can be retried.
  */
 final class Migrations {
 
 	public const OPTION = 'motored_schema_version';
+	public const LOCK   = 'motored_schema_lock';
 
 	/**
 	 * Migrations keyed by id, sorted ascending.
@@ -78,13 +79,15 @@ final class Migrations {
 		if ( array() === $pending ) {
 			return 0;
 		}
-		if ( ! Cache::add( 'migrations_lock', 1, 60, 'migrations' ) ) {
+		if ( ! Db::acquire_option_lock( self::LOCK ) ) {
 			return 0;
 		}
 
 		$applied = 0;
 		try {
-			foreach ( $pending as $id ) {
+			wp_cache_delete( self::OPTION, 'options' );
+			wp_cache_delete( 'notoptions', 'options' );
+			foreach ( $this->pending( (string) get_option( self::OPTION, '' ) ) as $id ) {
 				try {
 					$ok = ( $this->migrations[ $id ] )();
 				} catch ( \Throwable $e ) {
@@ -101,11 +104,14 @@ final class Migrations {
 					Logger::error( 'Migration failed.', array( 'migration' => $id ) );
 					break;
 				}
-				update_option( self::OPTION, $id, false );
+				if ( ! update_option( self::OPTION, $id, false ) ) {
+					Logger::error( 'Could not persist migration version.', array( 'migration' => $id ) );
+					break;
+				}
 				++$applied;
 			}
 		} finally {
-			Cache::delete( 'migrations_lock', 'migrations' );
+			delete_option( self::LOCK );
 		}
 		return $applied;
 	}

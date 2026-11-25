@@ -28,15 +28,14 @@ require_once MOTORED_CORE_PATH . 'src/Autoloader.php';
 \Motored\Core\Autoloader::register( MOTORED_CORE_PATH . 'src/' );
 
 /*
- * Declare compatibility with HPOS and Cart/Checkout Blocks. This plugin does
- * not touch order storage or checkout rendering directly, so both are safe.
+ * Order storage uses WooCommerce CRUD. PaymentPlans supports classic checkout.
  */
 add_action(
 	'before_woocommerce_init',
 	static function (): void {
 		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', MOTORED_CORE_FILE, true );
-			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', MOTORED_CORE_FILE, true );
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', MOTORED_CORE_FILE, false );
 		}
 	}
 );

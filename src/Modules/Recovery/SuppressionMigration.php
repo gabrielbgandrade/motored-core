@@ -24,8 +24,7 @@ final class SuppressionMigration {
 		if ( ! function_exists( 'dbDelta' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		}
-		dbDelta( self::statement( Db::table( 'suppressions' ), Db::charset_collate() ) );
-		return true;
+		return Db::apply_schema( self::statement( Db::table( 'suppressions' ), Db::charset_collate() ) );
 	}
 
 	/**

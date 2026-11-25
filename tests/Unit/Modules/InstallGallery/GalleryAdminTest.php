@@ -97,7 +97,7 @@ final class GalleryAdminTest extends TestCase {
 		$this->assertSame( array( array( 'delete', '_motored_install_photos' ) ), $product->calls );
 	}
 
-	public function test_enqueue_loads_media_views_dependency_only_on_product_screen(): void {
+	public function test_enqueue_loads_media_editor_dependency_only_on_product_screen(): void {
 		if ( ! defined( 'MOTORED_CORE_URL' ) ) {
 			define( 'MOTORED_CORE_URL', 'https://example.test/wp-content/plugins/motored-core/' );
 			define( 'MOTORED_CORE_VERSION', '0.0.0' );
@@ -111,7 +111,7 @@ final class GalleryAdminTest extends TestCase {
 		Functions\expect( 'wp_enqueue_script' )->once()->with(
 			GalleryAdmin::HANDLE,
 			'https://example.test/wp-content/plugins/motored-core/assets/admin/motored-install-gallery.js',
-			array( 'media-views' ),
+			array( 'media-editor' ),
 			MOTORED_CORE_VERSION,
 			true
 		);

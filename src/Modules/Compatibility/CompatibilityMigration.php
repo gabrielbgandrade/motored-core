@@ -25,7 +25,9 @@ final class CompatibilityMigration {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		}
 		foreach ( self::statements( Db::prefix(), Db::charset_collate() ) as $sql ) {
-			dbDelta( $sql );
+			if ( ! Db::apply_schema( $sql ) ) {
+				return false;
+			}
 		}
 		return true;
 	}
@@ -34,17 +36,26 @@ final class CompatibilityMigration {
 	 * Migration 2026112101: adds in_stock column and backfills existing index rows from _stock_status.
 	 */
 	public static function up_2026112101(): bool {
-		self::up();
+		if ( ! self::up() ) {
+			return false;
+		}
 		global $wpdb;
 		if ( isset( $wpdb ) && is_object( $wpdb ) && isset( $wpdb->postmeta ) ) {
 			$idx = Db::table( 'compat_product_index' );
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- One-time migration backfill over fixed tables.
-			$wpdb->query(
-				"UPDATE {$idx} i
-				INNER JOIN {$wpdb->postmeta} pm ON pm.post_id = i.product_id AND pm.meta_key = '_stock_status'
-				SET i.in_stock = IF(pm.meta_value = 'outofstock', 0, 1)"
+			$result = $wpdb->query(
+				"UPDATE {$idx}
+				SET in_stock = CASE WHEN EXISTS (
+					SELECT 1 FROM {$wpdb->postmeta} pm
+					WHERE pm.post_id = {$idx}.product_id AND pm.meta_key = '_stock_status' AND pm.meta_value = 'outofstock'
+				) THEN 0 ELSE 1 END
+				WHERE EXISTS (
+					SELECT 1 FROM {$wpdb->postmeta} pm
+					WHERE pm.post_id = {$idx}.product_id AND pm.meta_key = '_stock_status'
+				)"
 			);
 			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			return false !== $result;
 		}
 		return true;
 	}
@@ -54,7 +65,9 @@ final class CompatibilityMigration {
 	 * version slug when no other version collides (catalog is not public yet, so slugs are safe to refresh).
 	 */
 	public static function up_2026112301(): bool {
-		self::up();
+		if ( ! self::up() ) {
+			return false;
+		}
 		global $wpdb;
 		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
 			return true;
@@ -69,7 +82,10 @@ final class CompatibilityMigration {
 			WHERE v.variant <> ''",
 			ARRAY_A
 		);
-		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+		if ( ! is_array( $rows ) || ! empty( $wpdb->last_error ) ) {
+			return false;
+		}
+		foreach ( $rows as $row ) {
 			if ( '' !== CatalogRepository::clean_variant( (string) $row['variant'] ) ) {
 				continue;
 			}
@@ -82,6 +98,9 @@ final class CompatibilityMigration {
 					(int) $row['id']
 				)
 			);
+			if ( ! empty( $wpdb->last_error ) ) {
+				return false;
+			}
 			if ( $taken > 0 ) {
 				continue;
 			}
@@ -94,10 +113,34 @@ final class CompatibilityMigration {
 			if ( $free ) {
 				$data['slug'] = $slug;
 			}
-			$wpdb->update( $v, $data, array( 'id' => (int) $row['id'] ) );
+			if ( ! empty( $wpdb->last_error ) || false === $wpdb->update( $v, $data, array( 'id' => (int) $row['id'] ) ) ) {
+				return false;
+			}
 		}
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		CompatCache::bump_catalog();
+		return true;
+	}
+
+	/**
+	 * Rebuilds the derived product index: until this release ensure_size() could store a term ID instead of the new
+	 * size ID (it read $wpdb->insert_id after inserting the size terms). The index is derived data, so every hash is
+	 * cleared and a full reindex is queued (admin_init only).
+	 */
+	public static function up_2026112404(): bool {
+		if ( ! self::up() ) {
+			return false;
+		}
+		global $wpdb;
+		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
+			return true;
+		}
+		$idx = Db::table( 'compat_product_index' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin table name from Db::table(); no user input.
+		if ( false === $wpdb->query( "UPDATE {$idx} SET terms_hash = ''" ) ) {
+			return false;
+		}
+		ProductIndexSync::schedule_full_reindex();
 		return true;
 	}
 
@@ -201,6 +244,8 @@ final class CompatibilityMigration {
   front_speed_rank tinyint(3) unsigned DEFAULT NULL,
   rear_speed_rank tinyint(3) unsigned DEFAULT NULL,
   construction varchar(20) DEFAULT NULL,
+  front_construction varchar(20) DEFAULT NULL,
+  rear_construction varchar(20) DEFAULT NULL,
   in_stock tinyint(1) unsigned NOT NULL DEFAULT 1,
   terms_hash char(32) NOT NULL,
   updated_gmt datetime NOT NULL,

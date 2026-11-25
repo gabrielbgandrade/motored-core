@@ -35,6 +35,7 @@
 		var base = box.dataset.baseUrl || '/';
 		var moto = box.dataset.moto || '';
 		var pos = box.dataset.pos || '';
+		var kit = box.dataset.kit || '';
 		var apply = box.querySelector('[data-role="apply"]');
 		var extra = {};
 		var initial = {};
@@ -88,6 +89,8 @@
 		}
 
 		function buildUrl() {
+			var url = new URL(base, location.href);
+			var operators = JSON.parse(box.dataset.operators || '{}');
 			var params = [];
 			var byFacet = {};
 			for (var k in extra) {
@@ -100,6 +103,9 @@
 				if (pos) {
 					params.push('pos=' + encodeURIComponent(pos));
 				}
+			}
+			if (kit) {
+				params.push('kit_medida=' + encodeURIComponent(kit));
 			}
 			box.querySelectorAll('.motored-opt.is-active').forEach(function (a) {
 				var f = a.dataset.facet;
@@ -118,10 +124,13 @@
 				} else if (fk === 'product_brand') {
 					params.push('product_brand=' + byFacet[fk].map(encodeURIComponent).join(','));
 				} else {
-					params.push('filter_' + encodeURIComponent(fk) + '=' + byFacet[fk].map(encodeURIComponent).join(','), 'query_type_' + encodeURIComponent(fk) + '=or');
+					params.push('filter_' + encodeURIComponent(fk) + '=' + byFacet[fk].map(encodeURIComponent).join(','), 'query_type_' + encodeURIComponent(fk) + '=' + (operators[fk] || 'or'));
 				}
 			}
-			return params.length ? base + (base.indexOf('?') > -1 ? '&' : '?') + params.join('&') : base;
+			new URLSearchParams(params.join('&')).forEach(function (value, key) {
+				url.searchParams.set(key, value);
+			});
+			return url.href;
 		}
 
 		function refreshApply() {

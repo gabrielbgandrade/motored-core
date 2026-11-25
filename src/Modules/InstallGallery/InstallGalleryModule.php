@@ -33,7 +33,7 @@ final class InstallGalleryModule implements Module {
 	 * @param Context $context Request context.
 	 */
 	public function should_load( Context $context ): bool {
-		return ! $context->is_cli();
+		return true;
 	}
 
 	/**
@@ -48,6 +48,9 @@ final class InstallGalleryModule implements Module {
 		add_action( 'deleted_comment', array( $sync, 'on_deleted' ), 10, 2 );
 
 		$context = new Context();
+		if ( $context->is_cron() || $context->is_ajax() || $context->is_admin() || $context->is_cli() ) {
+			add_action( GalleryStore::BACKFILL_HOOK, array( GalleryStore::class, 'backfill_batch' ) );
+		}
 		if ( $context->is_frontend() || $context->is_ajax() ) {
 			add_action( 'comment_post', array( $sync, 'on_comment_post' ), 20, 2 ); // After ReviewPhotos (priority 10).
 		}

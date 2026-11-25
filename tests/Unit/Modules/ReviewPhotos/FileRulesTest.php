@@ -50,7 +50,9 @@ final class FileRulesTest extends TestCase {
 	public function test_extension_accepts_only_matching_jpeg_png_webp(): void {
 		$jpeg = array( 'ext' => 'jpg', 'type' => 'image/jpeg' );
 		$this->assertSame( 'jpg', FileRules::extension( $jpeg, array( 800, 600, 2 ) ) );
+		$this->assertSame( 'jpg', FileRules::extension( array( 'ext' => 'JPG', 'type' => 'image/jpeg' ), array( 800, 600, 2 ) ) );
 		$this->assertSame( 'png', FileRules::extension( array( 'ext' => 'png', 'type' => 'image/png' ), array( 800, 600, 3 ) ) );
+		$this->assertSame( 'png', FileRules::extension( array( 'ext' => 'PNG', 'type' => 'image/png' ), array( 800, 600, 3 ) ) );
 		$this->assertSame( 'webp', FileRules::extension( array( 'ext' => 'webp', 'type' => 'image/webp' ), array( 800, 600, 18 ) ) );
 	}
 

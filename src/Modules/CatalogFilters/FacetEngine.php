@@ -18,65 +18,81 @@ defined( 'ABSPATH' ) || exit;
  */
 final class FacetEngine {
 
-	public const SNAPSHOT_KEY = 'facet_snapshot_v1';
-	public const SNAPSHOT_TTL = 21600; // 6 hours.
+	public const SNAPSHOT_KEY        = 'facet_snapshot_v1';
+	public const SNAPSHOT_SEARCH_KEY = 'facet_snapshot_search_v1';
+	public const SNAPSHOT_TTL        = 21600; // 6 hours.
 
 	/**
-	 * Per-request memoized snapshot so multiple widgets/shortcodes share one read.
+	 * Per-request memoized catalog snapshot so multiple widgets/shortcodes share one read.
 	 *
 	 * @var array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>}|null
 	 */
 	private static ?array $memo_snapshot = null;
 
 	/**
+	 * Per-request memoized search snapshot.
+	 *
+	 * @var array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>}|null
+	 */
+	private static ?array $memo_search_snapshot = null;
+
+	/**
 	 * Returns the compact product facet snapshot (per-request memo -> Redis when persistent -> 1 SQL query).
 	 *
+	 * @param bool $search Whether to return the search-visibility snapshot instead of the catalog-visibility snapshot.
 	 * @return array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>}
 	 * @throws \Throwable Rethrows builder errors when no cached snapshot is available.
 	 */
-	public static function snapshot(): array {
-		if ( null !== self::$memo_snapshot ) {
-			return self::$memo_snapshot;
+	public static function snapshot( bool $search = false ): array {
+		$memo = $search ? self::$memo_search_snapshot : self::$memo_snapshot;
+		if ( null !== $memo ) {
+			return $memo;
 		}
+
+		$set_memo = static function ( array $snap ) use ( $search ): array {
+			if ( $search ) {
+				self::$memo_search_snapshot = $snap;
+			} else {
+				self::$memo_snapshot = $snap;
+			}
+			return $snap;
+		};
 
 		if ( ! Cache::is_persistent() ) {
-			self::$memo_snapshot = self::build_snapshot_from_db();
-			return self::$memo_snapshot;
+			return $set_memo( self::build_snapshot_from_db( $search ) );
 		}
 
-		$found  = false;
-		$cached = Cache::get( self::SNAPSHOT_KEY, SnapshotInvalidator::BUCKET, $found );
-		$valid  = $found && is_array( $cached ) && isset( $cached['products'], $cached['labels'] );
+		$cache_key = $search ? self::SNAPSHOT_SEARCH_KEY : self::SNAPSHOT_KEY;
+		$variant   = $search ? 'search' : 'catalog';
+		$found     = false;
+		$cached    = Cache::get( $cache_key, SnapshotInvalidator::BUCKET, $found );
+		$valid     = $found && is_array( $cached ) && isset( $cached['products'], $cached['labels'] );
 
-		if ( $valid && ! SnapshotInvalidator::should_rebuild_now() ) {
-			self::$memo_snapshot = $cached;
-			return $cached;
+		if ( $valid && ! SnapshotInvalidator::should_rebuild_now( $variant ) ) {
+			return $set_memo( $cached );
 		}
 
-		if ( SnapshotInvalidator::acquire_lock() ) {
+		if ( SnapshotInvalidator::acquire_lock( $variant ) ) {
+			$generation = SnapshotInvalidator::generation();
 			try {
-				$fresh = self::build_snapshot_from_db();
-				Cache::set( self::SNAPSHOT_KEY, $fresh, self::SNAPSHOT_TTL, SnapshotInvalidator::BUCKET );
-				SnapshotInvalidator::finish_rebuild( true );
-				self::$memo_snapshot = $fresh;
-				return $fresh;
+				$fresh  = self::build_snapshot_from_db( $search );
+				$stored = Cache::set( $cache_key, $fresh, self::SNAPSHOT_TTL, SnapshotInvalidator::BUCKET );
+				SnapshotInvalidator::finish_rebuild( $stored, $generation, $variant );
+				return $set_memo( $fresh );
 			} catch ( \Throwable $e ) {
-				SnapshotInvalidator::finish_rebuild( false );
+				SnapshotInvalidator::finish_rebuild( false, null, $variant );
 				if ( $valid ) {
-					self::$memo_snapshot = $cached;
-					return $cached;
+					return $set_memo( $cached );
 				}
 				throw $e;
 			}
 		}
 
 		if ( $valid ) {
-			self::$memo_snapshot = $cached;
-			return $cached;
+			return $set_memo( $cached );
 		}
 
-		self::$memo_snapshot = self::build_snapshot_from_db();
-		return self::$memo_snapshot;
+		return $set_memo( self::build_snapshot_from_db( $search ) );
 	}
 
 	/**
@@ -84,9 +100,11 @@ final class FacetEngine {
 	 *
 	 * Never reads price or on_sale (on_sale is resolved per request via wc_get_product_ids_on_sale()).
 	 *
+	 * @param bool $search Whether this snapshot is for product search visibility.
 	 * @return array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>}
+	 * @throws \RuntimeException When the snapshot query fails.
 	 */
-	public static function build_snapshot_from_db(): array {
+	public static function build_snapshot_from_db( bool $search = false ): array {
 		global $wpdb;
 		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
 			return array(
@@ -105,7 +123,8 @@ final class FacetEngine {
 		foreach ( Config::ATTRIBUTE_SLUGS as $slug ) {
 			$taxes[] = 'pa_' . $slug;
 		}
-		$tax_in = "'" . implode( "','", array_map( 'esc_sql', $taxes ) ) . "'";
+		$tax_in   = "'" . implode( "','", array_map( 'esc_sql', $taxes ) ) . "'";
+		$excluded = $search ? 'exclude-from-search' : 'exclude-from-catalog';
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single snapshot scan over fixed WP core tables and whitelisted taxonomy names.
 		$rows = $wpdb->get_results(
@@ -126,13 +145,16 @@ final class FacetEngine {
 					SELECT 1
 					FROM {$tr} trv
 					INNER JOIN {$tt} ttv ON ttv.term_taxonomy_id = trv.term_taxonomy_id AND ttv.taxonomy = 'product_visibility'
-					INNER JOIN {$t} tv ON tv.term_id = ttv.term_id AND tv.slug = 'exclude-from-catalog'
+					INNER JOIN {$t} tv ON tv.term_id = ttv.term_id AND tv.slug = '{$excluded}'
 					WHERE trv.object_id = p.ID
 				)",
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
+		if ( ! empty( $wpdb->last_error ) ) {
+			throw new \RuntimeException( 'Could not read the catalog facet snapshot.' );
+		}
 		return self::assemble_snapshot_rows( is_array( $rows ) ? $rows : array() );
 	}
 
@@ -220,12 +242,13 @@ final class FacetEngine {
 	 *
 	 * @param array{products:list<array<string,mixed>>,labels:array<string,array<string,string>>} $snapshot Compact snapshot.
 	 * @param FilterState                                                                         $state    Active URL filter state.
-	 * @param array<string,mixed>                                                                 $context  Request context (only_in_stock, moto_ids, cat_slug, cat_slugs, universe_ids, sale_ids).
+	 * @param array<string,mixed>                                                                 $context  Request context (only_in_stock, moto_ids, kit_ids, cat_slug, cat_slugs, universe_ids, sale_ids).
 	 * @return array{total:int,facets:array<string,list<array{slug:string,label:string,count:int,active:bool}>>}
 	 */
 	public static function compute_facets( array $snapshot, FilterState $state, array $context = array() ): array {
 		$only_in_stock = ! array_key_exists( 'only_in_stock', $context ) || ! empty( $context['only_in_stock'] );
 		$moto_ids      = isset( $context['moto_ids'] ) && is_array( $context['moto_ids'] ) ? $context['moto_ids'] : null;
+		$kit_ids       = isset( $context['kit_ids'] ) && is_array( $context['kit_ids'] ) ? $context['kit_ids'] : null;
 		$universe      = isset( $context['universe_ids'] ) && is_array( $context['universe_ids'] ) ? $context['universe_ids'] : null;
 		$cat_set       = array();
 		foreach ( array_merge( array( (string) ( $context['cat_slug'] ?? '' ) ), (array) ( $context['cat_slugs'] ?? array() ) ) as $cs ) {
@@ -264,6 +287,9 @@ final class FacetEngine {
 			if ( null !== $moto_ids && ! isset( $moto_ids[ $pid ] ) ) {
 				continue;
 			}
+			if ( null !== $kit_ids && ! isset( $kit_ids[ $pid ] ) ) {
+				continue;
+			}
 			if ( null !== $universe && ! isset( $universe[ $pid ] ) ) {
 				continue;
 			}
@@ -287,12 +313,9 @@ final class FacetEngine {
 						}
 					}
 				} else {
-					foreach ( $p['attrs'][ $group ] ?? array() as $t_slug ) {
-						if ( isset( $wanted_map[ $t_slug ] ) ) {
-							$matches = true;
-							break;
-						}
-					}
+					$available = array_fill_keys( $p['attrs'][ $group ] ?? array(), true );
+					$matched   = array_intersect_key( $wanted_map, $available );
+					$matches   = 'and' === $state->operator( $group ) ? count( $matched ) === count( $wanted_map ) : ! empty( $matched );
 				}
 				if ( ! $matches ) {
 					++$fail_count;
@@ -329,7 +352,7 @@ final class FacetEngine {
 				foreach ( $p['brands'] as $b_slug ) {
 					$counts['product_brand'][ $b_slug ] = ( $counts['product_brand'][ $b_slug ] ?? 0 ) + 1;
 				}
-			} else {
+			} elseif ( 'and' !== $state->operator( $failed_group ) ) {
 				foreach ( $p['attrs'][ $failed_group ] ?? array() as $t_slug ) {
 					$counts[ $failed_group ][ $t_slug ] = ( $counts[ $failed_group ][ $t_slug ] ?? 0 ) + 1;
 				}
@@ -407,6 +430,12 @@ final class FacetEngine {
 			$rims     = $p['attrs'][ TireSpecs::ATTR_RIM ] ?? array();
 			if ( empty( $widths ) || empty( $rims ) ) {
 				continue;
+			}
+			// Sort multi-valued attribute rows deterministically since the snapshot query has no ORDER BY.
+			sort( $widths, SORT_NATURAL | SORT_FLAG_CASE );
+			sort( $rims, SORT_NATURAL | SORT_FLAG_CASE );
+			if ( ! empty( $profiles ) ) {
+				sort( $profiles, SORT_NATURAL | SORT_FLAG_CASE );
 			}
 
 			$w_slug = (string) $widths[0];
@@ -541,6 +570,7 @@ final class FacetEngine {
 	 * Resets per-request memoized snapshot (for unit tests).
 	 */
 	public static function reset(): void {
-		self::$memo_snapshot = null;
+		self::$memo_snapshot        = null;
+		self::$memo_search_snapshot = null;
 	}
 }

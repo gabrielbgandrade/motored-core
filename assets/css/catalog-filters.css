@@ -304,6 +304,18 @@
 	margin-bottom: 0.75rem;
 }
 
+.motored-filters__kits {
+	margin: 0 0 0.75rem;
+	padding: 0.5rem 0.75rem;
+	border-left: 3px solid var(--motored-accent);
+	font-size: 0.9em;
+}
+
+.motored-filters__kits a {
+	color: inherit;
+	font-weight: 600;
+}
+
 .motored-chip {
 	display: inline-flex;
 	align-items: center;

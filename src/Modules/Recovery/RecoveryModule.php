@@ -72,8 +72,10 @@ final class RecoveryModule implements Module {
 			add_action( Sender::RESULT_HOOK, array( RecoveryResultHandler::class, 'on_result' ), 10, 4 );
 		}
 		if ( $context->is_admin() ) {
-			add_action( 'admin_init', array( Retention::class, 'ensure_scheduled' ) );
-			add_action( 'admin_init', array( Scanner::class, 'ensure_scheduled' ) );
+			if ( $context->is_admin_screen() ) {
+				add_action( 'admin_init', array( Retention::class, 'ensure_scheduled' ) );
+				add_action( 'admin_init', array( Scanner::class, 'ensure_scheduled' ) );
+			}
 			( new RecoveryAdmin() )->register();
 		}
 	}

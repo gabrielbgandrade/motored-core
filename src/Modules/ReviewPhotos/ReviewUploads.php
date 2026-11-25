@@ -85,6 +85,15 @@ final class ReviewUploads {
 		$now       = null !== $this->clock ? ( $this->clock )() : time();
 		$selection = FileRules::select( $files, Config::max_photos(), Config::max_bytes(), UploadLimiter::remaining( $ip, $now ) );
 		UploadLimiter::record( $ip, $now, count( $selection['accepted'] ) );
+		if ( $selection['rejected'] > 0 && array() === $selection['accepted'] ) {
+			Logger::warning(
+				'Review photos rejected before processing.',
+				array(
+					'comment_id' => $comment_id,
+					'rejected'   => $selection['rejected'],
+				)
+			);
+		}
 
 		$inspect  = $this->inspect ?? fn( string $tmp, string $name ): ?string => ( new PhotoProcessor() )->inspect( $tmp, $name );
 		$process  = $this->process ?? fn( string $tmp, string $ext, int $product ): int => ( new PhotoProcessor() )->process( $tmp, $ext, $product );

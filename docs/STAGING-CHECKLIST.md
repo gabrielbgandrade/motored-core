@@ -203,3 +203,13 @@ Run on a classic theme (Flatsome or a fork) AND a block theme; see `docs/REVIEW-
 - [ ] Bulk run with `bulk_resize` OFF (default): a 2400 px banner keeps 2400 px; ON: it becomes `max_side`.
 - [ ] Cancel a running bulk job: it stays "cancelada" (no new Action Scheduler action appears afterwards).
 - [ ] Large originals: each `motored_image_opt_batch` action finishes in < 30 s (Action Scheduler log); the job still completes.
+
+## Motorcycle Pages, Core SEO & Demand Capture (2026-11-24)
+- [ ] Single product with `?moto=<slug>`: `<meta name="robots">` stays indexable (`S0-2`); `compat.css` loads in `<head>` and non-tire products skip `compat.css` / `compat-garage.js` (`P1-2` / `P1-3`).
+- [ ] Product banner when other axle has 0 stock: shows `"Todavía no tenemos delantera/trasera..."` + `"Avisame cuando llegue"` trigger instead of a dead-end link (`B1`).
+- [ ] Compatibility tab on a product page: every compatible motorcycle renders as a clickable link to its `/cubiertas-para/{brand}-{model}-{year}/` page (`S1-3`).
+- [ ] CatalogFilters `replace_native_layered_nav` ON: Woo native layered navigation widgets are unregistered and `[motored_filtros]` is the single facet system (`Decision 5`).
+- [ ] Motorcycle CPT pages (`/cubiertas-para/` archive, `/cubiertas-para/marca/{brand}/` hub, `/cubiertas-para/{slug}/` single): 1 `<h1>`, conversion sections, `Completá el juego`, FAQ matching `FAQPage` JSON-LD, `index,follow` ONLY when stock >= `index_min_products`, `noindex,follow` when empty, included/excluded accordingly in `/wp-sitemap.xml` (`VERIFY #124–#128`).
+- [ ] Publishing/updating/renaming/deleting a motorcycle in `Productos > Compatibilidad` syncs `motored_bike` posts in background via Action Scheduler without wiping manual title/SEO overrides, and registers 301 redirects on slug changes.
+- [ ] Guest `[motored_mi_garage]` shortcode: guests can list, switch active and remove bikes from `localStorage` with a login CTA (`B5`).
+- [ ] Demand capture (`POST /motored/v1/compat/notify`): guest submission stores row in `motored_bike_demand`, appears in `Productos > Compatibilidad > Demanda`, exports CSV safely, and works with Tools > Export/Erase personal data (`VERIFY #129`).

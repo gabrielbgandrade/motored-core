@@ -6,7 +6,8 @@
 	'use strict';
 	var D = document;
 	var c = window.motoredCompatCfg || {};
-	var t = c.i18n || {};
+	// Page-only strings ship with this script (GarageAssets::page_i18n()), not on every catalog/product page.
+	var t = Object.assign({}, c.i18n || {}, window.motoredGaragePageI18n || {});
 	var G = window.motoredGarageApi;
 	var UNDO_MS = 5000;
 	var pending = null; // { slug, timer, prev }
@@ -53,6 +54,9 @@
 
 	function optimistic(prev, next, method, path, body) {
 		G.wr(next);
+		if (!c.loggedIn) {
+			return Promise.resolve(next);
+		}
 		return G.api(method, path, body).catch(function () {
 			G.wr(prev);
 		});
@@ -65,6 +69,9 @@
 		var p = pending;
 		pending = null;
 		clearTimeout(p.timer);
+		if (!c.loggedIn) {
+			return;
+		}
 		G.api('DELETE', '/garage/' + encodeURIComponent(p.slug)).catch(function () {
 			G.wr(p.prev);
 		});
@@ -125,19 +132,19 @@
 			if (pf && pf.oem && (pf.oem.f || pf.oem.r)) {
 				var parts = [];
 				if (pf.oem.f) {
-					parts.push(t.front + ': ' + pf.oem.f);
+					parts.push(t.front + ' ' + pf.oem.f);
 				}
 				if (pf.oem.r) {
-					parts.push(t.rear + ': ' + pf.oem.r);
+					parts.push(t.rear + ' ' + pf.oem.r);
 				}
 				card.appendChild(el('p', 'motored-garage-card__sizes', (t.oemSizes ? t.oemSizes + ' ' : '') + parts.join(' · ')));
 			}
 			var actions = el('div', 'motored-garage-card__actions');
-			var view = el('a', 'button alt', t.filterTires || '');
-			view.href = withMoto(bike.slug, shop);
+			var view = el('a', 'button alt wp-element-button', t.filterTires || '');
+			view.href = (pf && pf.pageUrl) ? pf.pageUrl : withMoto(bike.slug, shop);
 			actions.appendChild(view);
 			if (!isActive) {
-				var use = el('button', 'button', t.useBike || '');
+				var use = el('button', 'button wp-element-button', t.useBike || '');
 				use.type = 'button';
 				use.addEventListener('click', function () {
 					var prev = G.rd();
@@ -147,7 +154,7 @@
 				});
 				actions.appendChild(use);
 			}
-			var del = el('button', 'button motored-garage-card__remove', t.remove || '');
+			var del = el('button', 'button wp-element-button motored-garage-card__remove', t.remove || '');
 			del.type = 'button';
 			del.addEventListener('click', function () {
 				remove(bike);
@@ -160,20 +167,17 @@
 	}
 
 	D.addEventListener('motored:garage', draw);
-	D.addEventListener('motored:garage-error', function () {
-		notice(t.sessionExpired || '');
+	D.addEventListener('motored:garage-error', function (event) {
+		notice((event.detail === 'session' ? t.sessionExpired : t.actionFailed) || '');
+	});
+	D.addEventListener('motored:garage-unavailable', function (event) {
+		var labels = Array.isArray(event.detail) ? event.detail.join(', ') : '';
+		if (labels && t.bikeUnavailable) {
+			notice(t.bikeUnavailable.replace('%s', labels));
+		}
 	});
 	// Leaving the page inside the undo window still deletes (keepalive request).
 	window.addEventListener('pagehide', commitPending);
 	draw();
 
-	if (c.loggedIn) {
-		var st = G.rd();
-		var missing = st.bikes.some(function (b) {
-			return !st.profiles[b.slug] || !st.profiles[b.slug].oem;
-		});
-		if (!st.bikes.length || missing) {
-			G.api('GET', '/garage').catch(function () {});
-		}
-	}
 })();

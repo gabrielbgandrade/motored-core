@@ -7,6 +7,8 @@
 
 namespace Motored\Core\Modules\Compatibility;
 
+use Motored\Core\Support\Cache;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -15,11 +17,18 @@ defined( 'ABSPATH' ) || exit;
 final class MatchEngine {
 
 	/**
-	 * Per-request memo of matching product id lists (never persisted; the cache bucket stays the source).
+	 * Per-request memo of per-position matching id lists (never persisted; the cache bucket stays the source).
 	 *
-	 * @var array<string,list<int>>
+	 * @var array<string,array{all:list<int>,front:list<int>,rear:list<int>,kit:list<int>}>
 	 */
 	private static array $ids_memo = array();
+
+	/**
+	 * Per-request memo of loaded bike profiles (avoids re-querying within the same request when Redis is off).
+	 *
+	 * @var array<string,array<string,mixed>|null>
+	 */
+	private static array $profile_memo = array();
 
 
 	/**
@@ -33,13 +42,97 @@ final class MatchEngine {
 		if ( '' === $clean ) {
 			return null;
 		}
-		$cached = CompatCache::remember(
-			'bike_' . md5( $clean ),
+		if ( array_key_exists( $clean, self::$profile_memo ) ) {
+			return self::$profile_memo[ $clean ];
+		}
+		$cached                       = CompatCache::remember(
+			'bike2_' . md5( $clean ),
 			static fn(): array => array( 'p' => self::build_bike_profile( $clean ) ),
 			CompatCache::BUCKET_CATALOG,
 			CompatCache::TTL_CATALOG
 		);
-		return is_array( $cached['p'] ?? null ) ? $cached['p'] : null;
+		self::$profile_memo[ $clean ] = is_array( $cached['p'] ?? null ) ? $cached['p'] : null;
+		return self::$profile_memo[ $clean ];
+	}
+
+	/**
+	 * Batch-loads published motorcycle compatibility profiles in at most 3 queries for all uncached slugs.
+	 *
+	 * @param array<int,string> $slugs Version slugs.
+	 * @return array<string,array<string,mixed>> Keyed by sanitized slug (missing/draft slugs omitted).
+	 */
+	public static function bike_profile_many( array $slugs ): array {
+		$clean_slugs = array_values( array_unique( array_filter( array_map( 'sanitize_title', $slugs ), static fn( string $s ): bool => '' !== $s ) ) );
+		if ( empty( $clean_slugs ) ) {
+			return array();
+		}
+
+		$profiles   = array();
+		$missing    = array();
+		$persistent = Cache::is_persistent();
+
+		foreach ( $clean_slugs as $clean ) {
+			if ( $persistent ) {
+				$found  = false;
+				$cached = Cache::get( 'bike2_' . md5( $clean ), CompatCache::BUCKET_CATALOG, $found );
+				if ( $found ) {
+					if ( is_array( $cached['p'] ?? null ) ) {
+						$profiles[ $clean ] = $cached['p'];
+					}
+					continue;
+				}
+			}
+			$missing[] = $clean;
+		}
+
+		if ( empty( $missing ) ) {
+			return $profiles;
+		}
+
+		$versions = CatalogRepository::find_versions_by_slugs( $missing, true );
+		$ver_ids  = array();
+		foreach ( $versions as $ver ) {
+			$ver_ids[] = (int) $ver['id'];
+		}
+		$fitments_by_ver = CatalogRepository::fitments_for_versions_full( $ver_ids );
+
+		$oem_size_ids = array();
+		foreach ( $fitments_by_ver as $rows ) {
+			foreach ( $rows as $row ) {
+				if ( TireSpecs::FIT_OEM === (string) $row['fit_type'] ) {
+					$oem_size_ids[] = (int) $row['size_id'];
+				}
+			}
+		}
+		$all_equivs = ! empty( $oem_size_ids ) ? CatalogRepository::equivalences_from_sizes_batch( $oem_size_ids ) : array();
+
+		foreach ( $missing as $clean ) {
+			if ( ! isset( $versions[ $clean ] ) ) {
+				if ( $persistent ) {
+					Cache::set( 'bike2_' . md5( $clean ), array( 'p' => null ), CompatCache::TTL_CATALOG, CompatCache::BUCKET_CATALOG );
+				}
+				continue;
+			}
+			$ver                          = $versions[ $clean ];
+			$vid                          = (int) $ver['id'];
+			$axes                         = self::build_axes_from_fitments( $fitments_by_ver[ $vid ] ?? array(), $all_equivs );
+			$profile                      = self::format_profile_array( $ver, $axes );
+			$profiles[ $clean ]           = $profile;
+			self::$profile_memo[ $clean ] = $profile;
+			if ( $persistent ) {
+				Cache::set( 'bike2_' . md5( $clean ), array( 'p' => $profile ), CompatCache::TTL_CATALOG, CompatCache::BUCKET_CATALOG );
+			}
+		}
+
+		return $profiles;
+	}
+
+	/**
+	 * Resets per-request static memos (for unit tests).
+	 */
+	public static function reset(): void {
+		self::$ids_memo     = array();
+		self::$profile_memo = array();
 	}
 
 	/**
@@ -51,10 +144,11 @@ final class MatchEngine {
 	 * @return array{compatible:bool,positions:list<string>,match:string,caution:bool,equivalent_from:string}
 	 */
 	public static function evaluate_product( array $product_fit, array $bike_profile, bool $strict_specs = false ): array {
-		$pos   = (string) ( $product_fit['position'] ?? '' );
-		$front = is_array( $bike_profile['front'] ?? null ) ? $bike_profile['front'] : array();
-		$rear  = is_array( $bike_profile['rear'] ?? null ) ? $bike_profile['rear'] : array();
-		$const = isset( $product_fit['construction'] ) && is_string( $product_fit['construction'] ) ? $product_fit['construction'] : '';
+		$pos     = (string) ( $product_fit['position'] ?? '' );
+		$front   = is_array( $bike_profile['front'] ?? null ) ? $bike_profile['front'] : array();
+		$rear    = is_array( $bike_profile['rear'] ?? null ) ? $bike_profile['rear'] : array();
+		$f_const = self::axle_construction( $product_fit, TireSpecs::POS_FRONT );
+		$r_const = self::axle_construction( $product_fit, TireSpecs::POS_REAR );
 
 		$f_size  = isset( $product_fit['front_canonical'] ) ? (string) $product_fit['front_canonical'] : '';
 		$r_size  = isset( $product_fit['rear_canonical'] ) ? (string) $product_fit['rear_canonical'] : '';
@@ -67,8 +161,8 @@ final class MatchEngine {
 			if ( '' === $f_size || '' === $r_size || ! isset( $front[ $f_size ], $rear[ $r_size ] ) ) {
 				return self::no_match();
 			}
-			$fc = self::check_constraints( $front[ $f_size ], $f_load, $f_speed, $const, $strict_specs );
-			$rc = self::check_constraints( $rear[ $r_size ], $r_load, $r_speed, $const, $strict_specs );
+			$fc = self::check_constraints( $front[ $f_size ], $f_load, $f_speed, $f_const, $strict_specs );
+			$rc = self::check_constraints( $rear[ $r_size ], $r_load, $r_speed, $r_const, $strict_specs );
 			if ( ! $fc['ok'] || ! $rc['ok'] ) {
 				return self::no_match();
 			}
@@ -89,7 +183,7 @@ final class MatchEngine {
 		$from_list = array();
 
 		if ( ( TireSpecs::POS_FRONT === $pos || TireSpecs::POS_BOTH === $pos ) && '' !== $f_size && isset( $front[ $f_size ] ) ) {
-			$fc = self::check_constraints( $front[ $f_size ], $f_load, $f_speed, $const, $strict_specs );
+			$fc = self::check_constraints( $front[ $f_size ], $f_load, $f_speed, $f_const, $strict_specs );
 			if ( $fc['ok'] ) {
 				$positions[] = TireSpecs::POS_FRONT;
 				$best_type   = (string) $front[ $f_size ]['type'];
@@ -101,7 +195,7 @@ final class MatchEngine {
 		}
 
 		if ( ( TireSpecs::POS_REAR === $pos || TireSpecs::POS_BOTH === $pos ) && '' !== $r_size && isset( $rear[ $r_size ] ) ) {
-			$rc = self::check_constraints( $rear[ $r_size ], $r_load, $r_speed, $const, $strict_specs );
+			$rc = self::check_constraints( $rear[ $r_size ], $r_load, $r_speed, $r_const, $strict_specs );
 			if ( $rc['ok'] ) {
 				$positions[] = TireSpecs::POS_REAR;
 				$best_type   = '' === $best_type ? (string) $rear[ $r_size ]['type'] : self::better_match_type( $best_type, (string) $rear[ $r_size ]['type'] );
@@ -128,30 +222,65 @@ final class MatchEngine {
 	/**
 	 * Returns compatible product IDs for a motorcycle version slug and optional position filter, best fit first (OEM, alternative, equivalent).
 	 *
+	 * Served from matching_ids_by_position(): ONE candidate query per bike per request, shared by the grid, the
+	 * counts (bar, banner, bike page) and the facet sidebar, so a tab count can never disagree with its grid.
+	 *
 	 * @param string $version_slug Published version slug.
 	 * @param string $pos_filter   Optional '' | 'front' | 'rear' | 'kit'.
 	 * @return list<int>
 	 */
 	public static function matching_product_ids( string $version_slug, string $pos_filter = '' ): array {
+		$bucket = in_array( $pos_filter, array( TireSpecs::POS_FRONT, TireSpecs::POS_REAR, TireSpecs::POS_KIT ), true ) ? $pos_filter : 'all';
+		return self::matching_ids_by_position( $version_slug )[ $bucket ];
+	}
+
+	/**
+	 * Per-position compatible product counts (same lists as matching_product_ids()).
+	 *
+	 * @param string $version_slug Published version slug.
+	 * @return array{all:int,front:int,rear:int,kit:int}
+	 */
+	public static function matching_product_counts( string $version_slug ): array {
+		$lists = self::matching_ids_by_position( $version_slug );
+		return array(
+			'all'   => count( $lists['all'] ),
+			'front' => count( $lists['front'] ),
+			'rear'  => count( $lists['rear'] ),
+			'kit'   => count( $lists['kit'] ),
+		);
+	}
+
+	/**
+	 * Cached, memoized partition of a bike's compatible products by position, built from ONE candidate query.
+	 *
+	 * @param string $version_slug Published version slug.
+	 * @return array{all:list<int>,front:list<int>,rear:list<int>,kit:list<int>}
+	 */
+	public static function matching_ids_by_position( string $version_slug ): array {
+		$empty      = array(
+			'all'   => array(),
+			'front' => array(),
+			'rear'  => array(),
+			'kit'   => array(),
+		);
 		$clean_slug = sanitize_title( $version_slug );
-		$clean_pos  = in_array( $pos_filter, array( TireSpecs::POS_FRONT, TireSpecs::POS_REAR, TireSpecs::POS_KIT ), true ) ? $pos_filter : '';
 		if ( '' === $clean_slug ) {
-			return array();
+			return $empty;
 		}
 		$strict = Config::strict_specs();
-		$key    = 'mids2_' . md5( $clean_slug . '|' . $clean_pos . '|' . ( $strict ? '1' : '0' ) );
+		$key    = 'mpart1_' . md5( $clean_slug . '|' . ( $strict ? '1' : '0' ) );
 
-		// Per-request memo: the shop query, the facet sidebar and the active-bike bar ask for the same list.
+		// Per-request memo: the shop query, the facet sidebar, the bar and the bike page share one partition.
 		if ( isset( self::$ids_memo[ $key ] ) ) {
 			return self::$ids_memo[ $key ];
 		}
 
-		self::$ids_memo[ $key ] = CompatCache::remember(
+		$cached = CompatCache::remember(
 			$key,
-			static function () use ( $clean_slug, $clean_pos, $strict ): array {
+			static function () use ( $clean_slug, $strict, $empty ): array {
 				$profile = self::bike_profile( $clean_slug );
 				if ( null === $profile ) {
-					return array();
+					return $empty;
 				}
 				$front_ids = array();
 				foreach ( $profile['front'] as $item ) {
@@ -161,22 +290,84 @@ final class MatchEngine {
 				foreach ( $profile['rear'] as $item ) {
 					$rear_ids[] = (int) $item['size_id'];
 				}
-				$candidates = ProductIndexRepository::query_candidates_for_sizes( $front_ids, $rear_ids, $clean_pos );
-				$ranked     = array();
-				foreach ( $candidates as $row ) {
-					$eval = self::evaluate_product( $row, $profile, $strict );
-					if ( $eval['compatible'] ) {
-						$ranked[] = array( (int) $row['product_id'], self::match_priority( $eval['match'] ) );
-					}
-				}
-				// Best fit first (OEM > alternative > equivalent); usort is stable, so ties keep index order.
-				usort( $ranked, static fn( array $a, array $b ): int => $b[1] <=> $a[1] );
-				return array_map( static fn( array $r ): int => $r[0], $ranked );
+				$candidates = ProductIndexRepository::query_candidates_for_sizes( $front_ids, $rear_ids, '' );
+				return self::partition_by_position( $candidates, $profile, $strict );
 			},
 			CompatCache::BUCKET_MATCHES,
 			CompatCache::TTL_MATCHES
 		);
-		return self::$ids_memo[ $key ];
+
+		$lists = $empty;
+		foreach ( array_keys( $empty ) as $bucket ) {
+			$lists[ $bucket ] = array_values( array_map( 'intval', is_array( $cached[ $bucket ] ?? null ) ? $cached[ $bucket ] : array() ) );
+		}
+		self::$ids_memo[ $key ] = $lists;
+		return $lists;
+	}
+
+	/**
+	 * Pure partition of compatible candidates, each list best fit first (OEM > alternative > equivalent; stable).
+	 *
+	 * Buckets: a kit goes ONLY to `kit` (never front/rear — otherwise "Delanteras (1)" links to an empty grid);
+	 * a single or dual (`both`) tire goes to every axle the evaluation actually matched (a dual tire whose front
+	 * fails its load rating is NOT listed as a front tire). `all` holds every compatible product once.
+	 *
+	 * @param list<array<string,mixed>> $candidates Rows from ProductIndexRepository::query_candidates_for_sizes().
+	 * @param array<string,mixed>       $profile    Output of bike_profile().
+	 * @param bool                      $strict     Strict specs setting.
+	 * @return array{all:list<int>,front:list<int>,rear:list<int>,kit:list<int>}
+	 */
+	public static function partition_by_position( array $candidates, array $profile, bool $strict ): array {
+		$ranked = array();
+		foreach ( $candidates as $row ) {
+			$eval = self::evaluate_product( $row, $profile, $strict );
+			if ( ! $eval['compatible'] ) {
+				continue;
+			}
+			$buckets = array( 'all' );
+			if ( TireSpecs::POS_KIT === (string) ( $row['position'] ?? '' ) ) {
+				$buckets[] = TireSpecs::POS_KIT;
+			} else {
+				foreach ( array( TireSpecs::POS_FRONT, TireSpecs::POS_REAR ) as $axis ) {
+					if ( in_array( $axis, $eval['positions'], true ) ) {
+						$buckets[] = $axis;
+					}
+				}
+			}
+			$ranked[] = array( (int) ( $row['product_id'] ?? 0 ), self::match_priority( $eval['match'] ), $buckets );
+		}
+		usort( $ranked, static fn( array $a, array $b ): int => $b[1] <=> $a[1] );
+
+		$out = array(
+			'all'   => array(),
+			'front' => array(),
+			'rear'  => array(),
+			'kit'   => array(),
+		);
+		foreach ( $ranked as $r ) {
+			foreach ( $r[2] as $bucket ) {
+				$out[ $bucket ][] = $r[0];
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Pure per-position tally (counts of partition_by_position()).
+	 *
+	 * @param list<array<string,mixed>> $candidates Rows from ProductIndexRepository::query_candidates_for_sizes().
+	 * @param array<string,mixed>       $profile    Output of bike_profile().
+	 * @param bool                      $strict     Strict specs setting.
+	 * @return array{all:int,front:int,rear:int,kit:int}
+	 */
+	public static function count_by_position( array $candidates, array $profile, bool $strict ): array {
+		$lists = self::partition_by_position( $candidates, $profile, $strict );
+		return array(
+			'all'   => count( $lists['all'] ),
+			'front' => count( $lists['front'] ),
+			'rear'  => count( $lists['rear'] ),
+			'kit'   => count( $lists['kit'] ),
+		);
 	}
 
 	/**
@@ -193,7 +384,7 @@ final class MatchEngine {
 			return null;
 		}
 		$strict   = Config::strict_specs();
-		$spec_key = 'pm_' . md5(
+		$spec_key = 'pm3_' . md5(
 			implode(
 				'|',
 				array(
@@ -205,6 +396,8 @@ final class MatchEngine {
 					(string) ( $fit['front_speed_rank'] ?? '' ),
 					(string) ( $fit['rear_speed_rank'] ?? '' ),
 					(string) ( $fit['construction'] ?? '' ),
+					(string) ( $fit['front_construction'] ?? '' ),
+					(string) ( $fit['rear_construction'] ?? '' ),
 					$strict ? '1' : '0',
 				)
 			)
@@ -223,7 +416,7 @@ final class MatchEngine {
 
 	/**
 	 * Single human label for a motorcycle version everywhere (selectors, Mi Garage, search, admin):
-	 * "Benelli TRK 502 2017–actualidad" or "Honda CBR900RR Fireblade SC28 1992–1995".
+	 * "Benelli TRK 502 2017+" or "Honda CBR900RR Fireblade SC28 1992–1995".
 	 *
 	 * @param string $brand     Brand name.
 	 * @param string $model     Model name.
@@ -237,14 +430,14 @@ final class MatchEngine {
 	}
 
 	/**
-	 * Formats a compact, human-readable year range label ("2001–2024" or "2020–actualidad").
+	 * Formats a compact, human-readable year range label ("2001–2024", or "2020+" while still in production).
 	 *
 	 * @param int $year_from Start year.
 	 * @param int $year_to   End year (0 = present).
 	 */
 	public static function format_years( int $year_from, int $year_to ): string {
 		if ( 0 === $year_to ) {
-			return $year_from . '–' . __( 'present', 'motored-core' );
+			return $year_from . '+';
 		}
 		if ( $year_from === $year_to ) {
 			return (string) $year_from;
@@ -253,18 +446,15 @@ final class MatchEngine {
 	}
 
 	/**
-	 * Builds the full bike profile from DB (including 1-hop directed equivalences from OEM fitments only).
+	 * Builds front/rear accepted-size maps from fitment rows plus 1-hop OEM equivalences.
 	 *
-	 * @param string $slug Version slug.
-	 * @return array<string,mixed>|null
+	 * Shared by bike_profile() (storefront) and the admin Store matching preview so both enforce identical rules.
+	 *
+	 * @param list<array<string,mixed>>      $fitments          Fitment rows from CatalogRepository::fitments_for_version().
+	 * @param list<array<string,mixed>>|null $prefetched_equivs Optional preloaded batch of equivalences (avoids N+1 queries).
+	 * @return array{front:array<string,array<string,mixed>>,rear:array<string,array<string,mixed>>}
 	 */
-	private static function build_bike_profile( string $slug ): ?array {
-		$ver = CatalogRepository::find_version_by_slug( $slug, true );
-		if ( null === $ver ) {
-			return null;
-		}
-		$fitments = CatalogRepository::fitments_for_version( (int) $ver['id'] );
-
+	public static function build_axes_from_fitments( array $fitments, ?array $prefetched_equivs = null ): array {
 		$axes    = array(
 			TireSpecs::POS_FRONT => array(),
 			TireSpecs::POS_REAR  => array(),
@@ -311,11 +501,23 @@ final class MatchEngine {
 					$oem_fit_by_size[ $row['size_id'] ] = $row;
 				}
 			}
-			$equivs = CatalogRepository::equivalences_from_sizes( array_values( array_unique( $oem_ids[ $pos ] ) ), $pos );
+			$wanted_ids = array_values( array_unique( $oem_ids[ $pos ] ) );
+			if ( null !== $prefetched_equivs ) {
+				$equivs = array_values(
+					array_filter(
+						$prefetched_equivs,
+						static fn( array $eq ): bool => in_array( (int) ( $eq['source_size_id'] ?? 0 ), $wanted_ids, true )
+							&& in_array( (string) ( $eq['position_scope'] ?? '' ), array( 'any', $pos ), true )
+					)
+				);
+			} else {
+				$equivs = CatalogRepository::equivalences_from_sizes( $wanted_ids, $pos );
+			}
 			foreach ( $equivs as $eq ) {
 				$dst_canon = $eq['target_canonical'];
 				// Direct OEM or ALT fitment on this bike always beats an equivalence entry.
-				if ( isset( $axes[ $pos ][ $dst_canon ] ) ) {
+				$current = $axes[ $pos ][ $dst_canon ] ?? null;
+				if ( null !== $current && ( TireSpecs::FIT_EQUIV !== $current['type'] || ! self::preferred_equivalence( (int) $eq['is_approximate'], (string) $eq['source_canonical'], (int) $current['approx'], (string) $current['from'] ) ) ) {
 					continue;
 				}
 				$src_fit                    = $oem_fit_by_size[ $eq['source_size_id'] ] ?? array();
@@ -331,6 +533,32 @@ final class MatchEngine {
 			}
 		}
 
+		return $axes;
+	}
+
+	/**
+	 * Builds the full bike profile from DB (including 1-hop directed equivalences from OEM fitments only).
+	 *
+	 * @param string $slug Version slug.
+	 * @return array<string,mixed>|null
+	 */
+	private static function build_bike_profile( string $slug ): ?array {
+		$ver = CatalogRepository::find_version_by_slug( $slug, true );
+		if ( null === $ver ) {
+			return null;
+		}
+		$axes = self::build_axes_from_fitments( CatalogRepository::fitments_for_version( (int) $ver['id'] ) );
+		return self::format_profile_array( $ver, $axes );
+	}
+
+	/**
+	 * Formats a version DB row + computed axes into the canonical bike profile array.
+	 *
+	 * @param array<string,mixed>                                                                   $ver  Version DB row.
+	 * @param array{front:array<string,array<string,mixed>>,rear:array<string,array<string,mixed>>} $axes Computed axes.
+	 * @return array<string,mixed>
+	 */
+	private static function format_profile_array( array $ver, array $axes ): array {
 		$label = self::version_label( (string) $ver['brand_name'], (string) $ver['model_name'], (string) $ver['variant'], (int) $ver['year_from'], (int) $ver['year_to'] );
 
 		return array(
@@ -352,8 +580,9 @@ final class MatchEngine {
 	 * @return list<array<string,mixed>>
 	 */
 	private static function compute_compatible_motos( array $fit, bool $strict ): array {
-		$pos   = (string) $fit['position'];
-		$const = isset( $fit['construction'] ) && is_string( $fit['construction'] ) ? $fit['construction'] : '';
+		$pos     = (string) $fit['position'];
+		$f_const = self::axle_construction( $fit, TireSpecs::POS_FRONT );
+		$r_const = self::axle_construction( $fit, TireSpecs::POS_REAR );
 
 		if ( TireSpecs::POS_KIT === $pos ) {
 			$f_id = (int) ( $fit['front_size_id'] ?? 0 );
@@ -365,14 +594,14 @@ final class MatchEngine {
 				ProductIndexRepository::query_version_fitments_for_tire_size( $f_id, TireSpecs::POS_FRONT ),
 				$fit['front_load'],
 				$fit['front_speed_rank'],
-				$const,
+				$f_const,
 				$strict
 			);
 			$rear_hits  = self::index_hits_by_version(
 				ProductIndexRepository::query_version_fitments_for_tire_size( $r_id, TireSpecs::POS_REAR ),
 				$fit['rear_load'],
 				$fit['rear_speed_rank'],
-				$const,
+				$r_const,
 				$strict
 			);
 			$out        = array();
@@ -382,6 +611,7 @@ final class MatchEngine {
 				}
 				$rh    = $rear_hits[ $vid ];
 				$out[] = array(
+					'version_id' => (int) $vid,
 					'slug'       => $fh['slug'],
 					'brand'      => $fh['brand'],
 					'model'      => $fh['model'],
@@ -403,7 +633,7 @@ final class MatchEngine {
 				ProductIndexRepository::query_version_fitments_for_tire_size( (int) $fit['front_size_id'], TireSpecs::POS_FRONT ),
 				$fit['front_load'],
 				$fit['front_speed_rank'],
-				$const,
+				$f_const,
 				$strict
 			);
 			foreach ( $hits as $vid => $h ) {
@@ -417,7 +647,7 @@ final class MatchEngine {
 				ProductIndexRepository::query_version_fitments_for_tire_size( (int) $fit['rear_size_id'], TireSpecs::POS_REAR ),
 				$fit['rear_load'],
 				$fit['rear_speed_rank'],
-				$const,
+				$r_const,
 				$strict
 			);
 			foreach ( $hits as $vid => $h ) {
@@ -447,8 +677,19 @@ final class MatchEngine {
 	 * @return array<int,array<string,mixed>>
 	 */
 	private static function index_hits_by_version( array $rows, ?int $load, ?int $speed_rank, string $construction, bool $strict ): array {
-		$map = array();
+		$preferred = array();
 		foreach ( $rows as $row ) {
+			$vid     = (int) $row['version_id'];
+			$current = $preferred[ $vid ] ?? null;
+			$type    = (string) $row['fit_type'];
+			if ( null === $current || self::match_priority( $type ) > self::match_priority( $current['fit_type'] )
+				|| ( TireSpecs::FIT_EQUIV === $type && TireSpecs::FIT_EQUIV === $current['fit_type']
+					&& self::preferred_equivalence( (int) ( $row['approx'] ?? 0 ), (string) $row['equiv_from'], (int) ( $current['approx'] ?? 0 ), (string) $current['equiv_from'] ) ) ) {
+				$preferred[ $vid ] = $row;
+			}
+		}
+		$map = array();
+		foreach ( $preferred as $vid => $row ) {
 			$req = array(
 				'min_load'  => null !== $row['min_load'] ? (int) $row['min_load'] : null,
 				'min_speed' => null !== $row['min_speed_rank'] ? (int) $row['min_speed_rank'] : null,
@@ -458,24 +699,32 @@ final class MatchEngine {
 			if ( ! $chk['ok'] ) {
 				continue;
 			}
-			$vid  = (int) $row['version_id'];
-			$type = (string) $row['fit_type'];
-			if ( isset( $map[ $vid ] ) && self::match_priority( $map[ $vid ]['match'] ) >= self::match_priority( $type ) ) {
-				continue;
-			}
 			$map[ $vid ] = array(
+				'version_id' => (int) $vid,
 				'slug'       => (string) $row['version_slug'],
 				'brand'      => (string) $row['brand_name'],
 				'model'      => (string) $row['model_name'],
 				'aliases'    => (string) $row['aliases'],
 				'years'      => self::format_years( (int) $row['year_from'], (int) $row['year_to'] ),
 				'variant'    => (string) $row['variant'],
-				'match'      => $type,
+				'match'      => (string) $row['fit_type'],
 				'equiv_from' => (string) ( $row['equiv_from'] ?? '' ),
 				'caution'    => $chk['caution'],
 			);
 		}
 		return $map;
+	}
+
+	/**
+	 * Uses the same tie-breaker in both directions before evaluating requirements.
+	 *
+	 * @param int    $approx          Whether the candidate is approximate.
+	 * @param string $source          Candidate OEM size.
+	 * @param int    $current_approx  Whether the current route is approximate.
+	 * @param string $current_source  Current OEM size.
+	 */
+	private static function preferred_equivalence( int $approx, string $source, int $current_approx, string $current_source ): bool {
+		return $approx < $current_approx || ( $approx === $current_approx && strcmp( $source, $current_source ) < 0 );
 	}
 
 	/**
@@ -577,6 +826,20 @@ final class MatchEngine {
 	 */
 	private static function better_match_type( string $a, string $b ): string {
 		return self::match_priority( $a ) >= self::match_priority( $b ) ? $a : $b;
+	}
+
+	/**
+	 * Construction of one axle: the kit sheet value when present, otherwise the product-wide construction.
+	 *
+	 * @param array<string,mixed> $fit  Product index row.
+	 * @param string              $axle 'front' | 'rear'.
+	 */
+	public static function axle_construction( array $fit, string $axle ): string {
+		$own = $fit[ $axle . '_construction' ] ?? null;
+		if ( is_string( $own ) && '' !== $own ) {
+			return $own;
+		}
+		return isset( $fit['construction'] ) && is_string( $fit['construction'] ) ? $fit['construction'] : '';
 	}
 
 	/**

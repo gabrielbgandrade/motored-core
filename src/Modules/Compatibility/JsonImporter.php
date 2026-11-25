@@ -87,7 +87,14 @@ final class JsonImporter {
 		foreach ( $parsed['brands'] as $b_idx => $brand ) {
 			if ( ! is_array( $brand ) || '' === trim( (string) ( $brand['name'] ?? '' ) ) ) {
 				++$counts['rejected'];
-				self::add_msg( $counts, sprintf( 'Brand #%d skipped: missing name.', $b_idx ) );
+				self::add_msg(
+					$counts,
+					sprintf(
+						/* translators: %d: zero-based brand index in JSON payload. */
+						__( 'Brand #%d skipped: missing name.', 'motored-core' ),
+						$b_idx
+					)
+				);
 				continue;
 			}
 			$b_name = trim( (string) $brand['name'] );
@@ -107,7 +114,15 @@ final class JsonImporter {
 			foreach ( $models as $m_idx => $model ) {
 				if ( ! is_array( $model ) || '' === trim( (string) ( $model['name'] ?? '' ) ) ) {
 					++$counts['rejected'];
-					self::add_msg( $counts, sprintf( '%s model #%d skipped: missing name.', $b_name, $m_idx ) );
+					self::add_msg(
+						$counts,
+						sprintf(
+							/* translators: 1: brand name, 2: zero-based model index. */
+							__( '%1$s model #%2$d skipped: missing name.', 'motored-core' ),
+							$b_name,
+							$m_idx
+						)
+					);
 					continue;
 				}
 				$m_name         = trim( (string) $model['name'] );
@@ -129,7 +144,17 @@ final class JsonImporter {
 					$year_to   = (int) ( $v['year_to'] ?? 0 );
 					if ( $year_from < 1950 || $year_from > 2100 || ( $year_to > 0 && $year_to < $year_from ) ) {
 						++$counts['rejected'];
-						self::add_msg( $counts, sprintf( '%s %s skipped: invalid years %d-%d.', $b_name, $m_name, $year_from, $year_to ) );
+						self::add_msg(
+							$counts,
+							sprintf(
+								/* translators: 1: brand, 2: model, 3: start year, 4: end year. */
+								__( '%1$s %2$s skipped: invalid years %3$d-%4$d.', 'motored-core' ),
+								$b_name,
+								$m_name,
+								$year_from,
+								$year_to
+							)
+						);
 						continue;
 					}
 					$variant      = CatalogRepository::clean_variant( (string) ( $v['variant'] ?? '' ) );
@@ -160,7 +185,17 @@ final class JsonImporter {
 						++$counts['versions_new'];
 						if ( null !== $existing_model && CatalogRepository::has_year_overlap( $existing_model['id'], $variant_slug, $year_from, $year_to ) ) {
 							++$counts['overlaps'];
-							self::add_msg( $counts, sprintf( 'Year overlap in DB: %s %s (%d-%d).', $b_name, $m_name, $year_from, $year_to ) );
+							self::add_msg(
+								$counts,
+								sprintf(
+									/* translators: 1: brand, 2: model, 3: start year, 4: end year. */
+									__( 'Year overlap in catalog: %1$s %2$s (%3$d-%4$d).', 'motored-core' ),
+									$b_name,
+									$m_name,
+									$year_from,
+									$year_to
+								)
+							);
 						}
 					}
 
@@ -171,7 +206,19 @@ final class JsonImporter {
 						}
 						if ( CatalogRepository::ranges_overlap( $year_from, $year_to, $prev[0], $prev[1] ) ) {
 							++$counts['overlaps'];
-							self::add_msg( $counts, sprintf( 'Year overlap in file: %s %s (%d-%d vs %d-%d).', $b_name, $m_name, $year_from, $year_to, $prev[0], $prev[1] ) );
+							self::add_msg(
+								$counts,
+								sprintf(
+									/* translators: 1: brand, 2: model, 3: start A, 4: end A, 5: start B, 6: end B. */
+									__( 'Year overlap in file: %1$s %2$s (%3$d-%4$d vs %5$d-%6$d).', 'motored-core' ),
+									$b_name,
+									$m_name,
+									$year_from,
+									$year_to,
+									$prev[0],
+									$prev[1]
+								)
+							);
 						}
 					}
 					$seen_ranges[ $range_key ][] = array( $year_from, $year_to );
@@ -186,12 +233,30 @@ final class JsonImporter {
 					foreach ( $fitments as $fit ) {
 						if ( ! $fit['valid'] ) {
 							++$counts['rejected'];
-							self::add_msg( $counts, sprintf( '%s %s invalid size "%s".', $b_name, $m_name, $fit['raw_size'] ) );
+							self::add_msg(
+								$counts,
+								sprintf(
+									/* translators: 1: brand, 2: model, 3: raw tire size. */
+									__( '%1$s %2$s invalid size "%3$s".', 'motored-core' ),
+									$b_name,
+									$m_name,
+									$fit['raw_size']
+								)
+							);
 							continue;
 						}
 						if ( $fit['suspicious'] ) {
 							++$counts['suspicious'];
-							self::add_msg( $counts, sprintf( '%s %s suspicious rim in "%s".', $b_name, $m_name, $fit['canonical'] ) );
+							self::add_msg(
+								$counts,
+								sprintf(
+									/* translators: 1: brand, 2: model, 3: canonical tire size. */
+									__( '%1$s %2$s suspicious rim in "%3$s".', 'motored-core' ),
+									$b_name,
+									$m_name,
+									$fit['canonical']
+								)
+							);
 						}
 						if ( ! isset( $seen_sizes[ $fit['canonical'] ] ) ) {
 							$seen_sizes[ $fit['canonical'] ] = true;
@@ -219,12 +284,28 @@ final class JsonImporter {
 			$dst = SizeParser::parse( (string) ( $eq['target'] ?? '' ) );
 			if ( null === $src || null === $dst || $src['canonical'] === $dst['canonical'] ) {
 				++$counts['rejected'];
-				self::add_msg( $counts, sprintf( 'Invalid equivalence: %s -> %s.', (string) ( $eq['source'] ?? '' ), (string) ( $eq['target'] ?? '' ) ) );
+				self::add_msg(
+					$counts,
+					sprintf(
+						/* translators: 1: source tire size, 2: target tire size. */
+						__( 'Invalid equivalence: %1$s -> %2$s.', 'motored-core' ),
+						(string) ( $eq['source'] ?? '' ),
+						(string) ( $eq['target'] ?? '' )
+					)
+				);
 				continue;
 			}
 			if ( $src['rim'] !== $dst['rim'] ) {
 				++$counts['rejected'];
-				self::add_msg( $counts, sprintf( 'Invalid equivalence (rim mismatch): %s -> %s.', (string) ( $eq['source'] ?? '' ), (string) ( $eq['target'] ?? '' ) ) );
+				self::add_msg(
+					$counts,
+					sprintf(
+						/* translators: 1: source tire size, 2: target tire size. */
+						__( 'Invalid equivalence (rim mismatch): %1$s -> %2$s.', 'motored-core' ),
+						(string) ( $eq['source'] ?? '' ),
+						(string) ( $eq['target'] ?? '' )
+					)
+				);
 				continue;
 			}
 			if ( SizeParser::is_suspicious_rim( $src['rim'] ) || SizeParser::is_suspicious_rim( $dst['rim'] ) ) {

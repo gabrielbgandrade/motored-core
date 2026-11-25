@@ -5,8 +5,8 @@ translation (voseo). Details live in `docs/`; this file is the short version.
 
 ## Purpose
 Base WordPress/WooCommerce plugin for **Motored Neumáticos** (Argentina). Future modules (WAHA/WhatsApp,
-Notifications, Recovery) plug into it. Stage 1 (current): infrastructure only — no modules, tables or
-external calls. Must NOT depend on the theme (any classic or block theme; classic and Blocks cart/checkout).
+Notifications, Recovery) plug into it. The core registers the feature modules listed in `src/Plugin.php`. Keep external
+calls out of customer requests. Must NOT depend on the theme (any classic or block theme; classic and Blocks cart/checkout).
 Infra: own VPS, Redis object cache, WAHA, Mercado Pago Checkout Pro. `Requires PHP 8.1`; stay 8.3-compatible.
 
 ## Decisions (see docs/PROJECT.md)
@@ -14,12 +14,13 @@ No consent checkbox this phase (opt-out link lives in modules); WhatsApp text on
 frontend always `es_AR`; abandoned-cart AND pending/failed-order recovery are ONE module "Recovery".
 
 ## Non-negotiable rules
-1. **Perf budget:** public pages add 0 queries / 0 HTTP / 0 assets. Checkout: max ONE vanilla `defer`
+1. **Perf budget:** public pages without Motored features add 0 queries / 0 HTTP / 0 assets. Checkout: max ONE vanilla `defer`
    script < 3 KB. No sync external HTTP in customer requests (Action Scheduler). Admin: nothing outside
    plugin screens and WooCommerce > Settings.
 2. **Lazy by context:** own PSR-4 autoloader; modules register hooks only in contexts they use.
 3. **Cache is never the source of truth** (`Support\Cache` only; works with Redis down/cleared).
-4. **Options:** `autoload=false`, one per module (`motored_{module}`).
+4. **Options:** `autoload=false`, one per module (`motored_{module}`). Only exception: modules in
+   `Support\Options::AUTOLOAD_MODULES` (today `bike_pages`, needed by `register_post_type()` on every request).
 5. **Native first:** Woo Settings API, Action Scheduler, `WC_Logger`, WC CRUD (HPOS), `wc-ajax`. No
    jQuery, libraries, admin-ajax or runtime `vendor/`.
 6. **Security:** `manage_woocommerce`, nonces, `$wpdb->prepare`, sanitize in / escape out, secrets as

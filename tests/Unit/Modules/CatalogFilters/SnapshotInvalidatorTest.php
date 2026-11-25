@@ -75,4 +75,15 @@ final class SnapshotInvalidatorTest extends TestCase {
 		$this->assertSame( $prev, FacetEngine::snapshot() );
 		unset( $GLOBALS['wpdb'] );
 	}
+
+	public function test_change_during_rebuild_stays_pending(): void {
+		SnapshotInvalidator::mark_dirty();
+		$started = SnapshotInvalidator::generation();
+		SnapshotInvalidator::reset();
+		SnapshotInvalidator::mark_dirty();
+		SnapshotInvalidator::finish_rebuild( true, $started );
+
+		Cache::set( SnapshotInvalidator::LAST_BUILD_KEY, time() - SnapshotInvalidator::REBUILD_COOLDOWN - 1, 86400, SnapshotInvalidator::BUCKET );
+		$this->assertTrue( SnapshotInvalidator::should_rebuild_now() );
+	}
 }

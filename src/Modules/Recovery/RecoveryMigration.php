@@ -25,7 +25,9 @@ final class RecoveryMigration {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		}
 		foreach ( self::statements( Db::table( 'recoveries' ), Db::table( 'recovery_events' ), Db::charset_collate() ) as $sql ) {
-			dbDelta( $sql );
+			if ( ! Db::apply_schema( $sql ) ) {
+				return false;
+			}
 		}
 		return true;
 	}

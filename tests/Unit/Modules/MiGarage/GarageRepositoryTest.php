@@ -1,8 +1,8 @@
 <?php
-namespace Motored\Core\Tests\Unit\Modules\Compatibility;
+namespace Motored\Core\Tests\Unit\Modules\MiGarage;
 
 use Brain\Monkey\Functions;
-use Motored\Core\Modules\Compatibility\GarageRepository;
+use Motored\Core\Modules\MiGarage\GarageRepository;
 use Motored\Core\Tests\Unit\TestCase;
 
 final class GarageRepositoryTest extends TestCase {
@@ -68,5 +68,11 @@ final class GarageRepositoryTest extends TestCase {
 		$g = GarageRepository::remove_bike( 7, 'fz16' );
 		$this->assertSame( '', $g['active'] );
 		$this->assertArrayNotHasKey( 7, $this->user_meta );
+	}
+
+	public function test_failed_save_does_not_return_an_unsaved_garage(): void {
+		Functions\when( 'update_user_meta' )->justReturn( false );
+		$this->expectException( \RuntimeException::class );
+		GarageRepository::add_bike( 7, 'fz16', 'Yamaha FZ16' );
 	}
 }

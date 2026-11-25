@@ -15,6 +15,28 @@ defined( 'ABSPATH' ) || exit;
 final class Db {
 
 	/**
+	 * Acquires a database-backed lock without overwriting another owner.
+	 *
+	 * @param string $name Option name reserved for the lock.
+	 */
+	public static function acquire_option_lock( string $name ): bool {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic insert using the unique option_name index.
+		return 1 === $wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)', $wpdb->options, $name, 'locked', 'off' ) );
+	}
+
+	/**
+	 * Applies and verifies a dbDelta table definition.
+	 *
+	 * @param string $sql CREATE TABLE statement.
+	 */
+	public static function apply_schema( string $sql ): bool {
+		global $wpdb;
+		dbDelta( $sql );
+		return empty( $wpdb->last_error ) && array() === dbDelta( $sql, false ) && empty( $wpdb->last_error );
+	}
+
+	/**
 	 * Common prefix for plugin tables ("{wpdb prefix}motored_").
 	 */
 	public static function prefix(): string {

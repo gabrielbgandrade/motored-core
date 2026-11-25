@@ -23,6 +23,43 @@ final class OptionsTest extends TestCase {
 		$this->assertFalse( $this->autoload['motored_general'] );
 	}
 
+	public function test_only_bike_pages_is_autoloaded_and_sync_flips_it_once(): void {
+		$this->fake_storage();
+		// The single documented exception: every other module stays autoload=false.
+		$this->assertSame( array( 'bike_pages' ), Options::AUTOLOAD_MODULES );
+		$this->assertFalse( Options::autoload( 'compatibility' ) );
+		Options::update( 'bike_pages', array( 'base_slug' => 'cubiertas-para' ) );
+		$this->assertTrue( $this->autoload['motored_bike_pages'] );
+
+		$flipped = array();
+		Functions\when( 'wp_set_option_autoload' )->alias(
+			static function ( $name, $autoload ) use ( &$flipped ): bool {
+				$flipped[] = array( $name, $autoload );
+				return true;
+			}
+		);
+		// Stored but not in alloptions (created before the exception) -> flipped.
+		Functions\when( 'wp_load_alloptions' )->justReturn( array() );
+		Options::sync_autoload( 'bike_pages' );
+		$this->assertSame( array( array( 'motored_bike_pages', true ) ), $flipped );
+
+		// Never saved -> created EMPTY and autoloaded (a missing option is a query on every request); defaults stay
+		// in code, so a later default change still applies.
+		unset( $this->options['motored_bike_pages'], $this->autoload['motored_bike_pages'] );
+		Options::register_defaults( 'bike_pages', array( 'base_slug' => 'cubiertas-para' ) );
+		Options::sync_autoload( 'bike_pages' );
+		$this->assertSame( array(), $this->options['motored_bike_pages'] );
+		$this->assertSame( 'cubiertas-para', Options::get( 'bike_pages', 'base_slug' ) );
+		$this->assertTrue( $this->autoload['motored_bike_pages'] );
+		$this->assertCount( 1, $flipped );
+
+		// Already autoloaded -> no write. Other modules -> never touched.
+		Functions\when( 'wp_load_alloptions' )->justReturn( array( 'motored_bike_pages' => 'x' ) );
+		Options::sync_autoload( 'bike_pages' );
+		Options::sync_autoload( 'compatibility' );
+		$this->assertCount( 1, $flipped );
+	}
+
 	public function test_update_merges_with_stored_values(): void {
 		$this->fake_storage();
 		$this->options['motored_general'] = array( 'a' => 1 );

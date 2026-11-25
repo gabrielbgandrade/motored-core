@@ -12,7 +12,7 @@ and unpaid orders), review photos, review requests and payment plans.
 
 | Tool       | Version | Needed for                                              |
 | ---------- | ------- | ------------------------------------------------------- |
-| PHP CLI    | 8.1+    | everything (`php -v` to check)                          |
+| PHP CLI    | 8.2+    | locked development tools; use 8.3 for the local site     |
 | Composer   | 2.x     | dev dependencies (phpcs, PHPStan, PHPUnit, WP stubs)    |
 | Git        | any     | cloning and contributing                                |
 | WordPress  | 6.8+    | running the plugin (not needed for unit tests)          |
@@ -20,6 +20,30 @@ and unpaid orders), review photos, review requests and payment plans.
 
 Optional: `zip` for `bin/build-zip.sh`; GNU gettext (`xgettext`, `msgmerge`, `msgfmt`) or WP-CLI for
 `bin/i18n.sh`; Redis object cache; a WAHA server for WhatsApp messages.
+
+## WordPress Studio on Windows
+
+Create a site with PHP 8.3, install WooCommerce and create a directory junction from
+`<Studio site>/wp-content/plugins/motored-core` to this checkout. Run this from the repository root:
+
+```powershell
+$studioSite = 'C:\path\to\studio-site'
+New-Item -ItemType Junction -Path (Join-Path $studioSite 'wp-content\plugins\motored-core') -Target (Get-Location).Path
+```
+
+Activate Motored Core in the local dashboard. Reload after edits and disable the browser cache
+while debugging CSS or JavaScript. Use the Studio database for local development and run schema,
+queue, Redis and HPOS checks on a production-like installation.
+
+## Checkout and data retention
+
+PaymentPlans supports classic checkout. Motored Core declares Cart and Checkout Blocks incompatible
+while the classic-only feature ships in the plugin.
+
+Deactivation cancels the Motored Action Scheduler group and preserves data. Uninstall also preserves
+data by default. Enabling **Delete data on uninstall** removes Motored options, custom tables, cached
+transients and selected metadata. WooCommerce order history and attributes are preserved.
+See `uninstall.php` for the exact list.
 
 ## Setup on a new machine
 

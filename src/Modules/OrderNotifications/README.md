@@ -42,6 +42,16 @@ Edited in WooCommerce > Settings > Motored > Messages:
 ## Performance and security notes
 Never loads on public GET pages (`should_load` returns false). Checkout/webhook listeners perform at most 1 option read + 1 meta check per active event + 1 AS insert. All order reads/meta/notes use WC CRUD (HPOS-ready). Admin save checks `manage_woocommerce` + nonce + `sanitize_textarea_field`. Logs and order notes never include phone numbers or message text. No theme dependency.
 
+## Motorcycle stock subscriptions
+`BikeDemandNotifier` consumes the BikePages demand contract without coupling business messages into the WAHA transport. Kind `bike_stock_alert`; handlers are registered in worker contexts even when individual order messages are disabled. It uses BikePages `notify_enabled` plus WAHA OFF/test/live safety switches, not the order-event toggles.
+
+- `motored_bike_demand_created`, `motored_compat_product_index_changed`, `motored_compat_catalog_changed` enqueue a unique cursor scan; no HTTP is performed in request listeners.
+- AS hooks: `motored_bike_demand_scan` (50 IDs per page), `motored_bike_demand_delivery_daily`, `motored_bike_demand_mail` (ID + bounded attempt). The daily action is installed on admin requests, not frontend GET.
+- Business state/contacts live in `BikePages\\DemandStore`, not order meta or scheduler payloads. Stock/visibility/purchasability are rechecked at delivery. Compare-and-swap claims prevent duplicate active workers; completed results do not trigger a second delivery.
+- WAHA retries first; terminal reachability failures can fall back to the account's saved email. No phone means native WooCommerce email directly, provided live delivery is enabled. Disabled/test transport, missing configuration and authentication errors pause instead of bypassing the safety switch with real email.
+- E-mail is a native `WC_Email` (`Emails\StockAlertEmail`, key `WC_Email_Motored_Stock_Alert`, templates `templates/emails/motored-stock-alert.php` + `plain/`, overridable from the theme like any WooCommerce e-mail). The owner enables/disables it and edits subject (`{site_title}`, `{bike}`), heading and additional text in WooCommerce > Settings > Emails. Disabled = alerts with only e-mail stay `paused` (`email_disabled`) and a WhatsApp failure does not fall back to e-mail (row `failed`). The `motored_bike_demand_message` filter applies to the WhatsApp text only. E-mail acceptance is not proof of inbox delivery. Signed cancellation links contain no contact data. Explicit renewed consent can reactivate a completed/failed one-shot subscription.
+- See `BikePages/README.md` for migration `2026112407`, lifecycle states, legacy rows and process-crash limitations. Local delivery verification blocked HTTP and intercepted mail; real WAHA delivery remains a staging/configuration check.
+
 ## How to test
 - Unit: `vendor/bin/phpunit tests/Unit/Modules/OrderNotifications` (Renderer, EventMap, Notifier idempotency/skip rules/private notes, Module contexts).
 - Staging: see the OrderNotifications section of `docs/STAGING-CHECKLIST.md`.
@@ -50,4 +60,5 @@ Never loads on public GET pages (`should_load` returns false). Checkout/webhook 
 Per-note idempotency uses `md5($note)`, so re-adding the exact same customer note text is suppressed. Sending depends on the `Waha` module being configured and healthy.
 
 ## Changelog
+- 0.4.0 — 2026-11-24 — Added BikePages stock-alert consumer, WAHA-first delivery, terminal email fallback, safety switches, bounded scans/retries and delivery tests.
 - 0.3.0 — 2026-11-17 — initial OrderNotifications module implementation.

@@ -23,9 +23,11 @@ final class Ui {
 	 * Prints the opening of a scrollable table. Close it with table_close().
 	 *
 	 * @param bool $compact Two-column read-only table (no minimum width).
+	 * @param bool $wide    Multi-column editable table that needs extra horizontal width before scrolling.
 	 */
-	public static function table_open( bool $compact = false ): void {
-		echo '<div class="motored-table-wrap"><table class="widefat striped ' . esc_attr( self::TABLE . ( $compact ? ' motored-table--compact' : '' ) ) . '">';
+	public static function table_open( bool $compact = false, bool $wide = false ): void {
+		$mods = ( $compact ? ' motored-table--compact' : '' ) . ( $wide ? ' motored-table--wide' : '' );
+		echo '<div class="motored-table-wrap"><table class="widefat striped ' . esc_attr( self::TABLE . $mods ) . '">';
 	}
 
 	/**

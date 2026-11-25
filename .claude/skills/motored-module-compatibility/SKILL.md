@@ -5,10 +5,13 @@ description: Rules for the Compatibility + Mi Garage module (tire size parser, g
 
 # Module Compatibility
 Read `src/Modules/Compatibility/README.md` and `docs/COMPATIBILITY-PHASES.md` first.
+Mi Garage owns account state and privacy in `src/Modules/MiGarage/`.
 
 - **Simple products only (units + kits):** `motored_compat_product_index` uses `product_id` PK (never `variation_id`). Kits (`Posición = Kit`) NEVER copy `ancho`/`perfil`/`rodado` or infer `min(front, rear)` load/speed.
+- **Kit sheet:** per-axle load/speed/construction/tube live ONLY in `_motored_tire_spec` (`KitSpec`), never in `indice-carga`/`indice-velocidad` terms (CatalogFilters facets exclude kits; a term would desync the native filter from the counts). Construction/tube terms only when both axles agree; model may have two terms. The index trusts the sheet only while `KitSpec::matches_sizes()` holds; the sheet is part of `terms_hash`. Marker keys `fc`/`rc` are optional and `ev()` falls back to `c`.
 - **Sizes & ETRTO order:** Always treat imperial widths (`4.10-18`, `3.00-18`) as strings (`SizeParser`). `pa_indice-velocidad` uses `menu_order` (non-alphabetical ETRTO ranks); `pa_medida-delantera`/`pa_medida-trasera` use `name` (never `name_num`).
 - **Equivalences:** Directed (`source -> target`), 1-hop ONLY from `oem` fitments, never transitive.
+  When two OEM routes have the same target, prefer the exact route, then the canonical OEM size, in both lookup directions before testing requirements.
 - **Performance & Redis:** `register()` reads nothing; `CompatCache` uses `Support\Cache` ONLY when `Cache::is_persistent()` is true. Product sync hashes our 6 taxonomies so ERP price/stock updates write 0 rows.
 - **Page-cache safety & JS:** `<span hidden data-motored-fit>` keeps HTML identical; keep `assets/js/compat-*.js` strictly vanilla `defer` within byte limits.
 - **Admin UI & Uninstall:** `CompatibilityAdmin` must use `Admin\Ui` + `motored-admin.css` only (`SharedAdminUiTest`); `uninstall.php` drops `motored_compat_*` tables + `_motored_garage` user meta, NEVER WooCommerce `pa_*` attributes/terms.

@@ -7,7 +7,7 @@
 
 namespace Motored\Core\Modules\CatalogFilters;
 
-use Motored\Core\Modules\Compatibility\Storefront as CompatStorefront;
+use Motored\Core\Modules\MiGarage\GarageAssets;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -48,7 +48,7 @@ final class SearchShortcode {
 		$uid           = 'motored-busc-' . wp_unique_id();
 
 		if ( $compat_active ) {
-			CompatStorefront::enqueue_garage_script();
+			GarageAssets::enqueue();
 		}
 		StorefrontAssets::enqueue_search_js();
 

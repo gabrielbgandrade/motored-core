@@ -49,8 +49,17 @@ final class QueryFilterTest extends TestCase {
 		$this->assertSame( array(), $qf->robots_noindex( array() ) );
 
 		$_GET['filter_rodado'] = '17';
-		$robots                = $qf->robots_noindex( array( 'max-image-preview' => 'large' ) );
+		$this->assertSame( array(), $qf->robots_noindex( array() ) );
+		$query = \Mockery::mock( \WP_Query::class );
+		$query->shouldReceive( 'get' )->with( 'wc_query' )->andReturn( 'product_query' );
+		$previous = $GLOBALS['wp_query'] ?? null;
+		$GLOBALS['wp_query'] = $query;
+		try {
+			$robots = $qf->robots_noindex( array( 'nofollow' => true ) );
+		} finally {
+			$GLOBALS['wp_query'] = $previous;
+		}
 		$this->assertTrue( $robots['noindex'] );
-		$this->assertTrue( $robots['follow'] );
+		$this->assertTrue( $robots['nofollow'] );
 	}
 }

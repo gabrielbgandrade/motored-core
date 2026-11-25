@@ -86,6 +86,34 @@
 			"expect": { "ok": true, "positions": ["front", "rear"], "match": "equiv", "caution": false, "from": "3.00-19 / 4.60-17" }
 		},
 		{
+			"name": "kit sheet: each axle meets its own construction rule",
+			"strict": true,
+			"profile": { "front": { "110/70-17": { "type": "oem", "from": "", "min_load": 54, "min_speed": 12, "req_const": "radial" } }, "rear": { "140/70-17": { "type": "oem", "from": "", "min_load": 66, "min_speed": 12, "req_const": "diagonal" } } },
+			"fit": { "position": "kit", "front_canonical": "110/70-17", "rear_canonical": "140/70-17", "front_load": 54, "rear_load": 66, "front_speed_rank": 12, "rear_speed_rank": 12, "construction": null, "front_construction": "radial", "rear_construction": "diagonal" },
+			"expect": { "ok": true, "positions": ["front", "rear"], "match": "oem", "caution": false, "from": "" }
+		},
+		{
+			"name": "kit sheet: rear construction mismatch fails the kit",
+			"strict": false,
+			"profile": { "front": { "120/70-17": { "type": "oem", "from": "", "min_load": null, "min_speed": null, "req_const": "radial" } }, "rear": { "180/55-17": { "type": "oem", "from": "", "min_load": null, "min_speed": null, "req_const": "radial" } } },
+			"fit": { "position": "kit", "front_canonical": "120/70-17", "rear_canonical": "180/55-17", "front_load": 58, "rear_load": 73, "front_speed_rank": 15, "rear_speed_rank": 15, "construction": null, "front_construction": "radial", "rear_construction": "diagonal" },
+			"expect": { "ok": false, "positions": [], "match": "", "caution": false, "from": "" }
+		},
+		{
+			"name": "kit sheet: rear load below the bike minimum fails the kit",
+			"strict": false,
+			"profile": { "front": { "100/80-17": { "type": "oem", "from": "", "min_load": 52, "min_speed": null, "req_const": "" } }, "rear": { "130/70-17": { "type": "oem", "from": "", "min_load": 62, "min_speed": null, "req_const": "" } } },
+			"fit": { "position": "kit", "front_canonical": "100/80-17", "rear_canonical": "130/70-17", "front_load": 52, "rear_load": 58, "front_speed_rank": 9, "rear_speed_rank": 9, "construction": "diagonal", "front_construction": "diagonal", "rear_construction": "diagonal" },
+			"expect": { "ok": false, "positions": [], "match": "", "caution": false, "from": "" }
+		},
+		{
+			"name": "kit without sheet keeps the legacy caution on a construction rule",
+			"strict": false,
+			"profile": { "front": { "120/70-17": { "type": "oem", "from": "", "min_load": null, "min_speed": null, "req_const": "radial" } }, "rear": { "180/55-17": { "type": "oem", "from": "", "min_load": null, "min_speed": null, "req_const": "radial" } } },
+			"fit": { "position": "kit", "front_canonical": "120/70-17", "rear_canonical": "180/55-17", "front_load": null, "rear_load": null, "front_speed_rank": null, "rear_speed_rank": null, "construction": null },
+			"expect": { "ok": true, "positions": ["front", "rear"], "match": "oem", "caution": true, "from": "" }
+		},
+		{
 			"name": "size not in profile fails",
 			"strict": false,
 			"profile": { "front": { "90/90-21": { "type": "oem", "from": "", "min_load": null, "min_speed": null, "req_const": "" } }, "rear": {} },

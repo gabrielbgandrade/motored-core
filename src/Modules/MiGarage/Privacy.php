@@ -5,7 +5,7 @@
  * @package Motored\Core
  */
 
-namespace Motored\Core\Modules\Compatibility;
+namespace Motored\Core\Modules\MiGarage;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -120,12 +120,10 @@ final class Privacy {
 		}
 		$existing = GarageRepository::get( (int) $user->ID );
 		$had      = ! empty( $existing['bikes'] );
-		if ( $had ) {
-			delete_user_meta( (int) $user->ID, GarageRepository::META_KEY );
-		}
+		$removed  = $had && delete_user_meta( (int) $user->ID, GarageRepository::META_KEY );
 		return array(
-			'items_removed'  => $had,
-			'items_retained' => false,
+			'items_removed'  => $removed,
+			'items_retained' => $had && ! $removed,
 			'messages'       => array(),
 			'done'           => true,
 		);

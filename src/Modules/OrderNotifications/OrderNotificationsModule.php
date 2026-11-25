@@ -52,7 +52,12 @@ final class OrderNotificationsModule implements Module {
 		OrderHooks::register_customer_note( array( $notifier, 'on_customer_note' ) );
 
 		$context = new Context();
-		if ( $context->is_admin() || $context->is_cron() || $context->is_ajax() || $context->is_cli() ) {
+		$worker  = $context->is_admin() || $context->is_cron() || $context->is_ajax() || $context->is_cli();
+		( new BikeDemandNotifier() )->register( $worker );
+		if ( $context->is_admin_screen() ) {
+			add_action( 'admin_init', array( BikeDemandNotifier::class, 'ensure_schedule' ) );
+		}
+		if ( $worker ) {
 			Sender::register_handler( EventMap::KIND, array( $notifier, 'build_message' ) );
 			add_action( Sender::RESULT_HOOK, array( $notifier, 'on_result' ), 10, 4 );
 		}

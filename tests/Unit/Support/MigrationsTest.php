@@ -11,6 +11,19 @@ final class MigrationsTest extends TestCase {
 		parent::setUp();
 		$this->fake_storage();
 		$this->fake_logger();
+		$wpdb = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->options = 'wp_options';
+		$wpdb->shouldReceive( 'prepare' )->andReturnArg( 0 );
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function () {
+				if ( isset( $this->options[ Migrations::LOCK ] ) ) {
+					return 0;
+				}
+				$this->options[ Migrations::LOCK ] = 'locked';
+				return 1;
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	public function test_runs_in_id_order_and_stores_version_without_autoload(): void {
@@ -97,8 +110,26 @@ final class MigrationsTest extends TestCase {
 
 	public function test_lock_is_released_after_run(): void {
 		$migrations = new Migrations( array( '2026010101' => fn() => true ) );
-		$migrations->run();
-		$this->assertTrue( \Motored\Core\Support\Cache::add( 'migrations_lock', 1, 60, 'migrations' ) );
+		$this->assertSame( 1, $migrations->run() );
+		$this->assertArrayNotHasKey( Migrations::LOCK, $this->options );
+	}
+
+	public function test_existing_lock_prevents_a_second_writer(): void {
+		$this->options[ Migrations::LOCK ] = 'locked';
+		$migrations = new Migrations( array( '2026010101' => fn() => $this->fail( 'A second writer acquired the lock.' ) ) );
+		$this->assertSame( 0, $migrations->run() );
+		$this->assertSame( 'locked', $this->options[ Migrations::LOCK ] );
+	}
+
+	public function test_failed_version_write_stops_remaining_migrations(): void {
+		Functions\when( 'update_option' )->justReturn( false );
+		$migrations = new Migrations(
+			array(
+				'2026010101' => fn() => true,
+				'2026010102' => fn() => $this->fail( 'The next migration ran after a failed write.' ),
+			)
+		);
+		$this->assertSame( 0, $migrations->run() );
 	}
 
 	public function test_empty_registry_performs_no_io(): void {

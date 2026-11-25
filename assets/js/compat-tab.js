@@ -61,7 +61,23 @@
 				name.textContent = row.brand + ': ';
 				var models = document.createElement('span');
 				models.className = 'motored-compat-list__models';
-				models.textContent = row.text;
+				if (Array.isArray(row.entries) && row.entries.length) {
+					row.entries.forEach(function (entry, eIdx) {
+						if (entry.url) {
+							var a = document.createElement('a');
+							a.href = entry.url;
+							a.textContent = entry.text || '';
+							models.appendChild(a);
+						} else {
+							models.appendChild(document.createTextNode(entry.text || ''));
+						}
+						if (eIdx + 1 < row.entries.length) {
+							models.appendChild(document.createTextNode('; '));
+						}
+					});
+				} else {
+					models.textContent = row.text;
+				}
 				li.appendChild(name);
 				li.appendChild(models);
 				grid.appendChild(li);

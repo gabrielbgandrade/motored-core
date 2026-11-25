@@ -149,7 +149,19 @@ final class GalleryAdmin {
 			wp_die( esc_html__( 'You are not allowed to do this.', 'motored-core' ), '', array( 'response' => 403 ) );
 		}
 		check_admin_referer( self::SYNC_NONCE_ACTION, self::SYNC_NONCE_FIELD );
-		$count = GalleryStore::rebuild_all();
+		try {
+			$count = GalleryStore::rebuild_all();
+		} catch ( \RuntimeException $exception ) {
+			\Motored\Core\Support\Logger::error( 'Gallery rebuild failed.' );
+			wp_die(
+				esc_html__( 'Action could not be completed.', 'motored-core' ),
+				'',
+				array(
+					'response'  => 500,
+					'back_link' => true,
+				)
+			);
+		}
 		Cache::set(
 			'notice:' . get_current_user_id(),
 			array(
@@ -276,7 +288,7 @@ final class GalleryAdmin {
 		wp_enqueue_script(
 			self::HANDLE,
 			MOTORED_CORE_URL . 'assets/admin/motored-install-gallery.js',
-			array( 'media-views' ),
+			array( 'media-editor' ),
 			MOTORED_CORE_VERSION,
 			true
 		);

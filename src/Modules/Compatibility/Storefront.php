@@ -9,7 +9,9 @@ namespace Motored\Core\Modules\Compatibility;
 
 use Motored\Core\Integration\WooCommerce\AttributeHooks;
 use Motored\Core\Integration\WooCommerce\CompatibilityHooks;
-use Motored\Core\Modules\CatalogFilters\StorefrontAssets;
+use Motored\Core\Support\StorefrontAssets;
+use Motored\Core\Modules\MiGarage\GarageAssets;
+use Motored\Core\Modules\MiGarage\GarageEndpoint;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -22,7 +24,6 @@ final class Storefront {
 	public const COMPAT_LIST_SHORTCODE = 'motored_compat_list';
 	public const FULL_SIZE_META        = '_motored_full_size';
 	public const HANDLE_SELECTOR       = 'motored-compat-selector';
-	public const HANDLE_GARAGE         = 'motored-compat-garage';
 	public const HANDLE_TAB            = 'motored-compat-tab';
 
 	/**
@@ -31,13 +32,6 @@ final class Storefront {
 	 * @var array<int,array<string,mixed>|false>
 	 */
 	private static array $primed_fits = array();
-
-	/**
-	 * Per-request flag preventing repeated script/config localization for compat-garage.js.
-	 *
-	 * @var bool
-	 */
-	private static bool $garage_enqueued = false;
 
 	/**
 	 * Per-request flag preventing repeated script/config localization for compat-selector.js.
@@ -109,14 +103,15 @@ final class Storefront {
 	}
 
 	/**
-	 * Adds `noindex, follow` on ?moto= filtered URLs without blocking crawl in robots.txt.
+	 * Adds `noindex, follow` on ?moto= catalog URLs without blocking crawl in robots.txt.
+	 * Never noindexes product pages or the homepage when a ?moto= link is shared.
 	 *
 	 * @param mixed $robots Robots directives.
 	 * @return array<string,mixed>
 	 */
 	public function robots_noindex( $robots ): array {
 		$robots = is_array( $robots ) ? $robots : array();
-		if ( '' !== self::requested_moto_slug() && Config::enabled() ) {
+		if ( self::is_catalog_request() && '' !== self::requested_moto_slug() && Config::enabled() ) {
 			$robots['noindex']  = true;
 			$robots['nofollow'] = false;
 			$robots['follow']   = true;
@@ -125,45 +120,42 @@ final class Storefront {
 	}
 
 	/**
-	 * Enqueues compat-garage.js only on WooCommerce catalog/product/account views when enabled.
+	 * Enqueues compat.css in <head> and compat-garage.js ONLY on views that actually render compatibility or Mi Garage UI.
 	 */
 	public function maybe_enqueue_catalog_assets(): void {
-		if ( ! Config::enabled() ) {
+		// Cheap conditionals first: unrelated pages (home, pages, cart, checkout) never read the option (0 queries).
+		$is_product = function_exists( 'is_product' ) && is_product();
+		$is_account = function_exists( 'is_account_page' ) && is_account_page();
+		$is_catalog = self::is_catalog_request();
+		if ( ( ! $is_catalog && ! $is_product && ! $is_account ) || ! Config::enabled() ) {
 			return;
 		}
-		$is_wc = ( function_exists( 'is_shop' ) && is_shop() )
-			|| ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() )
-			|| ( function_exists( 'is_product' ) && is_product() )
-			|| ( function_exists( 'is_account_page' ) && is_account_page() );
-		if ( $is_wc ) {
-			self::enqueue_garage_script();
-		}
-	}
-
-	/**
-	 * Enqueues the client-side Mi Garage & badge script once per request.
-	 */
-	public static function enqueue_garage_script(): void {
-		if ( self::$garage_enqueued ) {
+		if ( $is_catalog ) {
+			StorefrontAssets::enqueue_compat_css();
+			GarageAssets::enqueue();
 			return;
 		}
-		self::$garage_enqueued = true;
-		wp_enqueue_script(
-			self::HANDLE_GARAGE,
-			MOTORED_CORE_URL . 'assets/js/compat-garage.js',
-			array(),
-			MOTORED_CORE_VERSION,
-			array(
-				'strategy'  => 'defer',
-				'in_footer' => true,
-			)
-		);
-		$cfg = self::client_config();
-		wp_add_inline_script(
-			self::HANDLE_GARAGE,
-			'window.motoredCompatCfg=' . wp_json_encode( $cfg ) . ';',
-			'before'
-		);
+		if ( $is_product ) {
+			$pid = function_exists( 'get_queried_object_id' ) ? (int) get_queried_object_id() : 0;
+			if ( $pid > 0 && null !== self::fit_for_product( $pid ) ) {
+				StorefrontAssets::enqueue_compat_css();
+				GarageAssets::enqueue();
+			}
+			return;
+		}
+		if ( $is_account ) {
+			$is_garage = function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( GarageEndpoint::ENDPOINT );
+			if ( $is_garage ) {
+				StorefrontAssets::enqueue_compat_css();
+				GarageAssets::enqueue();
+				return;
+			}
+			// Preserve shared-computer logout cleanup on /mi-cuenta/ without shipping JS to every account tab.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Cookie presence flag only.
+			if ( isset( $_COOKIE[ GarageEndpoint::LOGOUT_COOKIE ] ) ) {
+				GarageAssets::enqueue();
+			}
+		}
 	}
 
 	/**
@@ -175,17 +167,31 @@ final class Storefront {
 		}
 		self::$selector_enqueued = true;
 		StorefrontAssets::enqueue_ui_js();
-		self::enqueue_garage_script();
+		do_action( 'motored_compat_selector_assets' );
 		wp_enqueue_script(
 			self::HANDLE_SELECTOR,
 			MOTORED_CORE_URL . 'assets/js/compat-selector.js',
-			array( StorefrontAssets::HANDLE_UI, self::HANDLE_GARAGE ),
-			MOTORED_CORE_VERSION,
+			array( StorefrontAssets::HANDLE_UI ),
+			MOTORED_CORE_VERSION . '-selector2',
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,
 			)
 		);
+		$config = array(
+			'restBase' => untrailingslashit( rest_url( RestController::NAMESPACE ) ),
+			'shopUrl'  => Config::shop_url(),
+			'i18n'     => array(
+				'brandPlaceholder' => __( 'Select brand...', 'motored-core' ),
+				'modelPlaceholder' => __( 'Select model...', 'motored-core' ),
+				'yearPlaceholder'  => __( 'Select year...', 'motored-core' ),
+				'varPlaceholder'   => __( 'Select version...', 'motored-core' ),
+				'loading'          => __( 'Loading...', 'motored-core' ),
+				'noModels'         => __( 'No models available', 'motored-core' ),
+				'loadSelectErr'    => __( 'Could not load options. Please try again.', 'motored-core' ),
+			),
+		);
+		wp_add_inline_script( self::HANDLE_SELECTOR, 'window.motoredCompatSelectorCfg=' . wp_json_encode( $config ) . ';', 'before' );
 	}
 
 	/**
@@ -207,7 +213,6 @@ final class Storefront {
 		$mode = 'garage' === $atts['mode'] ? 'garage' : 'shop';
 
 		StorefrontAssets::enqueue_compat_css();
-		self::enqueue_garage_script();
 		self::enqueue_selector_script();
 
 		return self::selector_form_html( $mode, false );
@@ -257,11 +262,11 @@ final class Storefront {
 				</div>
 			</div>
 			<div class="motored-compat-selector__actions">
-				<button type="submit" class="button alt" data-role="submit" disabled>
+				<button type="submit" class="button alt wp-element-button" data-role="submit" disabled>
 					<?php echo esc_html( $btn_label ); ?>
 				</button>
 				<?php if ( 'check' === $mode ) : ?>
-					<button type="button" class="button motored-compat-selector__cancel" data-role="cancel">
+					<button type="button" class="button wp-element-button motored-compat-selector__cancel" data-role="cancel">
 						<?php esc_html_e( 'Cancel', 'motored-core' ); ?>
 					</button>
 				<?php endif; ?>
@@ -278,9 +283,10 @@ final class Storefront {
 	 * @param mixed $query WP_Query instance.
 	 */
 	public function filter_product_query( $query ): void {
-		if ( ! $query instanceof \WP_Query || ! Config::enabled() ) {
+		if ( ! $query instanceof \WP_Query || ! $query->is_main_query() || ! self::is_catalog_request() || ! Config::enabled() ) {
 			return;
 		}
+		$query->set( 'motored_prime_fits', true );
 		$moto = self::requested_moto_slug();
 		if ( '' === $moto ) {
 			return;
@@ -312,12 +318,12 @@ final class Storefront {
 	 * @return array<string,mixed>
 	 */
 	public function filter_block_query_vars( $query_vars, $block = null ): array {
-		unset( $block );
 		$vars = is_array( $query_vars ) ? $query_vars : array();
-		if ( ! Config::enabled() ) {
+		if ( ! $block instanceof \WP_Block || empty( $block->context['query']['isProductCollectionBlock'] ) || ! Config::enabled() ) {
 			return $vars;
 		}
-		if ( isset( $vars['post_type'] ) && ! in_array( 'product', (array) $vars['post_type'], true ) ) {
+		$vars['motored_prime_fits'] = true;
+		if ( empty( $block->context['query']['inherit'] ) || ! self::is_catalog_request() ) {
 			return $vars;
 		}
 		$moto = self::requested_moto_slug();
@@ -382,8 +388,10 @@ final class Storefront {
 	 * @return mixed
 	 */
 	public function prime_loop_fits( $posts, $query = null ) {
-		unset( $query );
-		if ( ! is_array( $posts ) || empty( $posts ) || is_admin() || ! Config::enabled() ) {
+		if ( ! is_array( $posts ) || empty( $posts ) || is_admin() ) {
+			return $posts;
+		}
+		if ( $query instanceof \WP_Query && ! $query->is_main_query() && ! $query->get( 'motored_prime_fits' ) ) {
 			return $posts;
 		}
 		$ids = array();
@@ -395,7 +403,7 @@ final class Storefront {
 				}
 			}
 		}
-		if ( empty( $ids ) ) {
+		if ( empty( $ids ) || ! Config::enabled() ) {
 			return $posts;
 		}
 		$rows = ProductIndexRepository::find_many( $ids );
@@ -431,13 +439,13 @@ final class Storefront {
 			}
 			self::$bar_rendered = true;
 			StorefrontAssets::enqueue_compat_css();
-			self::enqueue_garage_script();
+			GarageAssets::enqueue();
 			// Identical for every visitor: compat-garage.js fills it only when a Mi Garage bike is active.
 			return '<div class="motored-garage-cta" data-role="garage-cta" aria-live="polite" hidden></div>';
 		}
 		self::$bar_rendered = true;
 		StorefrontAssets::enqueue_compat_css();
-		self::enqueue_garage_script();
+		GarageAssets::enqueue();
 		$clear   = remove_query_arg( array( 'moto', 'pos', 'paged' ) );
 		$profile = MatchEngine::bike_profile( $moto );
 		if ( null === $profile ) {
@@ -445,23 +453,33 @@ final class Storefront {
 				. ' <a class="motored-compat-bar__clear" href="' . esc_url( $clear ) . '">' . esc_html__( 'Clear filter', 'motored-core' ) . '</a></p></div>';
 		}
 		$active_pos = self::requested_position();
-		$tabs       = array(
+		// Same partition as the grid below (MatchEngine::matching_ids_by_position()): a tab count always matches its grid.
+		$counts    = MatchEngine::matching_product_counts( (string) $profile['slug'] );
+		$tabs      = array(
 			''                   => __( 'All', 'motored-core' ),
-			TireSpecs::POS_FRONT => __( 'Front', 'motored-core' ),
-			TireSpecs::POS_REAR  => __( 'Rear', 'motored-core' ),
-			TireSpecs::POS_KIT   => __( 'Kits', 'motored-core' ),
+			TireSpecs::POS_FRONT => TireSpecs::position_label( TireSpecs::POS_FRONT, true ),
+			TireSpecs::POS_REAR  => TireSpecs::position_label( TireSpecs::POS_REAR, true ),
+			TireSpecs::POS_KIT   => TireSpecs::position_label( TireSpecs::POS_KIT, true ),
 		);
-		$base_url   = remove_query_arg( array( 'pos', 'paged' ) );
+		$base_url  = remove_query_arg( array( 'pos', 'paged' ) );
+		$total_cnt = (int) ( $counts['all'] ?? 0 );
 
 		$out  = '<div class="motored-compat-bar" data-moto="' . esc_attr( (string) $profile['slug'] ) . '">';
-		$out .= '<p class="motored-compat-bar__title"><strong>' . esc_html__( 'Tires compatible with:', 'motored-core' ) . '</strong> ' . esc_html( (string) $profile['label'] );
+		$out .= '<p class="motored-compat-bar__title"><strong>' . esc_html__( 'Tires compatible with', 'motored-core' ) . ' ' . esc_html( (string) $profile['label'] ) . '</strong>';
+		$out .= ' <span class="motored-compat-bar__count">' . esc_html(
+			sprintf(
+				/* translators: %d: number of compatible products. */
+				_n( '%d result', '%d results', $total_cnt, 'motored-core' ),
+				$total_cnt
+			)
+		) . '</span>';
 		$out .= ' <a class="motored-compat-bar__clear" href="' . esc_url( $clear ) . '">' . esc_html__( 'Clear filter', 'motored-core' ) . '</a></p>';
 
 		// Factory sizes as printed in the manual, so a shopper can double-check them at a glance.
 		$size_parts = array();
 		foreach ( array(
-			TireSpecs::POS_FRONT => __( 'Front', 'motored-core' ),
-			TireSpecs::POS_REAR  => __( 'Rear', 'motored-core' ),
+			TireSpecs::POS_FRONT => TireSpecs::position_label( TireSpecs::POS_FRONT ),
+			TireSpecs::POS_REAR  => TireSpecs::position_label( TireSpecs::POS_REAR ),
 		) as $axis => $axis_label ) {
 			$oem = array();
 			foreach ( is_array( $profile[ $axis ] ?? null ) ? $profile[ $axis ] : array() as $canon => $entry ) {
@@ -470,24 +488,28 @@ final class Storefront {
 				}
 			}
 			if ( ! empty( $oem ) ) {
-				$size_parts[] = $axis_label . ': ' . implode( ' / ', $oem );
+				$size_parts[] = $axis_label . ' ' . implode( ' / ', $oem );
 			}
 		}
 		if ( ! empty( $size_parts ) ) {
 			$out .= '<p class="motored-compat-bar__sizes">' . esc_html__( 'Factory tire sizes:', 'motored-core' ) . ' <strong>' . esc_html( implode( ' · ', $size_parts ) ) . '</strong></p>';
 		}
-		if ( empty( MatchEngine::matching_product_ids( $moto, $active_pos ) ) ) {
-			$out .= '<p class="motored-compat-bar__empty">' . esc_html__( 'We do not have tires for this motorcycle in the catalog yet. Try another position or motorcycle, or contact us.', 'motored-core' ) . '</p>';
+		$active_cnt = '' === $active_pos ? $total_cnt : (int) ( $counts[ $active_pos ] ?? 0 );
+		if ( 0 === $active_cnt ) {
+			$out .= '<p class="motored-compat-bar__empty">' . esc_html__( 'We do not have tires for this motorcycle yet. Leave your contact and we will notify you when they arrive.', 'motored-core' ) . '</p>';
+			$out .= '<div class="motored-compat-bar__notify" data-motored-notify data-moto="' . esc_attr( (string) $profile['slug'] ) . '" data-pos="' . esc_attr( '' !== $active_pos ? $active_pos : 'all' ) . '" data-label="' . esc_attr( (string) $profile['label'] ) . '"></div>';
 		}
 		$links = '';
 		foreach ( $tabs as $pos_key => $label ) {
-			// Hide positions with zero tires for this bike (memoized per request), except the active one.
-			if ( '' !== $pos_key && $active_pos !== $pos_key && empty( MatchEngine::matching_product_ids( $moto, $pos_key ) ) ) {
+			$cnt       = '' === $pos_key ? $total_cnt : (int) ( $counts[ $pos_key ] ?? 0 );
+			$tab_label = sprintf( '%s (%d)', $label, $cnt );
+			$is_cur    = $active_pos === $pos_key;
+			if ( '' !== $pos_key && ! $is_cur && 0 === $cnt ) {
+				$links .= '<span class="motored-compat-bar__tab is-disabled" aria-disabled="true">' . esc_html( $tab_label ) . '</span> ';
 				continue;
 			}
 			$url    = '' === $pos_key ? $base_url : add_query_arg( 'pos', $pos_key, $base_url );
-			$is_cur = $active_pos === $pos_key;
-			$links .= '<a class="button' . ( $is_cur ? ' alt' : '' ) . '"' . ( $is_cur ? ' aria-current="true"' : '' ) . ' href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a> ';
+			$links .= '<a class="motored-compat-bar__tab' . ( $is_cur ? ' is-active' : '' ) . '"' . ( $is_cur ? ' aria-current="true"' : '' ) . ' href="' . esc_url( $url ) . '">' . esc_html( $tab_label ) . '</a> ';
 		}
 		$out .= '<div class="motored-compat-bar__positions">' . $links . '</div>';
 		// Other Mi Garage bikes (client-side, cache-safe): compat-garage.js fills it.
@@ -521,7 +543,7 @@ final class Storefront {
 		$marker = self::fit_marker_html( $product_id, 'loop' );
 		if ( '' !== $marker ) {
 			StorefrontAssets::enqueue_compat_css();
-			self::enqueue_garage_script();
+			GarageAssets::enqueue();
 		}
 		return $marker;
 	}
@@ -556,7 +578,7 @@ final class Storefront {
 		}
 		self::$banner_rendered = true;
 		StorefrontAssets::enqueue_compat_css();
-		self::enqueue_garage_script();
+		GarageAssets::enqueue();
 		self::enqueue_selector_script();
 		$out  = '<div class="motored-compat-banner" data-shop-url="' . esc_url( Config::shop_url() ) . '">';
 		$out .= $marker;
@@ -673,6 +695,7 @@ final class Storefront {
 
 		$fit      = self::fit_for_product( $product->get_id() );
 		$is_kit   = is_array( $fit ) && TireSpecs::POS_KIT === (string) $fit['position'];
+		$kit_spec = $is_kit ? self::kit_spec_for( $product, $fit ) : null;
 		$managed  = array();
 		$consumed = array();
 		foreach ( TireAttributePlan::MANAGED as $slug ) {
@@ -701,7 +724,7 @@ final class Storefront {
 
 		// 2. Model (force label "Model" even on existing stores where pa_linea was created as "Línea").
 		$line_key = 'attribute_pa_' . TireSpecs::ATTR_LINE;
-		if ( isset( $rows[ $line_key ] ) && is_array( $rows[ $line_key ] ) ) {
+		if ( null === $kit_spec && isset( $rows[ $line_key ] ) && is_array( $rows[ $line_key ] ) ) {
 			$line_row          = $rows[ $line_key ];
 			$line_row['label'] = __( 'Model', 'motored-core' );
 			$out[ $line_key ]  = $line_row;
@@ -714,7 +737,17 @@ final class Storefront {
 		);
 
 		// 4 & 5. Front / Rear sizes (kits only — single tires already display Full size).
-		if ( $is_kit ) {
+		if ( null !== $kit_spec ) {
+			// Kit sheet: one row per tire (size, model, index, construction, tube).
+			$out['motored_front_tire'] = array(
+				'label' => __( 'Front tire', 'motored-core' ),
+				'value' => '<p>' . esc_html( self::axle_summary( $kit_spec[ TireSpecs::POS_FRONT ] ) ) . '</p>',
+			);
+			$out['motored_rear_tire']  = array(
+				'label' => __( 'Rear tire', 'motored-core' ),
+				'value' => '<p>' . esc_html( self::axle_summary( $kit_spec[ TireSpecs::POS_REAR ] ) ) . '</p>',
+			);
+		} elseif ( $is_kit ) {
 			foreach ( array( 'attribute_pa_' . TireSpecs::ATTR_FRONT_SIZE, 'attribute_pa_' . TireSpecs::ATTR_REAR_SIZE ) as $sz_key ) {
 				if ( isset( $rows[ $sz_key ] ) ) {
 					$out[ $sz_key ] = $rows[ $sz_key ];
@@ -762,7 +795,8 @@ final class Storefront {
 			'attribute_pa_' . TireSpecs::ATTR_CONSTRUCTION,
 			'attribute_pa_' . TireSpecs::ATTR_USAGE,
 		) as $spec_key ) {
-			if ( isset( $rows[ $spec_key ] ) ) {
+			$per_axle = null !== $kit_spec && 'attribute_pa_' . TireSpecs::ATTR_USAGE !== $spec_key;
+			if ( isset( $rows[ $spec_key ] ) && ! $per_axle ) {
 				$out[ $spec_key ] = $rows[ $spec_key ];
 			}
 		}
@@ -775,6 +809,47 @@ final class Storefront {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Kit sheet of a product when it still describes the indexed sizes (an ERP may have rewritten the attributes).
+	 *
+	 * @param \WC_Product         $product Product.
+	 * @param array<string,mixed> $fit     Index row.
+	 * @return array<string,mixed>|null
+	 */
+	public static function kit_spec_for( \WC_Product $product, array $fit ): ?array {
+		$spec = KitSpec::normalize( $product->get_meta( KitSpec::META ) );
+		if ( null === $spec || ! KitSpec::matches_sizes( $spec, $fit['front_canonical'] ?? null, $fit['rear_canonical'] ?? null ) ) {
+			return null;
+		}
+		return $spec;
+	}
+
+	/**
+	 * One-line summary of a kit tire: "100/80-17 · MT60 RS · 52H (up to 200 kg · 210 km/h) · Diagonal · Tubeless (TL)".
+	 *
+	 * @param array<string,mixed> $axle Kit sheet axle.
+	 */
+	public static function axle_summary( array $axle ): string {
+		$fx    = AttributeInstaller::fixed_term_sets();
+		$parts = array( (string) $axle['designation'] );
+		if ( '' !== (string) $axle['line'] ) {
+			$parts[] = (string) $axle['line'];
+		}
+		$index = TireSpecs::format_load_speed( null !== $axle['load'] ? (int) $axle['load'] : null, (string) $axle['speed'] );
+		if ( '' !== $index ) {
+			$parts[] = $index;
+		}
+		foreach ( array(
+			TireSpecs::ATTR_CONSTRUCTION => (string) $axle['construction'],
+			TireSpecs::ATTR_TUBE         => (string) $axle['tube'],
+		) as $attr => $slug ) {
+			if ( '' !== $slug && isset( $fx[ $attr ][ $slug ] ) ) {
+				$parts[] = (string) $fx[ $attr ][ $slug ];
+			}
+		}
+		return implode( ' · ', $parts );
 	}
 
 	/**
@@ -793,9 +868,20 @@ final class Storefront {
 		}
 		$const = isset( $fit['construction'] ) && is_string( $fit['construction'] ) ? $fit['construction'] : '';
 		if ( TireSpecs::POS_KIT === $fit['position'] ) {
+			$kit_spec = self::kit_spec_for( $product, $fit );
+			if ( null !== $kit_spec ) {
+				return (string) $kit_spec[ TireSpecs::POS_FRONT ]['designation'] . ' + ' . (string) $kit_spec[ TireSpecs::POS_REAR ]['designation'];
+			}
 			$f = (string) ( $fit['front_canonical'] ?? '' );
 			$r = (string) ( $fit['rear_canonical'] ?? '' );
-			return ( '' !== $f && '' !== $r ) ? $f . ' + ' . $r : '';
+			if ( '' === $f || '' === $r ) {
+				return '';
+			}
+			$fp = SizeParser::parse( $f );
+			$rp = SizeParser::parse( $r );
+			$fs = null !== $fp ? SizeParser::format_full_size( $fp, MatchEngine::axle_construction( $fit, TireSpecs::POS_FRONT ), TireSpecs::speed_code_for_rank( null !== $fit['front_speed_rank'] ? (int) $fit['front_speed_rank'] : null ) ) : $f;
+			$rs = null !== $rp ? SizeParser::format_full_size( $rp, MatchEngine::axle_construction( $fit, TireSpecs::POS_REAR ), TireSpecs::speed_code_for_rank( null !== $fit['rear_speed_rank'] ? (int) $fit['rear_speed_rank'] : null ) ) : $r;
+			return $fs . ' + ' . $rs;
 		}
 		$canon      = TireSpecs::POS_REAR === $fit['position']
 			? (string) ( $fit['rear_canonical'] ?? '' )
@@ -870,6 +956,13 @@ final class Storefront {
 			'rs' => $fit['rear_speed_rank'],
 			'c'  => $fit['construction'],
 		);
+		// Kit sheet: construction per axle (ev() falls back to `c`, so HTML cached before this still works).
+		if ( ! empty( $fit['front_construction'] ) ) {
+			$payload['fc'] = $fit['front_construction'];
+		}
+		if ( ! empty( $fit['rear_construction'] ) ) {
+			$payload['rc'] = $fit['rear_construction'];
+		}
 		return sprintf(
 			'<span hidden class="motored-fit-marker" data-ctx="%s" data-motored-fit="%s"></span>',
 			esc_attr( $context ),
@@ -895,75 +988,6 @@ final class Storefront {
 		return is_array( $row ) ? $row : null;
 	}
 
-	/**
-	 * Client-side script configuration (REST URLs, login state, localized UI strings).
-	 *
-	 * @return array<string,mixed>
-	 */
-	public static function client_config(): array {
-		$logged_in = is_user_logged_in();
-		return array(
-			'restBase'   => untrailingslashit( rest_url( RestController::NAMESPACE ) ),
-			'nonce'      => $logged_in ? wp_create_nonce( 'wp_rest' ) : '',
-			'loggedIn'   => $logged_in,
-			'strict'     => Config::strict_specs(),
-			'showIncomp' => Config::show_incompatible_badge(),
-			'maxBikes'   => Config::max_garage_bikes(),
-			'shopUrl'    => Config::shop_url(),
-			'garageCta'  => Config::garage_cta(),
-			'events'     => Config::analytics_events(),
-			'i18n'       => array(
-				'brandPlaceholder' => __( 'Select brand...', 'motored-core' ),
-				'modelPlaceholder' => __( 'Select model...', 'motored-core' ),
-				'yearPlaceholder'  => __( 'Select year...', 'motored-core' ),
-				'varPlaceholder'   => __( 'Select version...', 'motored-core' ),
-				'filterList'       => __( 'Type to filter...', 'motored-core' ),
-				'oem'              => __( 'OEM size', 'motored-core' ),
-				'alt'              => __( 'Alternative size', 'motored-core' ),
-				'equiv'            => __( 'Equivalent size', 'motored-core' ),
-				'front'            => __( 'Front', 'motored-core' ),
-				'rear'             => __( 'Rear', 'motored-core' ),
-				'kit'              => __( 'Complete kit', 'motored-core' ),
-				/* translators: %s: active motorcycle label. */
-				'compatWith'       => __( 'Compatible with your %s', 'motored-core' ),
-				/* translators: %s: active motorcycle label. */
-				'incompatWith'     => __( 'Does not match your %s', 'motored-core' ),
-				'seeCompat'        => __( 'View compatible tires', 'motored-core' ),
-				'verifySpecs'      => __( 'Check load/speed rating against your manual.', 'motored-core' ),
-				'equivNote'        => __( 'replaces', 'motored-core' ),
-				'activeBadge'      => __( 'Active motorcycle', 'motored-core' ),
-				'useBike'          => __( 'Use this motorcycle', 'motored-core' ),
-				'filterTires'      => __( 'View tires', 'motored-core' ),
-				'remove'           => __( 'Remove', 'motored-core' ),
-				'emptyGarage'      => __( 'You have not saved any motorcycles yet.', 'motored-core' ),
-				'emptyGarageHint'  => __( 'Save your motorcycle to instantly see which tires fit across the store.', 'motored-core' ),
-				'askFit'           => __( 'Does it fit your motorcycle?', 'motored-core' ),
-				'pickBike'         => __( 'Select your motorcycle', 'motored-core' ),
-				'changeBike'       => __( 'Change motorcycle', 'motored-core' ),
-				'savedBikes'       => __( 'Your saved motorcycles:', 'motored-core' ),
-				'yourBikeUses'     => __( 'Your motorcycle uses:', 'motored-core' ),
-				'oemSizes'         => __( 'Factory sizes:', 'motored-core' ),
-				'loading'          => __( 'Loading...', 'motored-core' ),
-				'noModels'         => __( 'No models available', 'motored-core' ),
-				'loadSelectErr'    => __( 'Could not load options. Please try again.', 'motored-core' ),
-				'savedOk'          => __( 'Motorcycle saved to My Garage.', 'motored-core' ),
-				/* translators: %s: motorcycle removed to make room in My Garage. */
-				'garageFull'       => __( 'My Garage was full, so %s was removed.', 'motored-core' ),
-				/* translators: %s: removed motorcycle label. */
-				'removedBike'      => __( '%s removed.', 'motored-core' ),
-				'undo'             => __( 'Undo', 'motored-core' ),
-				'sessionExpired'   => __( 'Your session expired. Reload the page to save your changes.', 'motored-core' ),
-				/* translators: %s: active motorcycle label. */
-				'ctaLead'          => __( 'Your motorcycle: %s.', 'motored-core' ),
-				'ctaLink'          => __( 'View only tires that fit it', 'motored-core' ),
-				'otherBikes'       => __( 'Your other motorcycles:', 'motored-core' ),
-				/* translators: %s: active motorcycle label. */
-				'pairFront'        => __( 'View front tires for your %s', 'motored-core' ),
-				/* translators: %s: active motorcycle label. */
-				'pairRear'         => __( 'View rear tires for your %s', 'motored-core' ),
-			),
-		);
-	}
 
 	/**
 	 * Reads sanitized ?moto= query parameter.
@@ -999,8 +1023,9 @@ final class Storefront {
 	 * Resets static request caches (for unit tests).
 	 */
 	public static function reset(): void {
-		self::$primed_fits       = array();
-		self::$garage_enqueued   = false;
+		self::$primed_fits = array();
+		MatchEngine::reset();
+		GarageAssets::reset();
 		self::$selector_enqueued = false;
 		self::$bar_rendered      = false;
 		self::$banner_rendered   = false;

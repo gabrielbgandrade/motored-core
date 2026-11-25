@@ -10,13 +10,58 @@ namespace Motored\Core\Support;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * One option per module ("motored_{module}"), always autoload=false.
+ * One option per module ("motored_{module}"), autoload=false — except the modules listed in AUTOLOAD_MODULES.
  *
  * Values are memoized per request. Defaults are registered in memory (no I/O).
  * Reading an option costs at most one query (then object cache); never call
  * this from public page requests unless the module truly needs it.
  */
 final class Options {
+
+	/**
+	 * The ONLY modules whose option is autoloaded (AGENTS.md rule 4 exception).
+	 *
+	 * `bike_pages`: its CPT/taxonomy rewrite slugs are configurable and register_post_type() needs them on EVERY
+	 * request; autoloading this small option (~0.5 KB) makes that read free instead of +1 query on every page.
+	 * Add a module here only when its option is read on every request by design.
+	 *
+	 * @var list<string>
+	 */
+	public const AUTOLOAD_MODULES = array( 'bike_pages' );
+
+	/**
+	 * Whether a module's option is stored with autoload=yes.
+	 *
+	 * @param string $module Module slug.
+	 */
+	public static function autoload( string $module ): bool {
+		return in_array( $module, self::AUTOLOAD_MODULES, true );
+	}
+
+	/**
+	 * Admin-only self-heal for AUTOLOAD_MODULES: creates the option (empty) when missing, or flips
+	 * an existing one to autoload=yes (no query when already right: the check reads the in-memory alloptions).
+	 * Call from admin_init, never from public requests.
+	 *
+	 * @param string $module Module slug.
+	 */
+	public static function sync_autoload( string $module ): void {
+		if ( ! self::autoload( $module ) || ! function_exists( 'wp_set_option_autoload' ) || ! function_exists( 'wp_load_alloptions' ) ) {
+			return;
+		}
+		$name = self::option_name( $module );
+		if ( array_key_exists( $name, wp_load_alloptions() ) ) {
+			return;
+		}
+		// Never saved (defaults only): a missing option is still 1 query per request ("notoptions" is not persistent
+		// without an object cache), so create it EMPTY and autoloaded; defaults keep coming from register_defaults()
+		// (storing them would freeze today's defaults).
+		if ( false === get_option( $name, false ) ) {
+			add_option( $name, array(), '', true );
+			return;
+		}
+		wp_set_option_autoload( $name, true );
+	}
 
 	/**
 	 * Registered defaults, per module.
@@ -95,27 +140,27 @@ final class Options {
 	}
 
 	/**
-	 * Merges values into the stored option. Always autoload=false.
+	 * Merges values into the stored option (autoload per autoload()).
 	 *
 	 * @param string              $module Module slug.
 	 * @param array<string,mixed> $values Values to merge.
 	 */
 	public static function update( string $module, array $values ): bool {
-		$name                  = self::option_name( $module );
-		$stored                = get_option( $name, array() );
-		$merged                = array_merge( is_array( $stored ) ? $stored : array(), $values );
-		$result                = update_option( $name, $merged, false );
-		self::$memo[ $module ] = $merged;
+		$name   = self::option_name( $module );
+		$stored = get_option( $name, array() );
+		$merged = array_merge( is_array( $stored ) ? $stored : array(), $values );
+		$result = update_option( $name, $merged, self::autoload( $module ) );
+		unset( self::$memo[ $module ] );
 		return $result;
 	}
 
 	/**
-	 * Creates the option with defaults if missing (autoload=false). For activation.
+	 * Creates the option with defaults if missing (autoload per autoload()). For activation.
 	 *
 	 * @param string $module Module slug.
 	 */
 	public static function ensure( string $module ): void {
-		add_option( self::option_name( $module ), self::$defaults[ $module ] ?? array(), '', false );
+		add_option( self::option_name( $module ), self::$defaults[ $module ] ?? array(), '', self::autoload( $module ) );
 	}
 
 	/**

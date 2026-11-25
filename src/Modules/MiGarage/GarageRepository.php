@@ -5,7 +5,9 @@
  * @package Motored\Core
  */
 
-namespace Motored\Core\Modules\Compatibility;
+namespace Motored\Core\Modules\MiGarage;
+
+use Motored\Core\Modules\Compatibility\Config;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -45,10 +47,9 @@ final class GarageRepository {
 		}
 		$clean = self::normalize( $garage );
 		if ( empty( $clean['bikes'] ) ) {
-			delete_user_meta( $user_id, self::META_KEY );
-			return true;
+			return delete_user_meta( $user_id, self::META_KEY ) || self::get( $user_id ) === $clean;
 		}
-		return false !== update_user_meta( $user_id, self::META_KEY, $clean );
+		return false !== update_user_meta( $user_id, self::META_KEY, $clean ) || self::get( $user_id ) === $clean;
 	}
 
 	/**
@@ -59,6 +60,7 @@ final class GarageRepository {
 	 * @param string $label      Human-readable label.
 	 * @param bool   $set_active Whether to make this bike active.
 	 * @return array{active:string,bikes:list<array{slug:string,label:string,added_gmt:string}>}
+	 * @throws \RuntimeException If the garage could not be saved.
 	 */
 	public static function add_bike( int $user_id, string $slug, string $label, bool $set_active = true ): array {
 		$current = self::get( $user_id );
@@ -73,7 +75,9 @@ final class GarageRepository {
 			Config::max_garage_bikes(),
 			$set_active ? $slug : $current['active']
 		);
-		self::save( $user_id, $merged );
+		if ( ! self::save( $user_id, $merged ) ) {
+			throw new \RuntimeException( 'Could not persist the account garage.' );
+		}
 		return $merged;
 	}
 
@@ -83,6 +87,7 @@ final class GarageRepository {
 	 * @param int    $user_id User ID.
 	 * @param string $slug    Version slug.
 	 * @return array{active:string,bikes:list<array{slug:string,label:string,added_gmt:string}>}
+	 * @throws \RuntimeException If the garage could not be saved.
 	 */
 	public static function remove_bike( int $user_id, string $slug ): array {
 		$clean_slug = sanitize_title( $slug );
@@ -100,7 +105,9 @@ final class GarageRepository {
 				'bikes'  => $next,
 			)
 		);
-		self::save( $user_id, $out );
+		if ( ! self::save( $user_id, $out ) ) {
+			throw new \RuntimeException( 'Could not persist the account garage.' );
+		}
 		return $out;
 	}
 
@@ -110,6 +117,7 @@ final class GarageRepository {
 	 * @param int    $user_id User ID.
 	 * @param string $slug    Version slug.
 	 * @return array{active:string,bikes:list<array{slug:string,label:string,added_gmt:string}>}
+	 * @throws \RuntimeException If the garage could not be saved.
 	 */
 	public static function set_active( int $user_id, string $slug ): array {
 		$clean_slug = sanitize_title( $slug );
@@ -117,7 +125,9 @@ final class GarageRepository {
 		foreach ( $current['bikes'] as $bike ) {
 			if ( $bike['slug'] === $clean_slug ) {
 				$current['active'] = $clean_slug;
-				self::save( $user_id, $current );
+				if ( ! self::save( $user_id, $current ) ) {
+					throw new \RuntimeException( 'Could not persist the account garage.' );
+				}
 				return $current;
 			}
 		}

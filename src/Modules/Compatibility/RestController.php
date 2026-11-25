@@ -1,6 +1,6 @@
 <?php
 /**
- * REST API endpoints for the vehicle cascade selector, product tab lazy-load and Mi Garage.
+ * REST API endpoints for the vehicle cascade selector, product tab lazy-load.
  *
  * @package Motored\Core
  */
@@ -10,7 +10,7 @@ namespace Motored\Core\Modules\Compatibility;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Registers cacheable public catalog endpoints and authenticated Mi Garage endpoints under motored/v1.
+ * Registers cacheable public catalog endpoints under motored/v1.
  */
 final class RestController {
 
@@ -24,9 +24,12 @@ final class RestController {
 	}
 
 	/**
-	 * Declares all compatibility and garage routes.
+	 * Declares all compatibility routes when Compatibility is enabled.
 	 */
 	public function register_routes(): void {
+		if ( ! Config::enabled() ) {
+			return;
+		}
 		register_rest_route(
 			self::NAMESPACE,
 			'/compat/brands',
@@ -104,31 +107,6 @@ final class RestController {
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'get_product_motos' ),
 				'permission_callback' => '__return_true',
-			)
-		);
-		register_rest_route(
-			self::NAMESPACE,
-			'/garage',
-			array(
-				array(
-					'methods'             => 'GET',
-					'callback'            => array( $this, 'get_garage' ),
-					'permission_callback' => static fn(): bool => is_user_logged_in(),
-				),
-				array(
-					'methods'             => 'POST',
-					'callback'            => array( $this, 'post_garage' ),
-					'permission_callback' => static fn(): bool => is_user_logged_in(),
-				),
-			)
-		);
-		register_rest_route(
-			self::NAMESPACE,
-			'/garage/(?P<slug>[a-z0-9-]+)',
-			array(
-				'methods'             => 'DELETE',
-				'callback'            => array( $this, 'delete_garage_bike' ),
-				'permission_callback' => static fn(): bool => is_user_logged_in(),
 			)
 		);
 	}
@@ -224,95 +202,21 @@ final class RestController {
 	 */
 	public function get_product_motos( \WP_REST_Request $request ): \WP_REST_Response {
 		$product_id = absint( $request->get_param( 'id' ) );
-		$data       = $product_id > 0 ? MatchEngine::compatible_motos_for_product( $product_id ) : null;
-		if ( null === $data ) {
-			return self::public_response(
-				array(
-					'position' => '',
-					'motos'    => array(),
-					'rows'     => array(),
-				)
-			);
-		}
-		return self::public_response(
+		$product    = $product_id > 0 ? wc_get_product( $product_id ) : false;
+		$eligible   = $product instanceof \WC_Product && 'publish' === $product->get_status()
+			&& $product->is_visible() && $product->is_type( 'simple' )
+			&& '' === (string) get_post_field( 'post_password', $product_id, 'raw' );
+		$data       = $eligible ? MatchEngine::compatible_motos_for_product( $product_id ) : null;
+		$response   = new \WP_REST_Response(
 			array(
-				'position' => $data['position'],
-				'motos'    => $data['items'],
-				'rows'     => CompatListRenderer::build_rows( $data['items'], (string) $data['position'] ),
-			)
+				'position' => $data['position'] ?? '',
+				'motos'    => $data['items'] ?? array(),
+				'rows'     => null === $data ? array() : CompatListRenderer::build_rows( $data['items'], (string) $data['position'] ),
+			),
+			$eligible ? 200 : 404
 		);
-	}
-
-	/**
-	 * Authenticated GET /garage.
-	 */
-	public function get_garage(): \WP_REST_Response {
-		$garage = GarageRepository::get( get_current_user_id() );
-		return new \WP_REST_Response( $this->hydrate_garage_profiles( $garage ), 200 );
-	}
-
-	/**
-	 * Authenticated POST /garage (add, set_active, merge).
-	 *
-	 * @param \WP_REST_Request $request Request.
-	 */
-	public function post_garage( \WP_REST_Request $request ): \WP_REST_Response {
-		$user_id = get_current_user_id();
-		$body    = $request->get_json_params();
-		$params  = is_array( $body ) ? $body : $request->get_params();
-		$action  = sanitize_key( (string) ( $params['action'] ?? 'add' ) );
-
-		if ( 'merge' === $action ) {
-			$guest_bikes = isset( $params['bikes'] ) && is_array( $params['bikes'] ) ? $params['bikes'] : array();
-			// Never validate more entries than the garage can hold (each one costs a profile lookup).
-			$guest_bikes = array_slice( array_values( $guest_bikes ), -1 * Config::max_garage_bikes() );
-			$prefer      = sanitize_title( (string) ( $params['active'] ?? '' ) );
-			$valid_guest = array();
-			foreach ( $guest_bikes as $gb ) {
-				if ( ! is_array( $gb ) ) {
-					continue;
-				}
-				$prof = MatchEngine::bike_profile( (string) ( $gb['slug'] ?? '' ) );
-				if ( null !== $prof ) {
-					$valid_guest[] = array(
-						'slug'  => $prof['slug'],
-						'label' => $prof['label'],
-					);
-				}
-			}
-			$merged = GarageRepository::merge(
-				GarageRepository::get( $user_id ),
-				$valid_guest,
-				Config::max_garage_bikes(),
-				$prefer
-			);
-			GarageRepository::save( $user_id, $merged );
-			return new \WP_REST_Response( $this->hydrate_garage_profiles( $merged ), 200 );
-		}
-
-		$slug = sanitize_title( (string) ( $params['slug'] ?? '' ) );
-		if ( 'set_active' === $action ) {
-			$garage = GarageRepository::set_active( $user_id, $slug );
-			return new \WP_REST_Response( $this->hydrate_garage_profiles( $garage ), 200 );
-		}
-
-		$prof = MatchEngine::bike_profile( $slug );
-		if ( null === $prof ) {
-			return new \WP_REST_Response( array( 'error' => __( 'Motorcycle not found.', 'motored-core' ) ), 404 );
-		}
-		$garage = GarageRepository::add_bike( $user_id, $prof['slug'], $prof['label'], true );
-		return new \WP_REST_Response( $this->hydrate_garage_profiles( $garage ), 200 );
-	}
-
-	/**
-	 * Authenticated DELETE /garage/{slug}.
-	 *
-	 * @param \WP_REST_Request $request Request.
-	 */
-	public function delete_garage_bike( \WP_REST_Request $request ): \WP_REST_Response {
-		$slug   = sanitize_title( (string) $request->get_param( 'slug' ) );
-		$garage = GarageRepository::remove_bike( get_current_user_id(), $slug );
-		return new \WP_REST_Response( $this->hydrate_garage_profiles( $garage ), 200 );
+		$response->header( 'Cache-Control', 'no-store' );
+		return $response;
 	}
 
 	/**
@@ -333,24 +237,6 @@ final class RestController {
 			);
 		}
 		return $out;
-	}
-
-	/**
-	 * Attaches compact bike profiles so the client updates localStorage immediately on merge/login.
-	 *
-	 * @param array{active:string,bikes:list<array{slug:string,label:string,added_gmt:string}>} $garage Garage payload.
-	 * @return array<string,mixed>
-	 */
-	private function hydrate_garage_profiles( array $garage ): array {
-		$profiles = array();
-		foreach ( $garage['bikes'] as $bike ) {
-			$prof = MatchEngine::bike_profile( $bike['slug'] );
-			if ( null !== $prof ) {
-				$profiles[ $bike['slug'] ] = self::client_profile( $prof );
-			}
-		}
-		$garage['profiles'] = $profiles;
-		return $garage;
 	}
 
 	/**
@@ -377,19 +263,47 @@ final class RestController {
 	}
 
 	/**
+	 * Cached per-position matching product counts for a motorcycle slug.
+	 *
+	 * @param string $slug Version slug.
+	 * @return array{all:int,front:int,rear:int,kit:int}|null
+	 */
+	public static function bike_counts( string $slug ): ?array {
+		$clean = sanitize_title( $slug );
+		if ( '' === $clean || ! isset( $GLOBALS['wpdb'] ) || ! is_object( $GLOBALS['wpdb'] ) ) {
+			return null;
+		}
+		return MatchEngine::matching_product_counts( $clean );
+	}
+
+	/**
 	 * Compact client-side profile consumed by compat-garage.js (`ev()` mirrors MatchEngine::evaluate_product()).
 	 *
 	 * @param array<string,mixed> $profile Output of MatchEngine::bike_profile().
-	 * @return array{slug:string,label:string,oem:array{f:string,r:string},front:array<string,array{t:string,f:string,l:int|null,s:int|null,c:string|null}>,rear:array<string,array{t:string,f:string,l:int|null,s:int|null,c:string|null}>}
+	 * @return array<string,mixed>
 	 */
 	public static function client_profile( array $profile ): array {
-		return array(
-			'slug'  => (string) ( $profile['slug'] ?? '' ),
-			'label' => (string) ( $profile['label'] ?? '' ),
-			'oem'   => self::extract_oem_sizes( $profile ),
-			'front' => self::compact_axis_map( is_array( $profile['front'] ?? null ) ? $profile['front'] : array() ),
-			'rear'  => self::compact_axis_map( is_array( $profile['rear'] ?? null ) ? $profile['rear'] : array() ),
+		$slug     = (string) ( $profile['slug'] ?? '' );
+		$counts   = self::bike_counts( $slug );
+		$page_url = '' !== $slug && function_exists( 'apply_filters' )
+			? (string) apply_filters( 'motored_compat_bike_page_url', '', $slug )
+			: '';
+
+		$out = array(
+			'schema' => 2,
+			'slug'   => $slug,
+			'label'  => (string) ( $profile['label'] ?? '' ),
+			'oem'    => self::extract_oem_sizes( $profile ),
+			'front'  => self::compact_axis_map( is_array( $profile['front'] ?? null ) ? $profile['front'] : array() ),
+			'rear'   => self::compact_axis_map( is_array( $profile['rear'] ?? null ) ? $profile['rear'] : array() ),
 		);
+		if ( null !== $counts ) {
+			$out['counts'] = $counts;
+		}
+		if ( '' !== $page_url ) {
+			$out['pageUrl'] = $page_url;
+		}
+		return $out;
 	}
 
 	/**

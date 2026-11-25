@@ -18,9 +18,10 @@ defined( 'ABSPATH' ) || exit;
  */
 final class ProductIndexSync {
 
-	public const REINDEX_HOOK   = 'motored_compat_reindex';
-	public const SHUTDOWN_LIMIT = 20;
-	public const REINDEX_BATCH  = 200;
+	public const REINDEX_HOOK    = 'motored_compat_reindex';
+	public const SHUTDOWN_LIMIT  = 20;
+	public const REINDEX_BATCH   = 200;
+	private const PENDING_PREFIX = 'motored_compat_reindex_after_';
 
 	/**
 	 * Product IDs marked dirty during this request.
@@ -50,7 +51,6 @@ final class ProductIndexSync {
 		add_action( 'woocommerce_after_product_object_save', array( $this, 'on_product_save' ), 20, 1 );
 		add_action( 'woocommerce_product_set_stock_status', array( $this, 'on_stock_status_change' ), 20, 3 );
 		add_action( 'set_object_terms', array( $this, 'on_set_object_terms' ), 20, 6 );
-		add_action( 'wp_trash_post', array( $this, 'on_delete_post' ) );
 		add_action( 'before_delete_post', array( $this, 'on_delete_post' ) );
 		add_action( 'transition_post_status', array( $this, 'on_status_transition' ), 10, 3 );
 		add_action( self::REINDEX_HOOK, array( $this, 'run_reindex_action' ), 10, 1 );
@@ -89,7 +89,7 @@ final class ProductIndexSync {
 			return;
 		}
 		if ( 'publish' !== $product->get_status() || ! $product->is_type( 'simple' ) ) {
-			ProductIndexRepository::delete( $id );
+			$this->remove_from_index( $id );
 			return;
 		}
 		$this->mark_dirty( $id );
@@ -117,15 +117,15 @@ final class ProductIndexSync {
 	}
 
 	/**
-	 * Hook: wp_trash_post / before_delete_post.
+	 * Hook: before_delete_post.
 	 *
 	 * @param mixed $post_id Post ID.
 	 */
 	public function on_delete_post( $post_id ): void {
 		$id = (int) $post_id;
-		if ( $id > 0 ) {
+		if ( $id > 0 && 'product' === get_post_type( $id ) ) {
 			unset( self::$dirty_ids[ $id ] );
-			ProductIndexRepository::delete( $id );
+			$this->remove_from_index( $id );
 		}
 	}
 
@@ -143,9 +143,20 @@ final class ProductIndexSync {
 		$id = (int) $post->ID;
 		if ( 'publish' !== (string) $new_status && 'publish' === (string) $old_status ) {
 			unset( self::$dirty_ids[ $id ] );
-			ProductIndexRepository::delete( $id );
+			$this->remove_from_index( $id );
 		} elseif ( 'publish' === (string) $new_status && 'publish' !== (string) $old_status ) {
 			$this->mark_dirty( $id );
+		}
+	}
+
+	/**
+	 * Retries failed removals through the existing reindex worker.
+	 *
+	 * @param int $product_id Index row to remove.
+	 */
+	private function remove_from_index( int $product_id ): void {
+		if ( ! ProductIndexRepository::delete( $product_id ) ) {
+			$this->mark_dirty( $product_id );
 		}
 	}
 
@@ -161,7 +172,9 @@ final class ProductIndexSync {
 
 		if ( count( $ids ) <= self::SHUTDOWN_LIMIT ) {
 			foreach ( $ids as $id ) {
-				self::sync_product( $id );
+				if ( 'failed' === self::sync_product( $id ) ) {
+					self::defer_reindex( 0 );
+				}
 			}
 			return;
 		}
@@ -169,9 +182,8 @@ final class ProductIndexSync {
 		foreach ( array_chunk( $ids, 50 ) as $chunk ) {
 			$scheduled = ActionScheduler::schedule( time(), self::REINDEX_HOOK, array( array( 'ids' => $chunk ) ) );
 			if ( ! $scheduled ) {
-				foreach ( $chunk as $id ) {
-					self::sync_product( (int) $id );
-				}
+				self::defer_reindex( 0 );
+				return;
 			}
 		}
 	}
@@ -186,8 +198,8 @@ final class ProductIndexSync {
 		if ( isset( $data['ids'] ) && is_array( $data['ids'] ) ) {
 			foreach ( $data['ids'] as $id ) {
 				$pid = (int) $id;
-				if ( $pid > 0 ) {
-					self::sync_product( $pid );
+				if ( $pid > 0 && 'failed' === self::sync_product( $pid ) ) {
+					self::defer_reindex( 0 );
 				}
 			}
 			return;
@@ -195,20 +207,60 @@ final class ProductIndexSync {
 		$cursor = isset( $data['cursor'] ) ? max( 0, (int) $data['cursor'] ) : 0;
 		$next   = self::reindex_batch( $cursor, self::REINDEX_BATCH );
 		if ( null !== $next ) {
-			$scheduled = ActionScheduler::schedule( time() + 1, self::REINDEX_HOOK, array( array( 'cursor' => $next ) ) );
-			$loops     = 0;
-			while ( ! $scheduled && null !== $next && $loops < 25 ) {
-				$next = self::reindex_batch( $next, self::REINDEX_BATCH );
-				++$loops;
+			if ( ! ActionScheduler::schedule( time() + 1, self::REINDEX_HOOK, array( array( 'cursor' => $next ) ), true ) ) {
+				self::defer_reindex( $next );
 			}
 		}
+	}
+
+	/**
+	 * Preserves the earliest outstanding cursor.
+	 *
+	 * @param int $cursor Last successfully processed ID.
+	 */
+	private static function defer_reindex( int $cursor ): void {
+		add_option( self::PENDING_PREFIX . $cursor, 'yes', '', false );
 	}
 
 	/**
 	 * Schedules a full asynchronous reindex across published simple products.
 	 */
 	public static function schedule_full_reindex(): bool {
-		return ActionScheduler::schedule( time(), self::REINDEX_HOOK, array( array( 'cursor' => 0 ) ) );
+		if ( ActionScheduler::schedule( time(), self::REINDEX_HOOK, array( array( 'cursor' => 0 ) ), true ) ) {
+			return true;
+		}
+		self::defer_reindex( 0 );
+		return false;
+	}
+
+	/**
+	 * Requeues interrupted index work from an administrator request.
+	 */
+	public static function resume_pending_reindex(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only scopes background recovery to our admin screens.
+		$page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only scopes background recovery to our admin screens.
+		$tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		if ( ( 'motored-compatibility' !== $page && ( 'wc-settings' !== $page || 'motored' !== $tab ) ) || ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+		$legacy = get_option( 'motored_compat_reindex_pending', false );
+		if ( false !== $legacy ) {
+			$cursor = (int) $legacy;
+			self::defer_reindex( $cursor );
+			if ( 'yes' === get_option( self::PENDING_PREFIX . $cursor ) ) {
+				delete_option( 'motored_compat_reindex_pending' );
+			}
+		}
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the earliest durable checkpoint without touching newer work.
+		$option = $wpdb->get_var( $wpdb->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s ORDER BY LENGTH(option_name), option_name LIMIT 1', $wpdb->options, $wpdb->esc_like( self::PENDING_PREFIX ) . '%' ) );
+		if ( is_string( $option ) ) {
+			$cursor = (int) substr( $option, strlen( self::PENDING_PREFIX ) );
+			if ( ActionScheduler::schedule( time() + 1, self::REINDEX_HOOK, array( array( 'cursor' => $cursor ) ), true ) ) {
+				delete_option( $option );
+			}
+		}
 	}
 
 	/**
@@ -216,28 +268,43 @@ final class ProductIndexSync {
 	 *
 	 * @param int $cursor Last processed product ID.
 	 * @param int $limit  Batch size.
+	 * @throws \RuntimeException When the batch cannot be completed.
 	 */
 	public static function reindex_batch( int $cursor = 0, int $limit = self::REINDEX_BATCH ): ?int {
 		global $wpdb;
+		$index = ProductIndexRepository::table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cursor scan over wp_posts.
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT ID FROM {$wpdb->posts}
 				WHERE post_type = 'product' AND post_status = 'publish' AND ID > %d
+				UNION
+				SELECT i.product_id AS ID FROM %i i
+				LEFT JOIN {$wpdb->posts} p ON p.ID = i.product_id
+				WHERE i.product_id > %d AND (p.ID IS NULL OR p.post_type <> 'product' OR p.post_status <> 'publish')
 				ORDER BY ID ASC
 				LIMIT %d",
+				$cursor,
+				$index,
 				$cursor,
 				$limit
 			)
 		);
+		if ( ! empty( $wpdb->last_error ) ) {
+			self::defer_reindex( $cursor );
+			throw new \RuntimeException( 'Could not read the compatibility reindex batch.' );
+		}
 		if ( ! is_array( $ids ) || empty( $ids ) ) {
 			return null;
 		}
 		$last = $cursor;
 		foreach ( $ids as $raw_id ) {
-			$pid  = (int) $raw_id;
+			$pid = (int) $raw_id;
+			if ( 'failed' === self::sync_product( $pid ) ) {
+				self::defer_reindex( $last );
+				throw new \RuntimeException( 'Could not update the compatibility index.' );
+			}
 			$last = $pid;
-			self::sync_product( $pid );
 		}
 		return count( $ids ) < $limit ? null : $last;
 	}
@@ -246,7 +313,7 @@ final class ProductIndexSync {
 	 * Synchronizes one product into motored_compat_product_index (exiting early when terms_hash matches).
 	 *
 	 * @param int $product_id Product ID.
-	 * @return string 'unchanged'|'updated'|'deleted'
+	 * @return string 'unchanged'|'updated'|'deleted'|'failed'
 	 */
 	public static function sync_product( int $product_id ): string {
 		if ( $product_id <= 0 ) {
@@ -255,30 +322,30 @@ final class ProductIndexSync {
 
 		$post = get_post( $product_id );
 		if ( ! is_object( $post ) || 'product' !== $post->post_type || 'publish' !== $post->post_status ) {
-			ProductIndexRepository::delete( $product_id );
-			return 'deleted';
+			return ProductIndexRepository::delete( $product_id ) ? 'deleted' : 'failed';
 		}
 
 		if ( ! AttributeHooks::is_simple_product( $product_id ) ) {
 			unset( self::$dirty_ids[ $product_id ] );
-			ProductIndexRepository::delete( $product_id );
-			return 'deleted';
+			return ProductIndexRepository::delete( $product_id ) ? 'deleted' : 'failed';
 		}
 
 		$raw  = self::read_product_taxonomies( $product_id );
-		$hash = self::compute_terms_hash( $raw );
+		$spec = KitSpec::normalize( get_post_meta( $product_id, KitSpec::META, true ) );
+		$hash = self::compute_terms_hash( $raw, $spec );
 		if ( ProductIndexRepository::get_hash( $product_id ) === $hash ) {
 			return 'unchanged';
 		}
 
-		$built = self::build_index_row( $product_id, $raw, $hash );
+		$built = self::build_index_row( $product_id, $raw, $hash, $spec );
 		if ( null === $built ) {
-			ProductIndexRepository::delete( $product_id );
-			return 'deleted';
+			return ProductIndexRepository::delete( $product_id ) ? 'deleted' : 'failed';
 		}
 
 		$built['row']['in_stock'] = self::read_in_stock( $product_id ) ? 1 : 0;
-		ProductIndexRepository::upsert( $built['row'] );
+		if ( ! ProductIndexRepository::upsert( $built['row'] ) ) {
+			return 'failed';
+		}
 
 		if ( Config::auto_fill_dimensions() && ! isset( self::$autofilling[ $product_id ] ) ) {
 			self::maybe_autofill_dimensions( $product_id, $built['row']['position'], $built['parsed_single'] );
@@ -293,9 +360,10 @@ final class ProductIndexSync {
 	 * @param int                                                $product_id Product ID.
 	 * @param array<string,list<array{name:string,slug:string}>> $raw        Terms keyed by unprefixed slug.
 	 * @param string                                             $hash       Precomputed terms hash.
-	 * @return array{row:array{product_id:int,position:string,front_size_id:int|null,rear_size_id:int|null,front_load:int|null,rear_load:int|null,front_speed_rank:int|null,rear_speed_rank:int|null,construction:string|null,terms_hash:string},parsed_single:array{canonical:string,notation:string,width:string,aspect:int|null,rim:int}|null}|null
+	 * @param array<string,mixed>|null                           $spec       Normalized kit sheet (KitSpec), used only for kits whose sizes match.
+	 * @return array{row:array{product_id:int,position:string,front_size_id:int|null,rear_size_id:int|null,front_load:int|null,rear_load:int|null,front_speed_rank:int|null,rear_speed_rank:int|null,construction:string|null,front_construction:string|null,rear_construction:string|null,terms_hash:string},parsed_single:array{canonical:string,notation:string,width:string,aspect:int|null,rim:int}|null}|null
 	 */
-	public static function build_index_row( int $product_id, array $raw, string $hash ): ?array {
+	public static function build_index_row( int $product_id, array $raw, string $hash, ?array $spec = null ): ?array {
 		$pos_terms = $raw[ TireSpecs::ATTR_POSITION ] ?? array();
 		if ( count( $pos_terms ) !== 1 ) {
 			return null;
@@ -358,10 +426,25 @@ final class ProductIndexSync {
 		}
 
 		// Kits do NOT assign per-axle load/speed from shared single-attribute values (avoids min(front, rear) bug).
+		// Their per-axle ratings come only from the kit sheet meta, and only while it describes the same sizes.
 		$front_load  = null;
 		$rear_load   = null;
 		$front_speed = null;
 		$rear_speed  = null;
+		$front_const = null;
+		$rear_const  = null;
+
+		if ( TireSpecs::POS_KIT === $position && null !== $spec
+			&& KitSpec::matches_sizes( $spec, $front_parsed['canonical'] ?? null, $rear_parsed['canonical'] ?? null ) ) {
+			$fa          = $spec[ TireSpecs::POS_FRONT ];
+			$ra          = $spec[ TireSpecs::POS_REAR ];
+			$front_load  = $fa['load'];
+			$rear_load   = $ra['load'];
+			$front_speed = TireSpecs::speed_rank( (string) $fa['speed'] );
+			$rear_speed  = TireSpecs::speed_rank( (string) $ra['speed'] );
+			$front_const = '' !== $fa['construction'] ? (string) $fa['construction'] : null;
+			$rear_const  = '' !== $ra['construction'] ? (string) $ra['construction'] : null;
+		}
 
 		if ( TireSpecs::POS_KIT !== $position ) {
 			$load_val = self::single_load( $raw[ TireSpecs::ATTR_LOAD_INDEX ] ?? array() );
@@ -389,27 +472,32 @@ final class ProductIndexSync {
 
 		return array(
 			'row'           => array(
-				'product_id'       => $product_id,
-				'position'         => $position,
-				'front_size_id'    => $front_size_id,
-				'rear_size_id'     => $rear_size_id,
-				'front_load'       => $front_load,
-				'rear_load'        => $rear_load,
-				'front_speed_rank' => $front_speed,
-				'rear_speed_rank'  => $rear_speed,
-				'construction'     => $construction,
-				'terms_hash'       => $hash,
+				'product_id'         => $product_id,
+				'position'           => $position,
+				'front_size_id'      => $front_size_id,
+				'rear_size_id'       => $rear_size_id,
+				'front_load'         => $front_load,
+				'rear_load'          => $rear_load,
+				'front_speed_rank'   => $front_speed,
+				'rear_speed_rank'    => $rear_speed,
+				'construction'       => $construction,
+				'front_construction' => $front_const,
+				'rear_construction'  => $rear_const,
+				'terms_hash'         => $hash,
 			),
 			'parsed_single' => $parsed_single,
 		);
 	}
 
 	/**
-	 * Computes a stable MD5 fingerprint of the 6 indexed attributes to short-circuit ERP price/stock saves.
+	 * Computes a stable MD5 fingerprint of the 6 indexed attributes (+ the kit sheet) to short-circuit ERP price/stock saves.
 	 *
-	 * @param array<string,list<array{name:string,slug:string}>> $raw Raw attribute terms.
+	 * Products without a kit sheet keep exactly the hash they had before the sheet existed.
+	 *
+	 * @param array<string,list<array{name:string,slug:string}>> $raw  Raw attribute terms.
+	 * @param array<string,mixed>|null                           $spec Normalized kit sheet.
 	 */
-	public static function compute_terms_hash( array $raw ): string {
+	public static function compute_terms_hash( array $raw, ?array $spec = null ): string {
 		$canonical = array();
 		foreach ( array(
 			TireSpecs::ATTR_POSITION,
@@ -425,6 +513,9 @@ final class ProductIndexSync {
 			}
 			sort( $vals );
 			$canonical[ $slug ] = $vals;
+		}
+		if ( null !== $spec ) {
+			$canonical['kit_spec'] = KitSpec::fingerprint( $spec );
 		}
 		return md5( (string) wp_json_encode( $canonical ) );
 	}

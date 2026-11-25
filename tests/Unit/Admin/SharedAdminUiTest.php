@@ -66,7 +66,7 @@ final class SharedAdminUiTest extends TestCase {
 
 	public function test_every_class_used_by_the_helpers_exists_in_the_stylesheet(): void {
 		$css = (string) file_get_contents( dirname( __DIR__, 3 ) . '/assets/admin/motored-admin.css' );
-		foreach ( array( 'motored-table', 'motored-table-wrap', 'motored-table--compact', 'motored-box', 'motored-box--flush', 'motored-field', 'motored-field__label', 'motored-field__control', 'motored-field__desc', 'motored-col-xs', 'motored-col-sm', 'motored-col-md', 'motored-col-lg', 'motored-col-grow', 'motored-cell-center' ) as $class ) {
+		foreach ( array( 'motored-table', 'motored-table-wrap', 'motored-table--compact', 'motored-table--wide', 'motored-box', 'motored-box--flush', 'motored-field', 'motored-field__label', 'motored-field__control', 'motored-field__desc', 'motored-col-xs', 'motored-col-sm', 'motored-col-md', 'motored-col-lg', 'motored-col-grow', 'motored-cell-center' ) as $class ) {
 			$this->assertStringContainsString( '.' . $class, $css, $class );
 		}
 	}

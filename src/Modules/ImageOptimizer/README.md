@@ -4,7 +4,7 @@
 Compresses, resizes, strips EXIF/IPTC metadata, and optionally emits WebP sub-sizes for newly uploaded images using WordPress core's native image filters, plus an Action Scheduler cursor-batched bulk optimizer with a non-destructive dry-run scan for existing Media Library attachments (preserving original file names and URLs by default so external ERP links stay intact). Built on the shared `Support\ImageProcessor` helper.
 
 ## Public contracts
-- Option key `motored_image_optimizer` (`autoload=false`), Action Scheduler hook `motored_image_opt_batch` (registered in `Plugin::ACTION_HOOKS` and cleaned up in `uninstall.php`).
+- Option key `motored_image_optimizer` (`autoload=false`), Action Scheduler hook `motored_image_opt_batch` (cancelled with the `motored-core` group).
 - Shared helper `Motored\Core\Support\ImageProcessor`: `supports_webp()`, `active_editor_name()`, `target_size()`, `keep_sizes()`, `load_editor()`, `process_upload()`, `optimize_in_place()`.
 - `OptimizerRules` (pure validation, MIME allow-list, size clamping, sub-size filtering, job state normalization).
 - `AttachmentOptimizer::optimize( int $attachment_id, bool $dry_run = false, bool $webp_subsizes = false )` and `BulkRunner::start()`, `resume()`, `cancel()`, `status()`, `library_stats()`.

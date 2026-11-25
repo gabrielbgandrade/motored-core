@@ -344,3 +344,284 @@ Results (PHP 8.3.36): `phpstan` level 6 clean (159/159 files), `phpunit` 578 tes
 - InstallGallery: block-theme placement (`woocommerce/product-details`), cheap `deleted_comment`, no-op rebuilds skip writes, cache purge on change, uncapped one-query backfill, native alt text + product-name fallback, retina `sizes`, accessible and readable lightbox JS, accent/focus/reduced-motion CSS.
 - i18n: removed 24 duplicate msgids in `.pot`/`.po` (both tools had added the same Compatibility strings; the first translation was kept), 8 new strings, `.mo` recompiled (1060 messages, round-trip checked with Python gettext).
 - New VERIFY rows #121 (page-cache purge on `clean_post_cache`) and #122 (Product Details block). Not verified on a real WordPress.
+
+### 2026-11-24 — Core and repository skills audit
+
+- Scope: bootstrap, module contract and registration, shared settings and assets, options, cache, migrations, queue integration, uninstall, development workflow, and repository skills. Reviewed the existing working tree. No runtime or test code was changed.
+- Preserve the single plugin and explicit module registry, native WooCommerce settings and logging, WordPress options and image APIs, and the Action Scheduler adapter. The ZIP build already selects runtime files independently of the development dependencies.
+- High priority: `src/Plugin.php:175` attaches migrations on AJAX and admin-post requests as well as admin screens. `src/Support/Migrations.php:81` relies on a best-effort cache lock and `src/Support/Migrations.php:104` counts an unchecked version write. `src/Modules/Compatibility/CompatibilityMigration.php:28` and the Recovery schema migrations assume successful DDL. Verify migration outcomes before advancing the version, protect against parallel runs, and keep the gallery backfill (`src/Modules/InstallGallery/GalleryStore.php:119`) out of the interactive upgrade request.
+- High priority: `motored-core.php:34` declares Blocks compatibility for the whole plugin, while PaymentPlans documents classic-only checkout support and uses classic checkout hooks (`src/Modules/PaymentPlans/PaymentPlansModule.php:68`). Confirm supported configurations with a real checkout. HPOS and Blocks require separate verification.
+- Medium priority: defer REST-specific initialization to `rest_api_init` instead of using request URI guesses as the route registration gate (`src/Support/Context.php:50`). Measure frontend overhead with warm and cold caches. Document explicit feature allowances and keep the base budget for pages where no feature runs. Keep module-specific admin hooks near their modules.
+- Medium priority: use the dedicated Action Scheduler group for cancellation (`src/Plugin.php:129`, `uninstall.php:13`), verify scheduler readiness and make recurring scheduling idempotent (`src/Integration/ActionScheduler.php:22`). Publish the complete uninstall retention policy and use native option deletion to invalidate option caches (`uninstall.php:32`).
+- Medium priority: define the supported WooCommerce range. The dev lock requires PHP 8.2 or later for PHPUnit 11 (`composer.lock:1300`), while the plugin runtime declares PHP 8.1. Keep PHP 8.1 runtime verification separate or make the development dependency lock installable on 8.1. Verify site and user locales separately and check WordPress's current autoload values in the database.
+- Skills: all 14 skill folders have matching names and descriptions, with one skill and README per registered module. They live under `.claude/skills`. Expose one maintained copy through Codex's `.agents/skills` discovery path if both clients are used. Update Stage 1 claims in the overview, correct the add-module migration registration example, and align the review checklist with real performance budgets, feature declarations, and native integrations. Resolve the InstallGallery media dependency mismatch against actual WordPress behavior before updating its skill or test.
+- Checks on Windows with PHP 8.3.36 and existing dev dependencies: PHPCS passed for 184 files, PHPStan passed, and all 13 Node parity cases passed. PHPUnit ran 663 tests with 3,111 assertions, one InstallGallery dependency expectation error, and 33 skips. Composer was not on PATH, so its checks were invoked directly.
+- Verified a temporary Windows directory junction to this checkout, including the plugin entry point, admin stylesheet and es_AR MO file. Pending runtime verification: link the checkout under WordPress Studio's `wp-content/plugins/motored-core` and smoke-test activation, settings, assets, locale and checkout. Verify migrations, queue behavior and persistent caching on a production-like environment.
+
+### 2026-11-24 — Core audit remediation
+
+- Implemented admin-screen maintenance gates, a database-backed migration lock, checked version writes and schema verification. Added migration `2026112402` to verify schema on sites that already recorded the previous upgrades. The independent review identified lock contention, backfill write failure and SQLite SQL portability issues, which were addressed in the patch.
+- InstallGallery queues the upgrade backfill in 50-product batches and retains a pending marker for recovery. Action Scheduler uses the group to cancel pending jobs and uses unique recurring actions. Uninstall deletes options through the native Options API.
+- Motored Core declares Cart and Checkout Blocks incompatible while PaymentPlans uses classic checkout hooks. HPOS remains a separate declaration to verify in staging. REST controllers initialize on `rest_api_init`. Compatibility owns its product edit script, and shared CSS stays in the core admin loader.
+- Updated affected repository skills, the PHP development requirement, data retention policy and the no-ZIP WordPress Studio setup in README. Codex skill discovery under the protected `.agents` path and real WordPress acceptance checks remain pending.
+- Verification on PHP 8.3.36: PHPCS passed for 184 files, PHPStan passed, and PHPUnit with Sodium enabled reported 665 tests and 3,567 assertions, with 2 skipped and no errors or failures. The 13 Node parity cases passed separately. Composer was unavailable on PATH, so the individual tools were invoked directly.
+
+### 2026-11-24 — CatalogFilters module audit
+
+- Reviewed the storefront PHP, REST routes, browser scripts, snapshot invalidation and Compatibility/Mi Garage boundaries. CatalogFilters PHPUnit suite passed (12 tests, 75 assertions). No runtime files were changed during this audit.
+- Correctness findings: smart suggestions build a second query delimiter with plain REST permalinks; filter links strip the query from their base; PHP and JS force OR even when WooCommerce interprets an existing attribute filter as AND. The headline count is reconstructed independently from the grid, with a different visibility model on search. Smart Enter can navigate to a partial match, and stale asynchronous results can replace suggestions after input changes.
+- Data freshness and performance findings: the client sizes list has no expiration, the no-Redis version falls back to a fixed token, and an invalidation written during a rebuild can be cleared by the rebuilding request. Snapshot reads conflate a failed query with an empty catalog. Autocomplete builds and sorts size combinations before determining whether the query is for a size.
+- Recommended scope: retain CatalogFilters, use the WooCommerce query as the grid authority, preserve existing URLs and features, and remove the dependency on Compatibility storefront internals. Compatibility should own the motorcycle catalog and its lookup. Assess moving account, privacy and garage state out of Compatibility during the next module audit. Verify archive and Product Collection parity in a real WooCommerce installation.
+
+### 2026-11-24 — CatalogFilters fixes and Compatibility review
+
+- CatalogFilters now uses complete REST URLs and HTTP caching for sizes, preserves routing parameters and native attribute operators, takes the headline total from the WooCommerce query where available, and respects existing robots directives. Snapshot failures preserve cached data and concurrent catalog changes stay pending for another rebuild.
+- The suggestion lookup skips size computation for non-size queries, uses Compatibility's motorcycle catalog lookup, and only routes Enter to an unambiguous exact match. Independent review caught exact aliases, stale submit responses and older cached HTML configuration. These cases were addressed. Tests added for plain archive routing and concurrent invalidation. Full PHPCS and PHPStan passed. PHPUnit reported 667 tests with 2 skipped and no failures. All 13 Node parity cases passed.
+- Compatibility and Mi Garage review: prioritize truthful REST mutation responses and safe guest/account synchronization, then bound import and reindex work, preserve existing job progress when scheduling fails, and scope index hooks to relevant product queries and changes. Existing simple-product and one-hop equivalence rules are worth retaining. Split Mi Garage account state, REST callbacks and privacy from the compatibility engine inside the same plugin, retaining current route paths and user meta.
+- Pending WordPress verification: Classic and inherited Product Collection archives, plain and pretty permalinks, real cache behavior after stock changes, Garage login/logout on shared devices, and import/reindex retry and cancellation.
+
+### 2026-11-24 — Mi Garage separation and focused Compatibility audit
+
+- Mi Garage is a registered module with account endpoint, authenticated REST controller, repository, browser assets and privacy callbacks. Existing browser-facing paths and server user meta are retained. Guest drafts and account session caches are distinct, and the old ambiguous shared storage is not merged into accounts. CatalogFilters and Compatibility share core storefront assets.
+- Garage mutations are serialized per account and failures are returned to the client. Import starts, batches and cancellation are serialized, batch checkpoints survive a scheduling failure, and the admin resume action processes only one batch. Reindex scheduling failures save a resume cursor instead of repeating batches synchronously. Index priming is scoped to the main query and the existing Product Collection integration.
+- Focused Compatibility findings for a subsequent fix: index storage failures can still look like successful updates or a finished SQL scan (`ProductIndexSync.php:226`, `:259`); equivalent sizes reached from multiple OEM sizes can use whichever row is visited first (`MatchEngine.php:303`); public product compatibility responses trust an index row without checking current product visibility (`RestController.php:200`); the block query filter can affect secondary product grids (`Storefront.php:281`). Separate the remaining storefront integration responsibilities before considering deeper changes to the matcher.
+- Pending live verification: Studio database locking and WooCommerce route/collection behavior, classic/block parity, logged-in page-cache exclusion and guest/account synchronization on real devices.
+- Validation using the Studio PHP 8.3.36 runtime: PHPCS passed for 188 files, PHPStan passed, PHPUnit reported 668 tests with one skipped and no failures, and all 13 direct Node matching parity cases passed.
+
+### 2026-11-24 — Compatibility follow-up fixes
+
+- Reindexing distinguishes SQL failure, failed writes and completion. Deferred cursor markers preserve earlier outstanding work, failed removals are retried, and full reindexing includes orphaned or unpublished index rows. The admin action keeps reindex work in the queue and CLI reports an interrupted batch.
+- Forward and reverse matching choose direct fitments first and resolve equivalent routes by exactness, then canonical OEM size, before checking that route's requirements. Server cache keys and the compact browser profile schema were updated so the earlier result is not reused.
+- The public product-motos endpoint checks the current WooCommerce product and disables HTTP storage of the response. Only the main catalog and inherited Product Collection queries receive the motorcycle filter. The selector has an independent public configuration and Mi Garage attaches its optional save integration using a WordPress action.
+- Independent review checked the Product Collection context in the installed WooCommerce source and flagged obsolete browser profiles and failed index removals. Both were handled in this patch. Runtime verification of queue recovery, SQLite query compatibility and Classic/Block storefront behavior remains pending.
+
+### 2026-11-24 — Compatibility: kit per-axle technical sheet (+ CatalogFilters kits-by-size)
+
+- Scope: a kit (front + rear tire sold as one simple product) now has one technical sheet per tire. `KitSpec` (pure) stores `_motored_tire_spec`; the product box shows Front tire / Rear tire sections (size as printed, model, load, speed, construction, tube) with a "copy from front" button; `62H` typed after a size fills load/speed (also for single tires). Index columns `front_construction` / `rear_construction` (migration `2026112403`); `MatchEngine` and `ev()` check each axle with its own construction (`fc`/`rc` marker keys, fallback `c`), reverse cache key `pm3_`. Technical information shows one row per tire for kits with a sheet. Advanced > Product Index lists kits without a sheet.
+- Interference review (CatalogFilters / Mi Garage): kits get NO load/speed/width/profile/rim terms (facets exclude kits there, a native `filter_indice-carga` would otherwise list kits the counts ignore); construction/tube terms only when both axles agree. Kits-by-size is a separate `?kit_medida=` view (QueryFilter `post__in` intersection preserving `?moto=`/`?oferta=`, facet `kit_ids` context, chip, `data-kit` kept by `catalog-filters.js`, `noindex`). Mi Garage storage and the bike profile schema are unchanged; cached HTML without `fc`/`rc` still evaluates through the `c` fallback. The index ignores a sheet whose sizes no longer equal the attributes (ERP rewrite safety); products without a sheet keep their previous `terms_hash`.
+- Self-review findings fixed during the change: a Brain Monkey stub of `wp_strip_all_tags` in the new test leaked into later suites that probe `function_exists()` (removed the dependency: the line is sanitized on save and escaped on output); kit technical-tab test mock needed the new meta read.
+- Validation with the Studio PHP 8.3.36 binary (Composer not on PATH, tools invoked directly): PHPCS clean, PHPStan no errors, PHPUnit 683 tests / 3,698 assertions, 1 skipped (Node parity via shell), 0 failures; `node tests/js/compat-parity.test.js` 17/17 (4 new kit cases). `.pot` regenerated with `wp i18n make-pot` (WP-CLI ordering, hence the large diff), es_AR `.po` merged and filled, `.mo` compiled with `wp i18n make-mo`.
+- Bug found while verifying in the browser (pre-existing): `CatalogRepository::ensure_size()` read `$wpdb->insert_id` after `AttributeInstaller::sync_size_term()` had inserted the size terms, so the first product saved with a NEW size got a term ID as `front_size_id`/`rear_size_id` (the product was indexed but had no size; matching and labels silently failed until the size already existed). Fixed (ID read before the term sync) with `EnsureSizeTest`; migration `2026112404` clears every index `terms_hash` and queues a full reindex, because a re-sync alone would see an unchanged hash and keep the wrong IDs. Production sites should let the queued reindex finish after updating.
+- Browser verification (Studio site, Classic admin): Kit position shows the Front tire / Rear tire sections, the copy button copies model/construction/tube, `100/80-17 52S` + `130/70-17 62H` saved as load/speed per axle in the sheet and the index, the box summary reads `100/80-17 + 130/70-17 · Kit · Front 52S · Rear 62H`, migrations `2026112403`/`2026112404` applied on `admin_init`, `kit_ids_with_size('130/70-17')` returned the kit and the filter hint linked to `?kit_medida=130/70-17`. The test product was deleted afterwards. The storefront technical rows were checked by unit test only (Compatibility is disabled in this site's settings and was left disabled).
+- Pending: storefront check with Compatibility enabled (Technical information rows per tire, `?kit_medida=` grid in Classic and block archives), filling the sheets of existing kits. Still open from the evaluation (phase 2): Quick add replaces the axle OEM and stores no min load/speed; deleting a motorcycle that customers saved in Mi Garage leaves a silent orphan.
+
+### 2026-11-24 — Compatibility admin usability (motorcycle sizes, product box, 2017+)
+
+- Motorcycle edit: data and sizes are separate forms. The data form no longer replaces the OEM sizes on every save (this silently wiped their min load/speed). Sizes are an editable table (`save_fitments`, `FitmentRow`): change position, size, type, limits or note in place, tick Remove, or fill one of the two empty rows; a changed position/size replaces the row because it is part of the unique key. Rows of other motorcycles are ignored. Quick add and the table read `120/70ZR17 58W` as minimum load 58 / speed W. Open ranges are labelled `2017+` (`MatchEngine::format_years()`), "Year to" may be left empty.
+- Product box: per-position intro, one bordered panel per tire plus a "Whole product" panel (`.motored-box__panel*`, `.motored-box__grid--wide/--ratings`, `.motored-field__hint` in the shared admin CSS), live load index → kg hint (table passed once as a data attribute), kit preview with kg and km/h per tire, inline warning when Compatibility is disabled.
+- Storefront report from the owner ("Additional information" with raw rows): on this site Compatibility is enabled and the tab renders correctly now; the raw rows matched the `ensure_size()` insert_id bug fixed earlier today (the product's index row had no size, so the label was empty and the rows were left untouched). Verified on the Twenty Twenty-Five block theme: single tire (Full size, Index 69H with kg/km/h) and a temporary kit (Front tire / Rear tire rows, matched Benelli TRK 502 2017+ and CFMoto 700MT); the test kit was deleted.
+- Browser checks of the sizes table on Benelli TRK 502: add (`120/80ZR17 58W` as Alternative), edit (size and min load) and remove all worked; the data ended as before the test.
+- Validation: PHPCS clean, PHPStan no errors, PHPUnit 688 tests (1 skipped: Node via shell), Node parity 17/17; es_AR complete (0 untranslated), `.mo` recompiled.
+
+### 2026-11-24 — Compatibility full audit & Blocks 1–3 remediation
+
+- **Block 1 (critical admin & matching fixes):**
+  - Fixed fitments table column clipping on Motorcycle Edit (`Ui::table_open( false, true )` + `.motored-table--wide { min-width: 1040px }` in `assets/admin/motored-admin.css`, `Type`/`Construction` widened to `md`, `Position` to `sm`, `Note` has >= 200 px before horizontal scroll).
+  - Unified motorcycle data + tire sizes into ONE `<form>` (`op=save_version`, `has_fitments=1`, `Save motorcycle` + `Save & publish`), preventing silent loss of edits across boxes and blocking publishing motorcycles with 0 tire sizes (`no_sizes` warning).
+  - Made `CompatibilityAdmin::save_fitment_rows()` two-phase (deletes before upserts) so swapping sizes/positions across rows in one save never deletes a newly written row.
+  - Extracted `MatchEngine::build_axes_from_fitments()` and wired `CompatibilityAdmin::compute_store_match_preview()` to it (fixed stale `'l'`/`'s'`/`'c'` keys that previously ignored load/speed/construction and OEM equivalence inheritance).
+  - Fixed `Storefront::resolve_full_size_label()` for kits with a valid `KitSpec` so it preserves saved axle designations (e.g. `120/70R17 + 160/60R17`) instead of rewriting `R` to `ZR`.
+- **Block 2 (product screen WP/WooCommerce integration & safety):**
+  - Moved `ProductTireAdmin` meta box priority from `high` to `default` (below WooCommerce `Product data`), replaced nested bordered panels inside `.motored-box--flush` with clean hairline dividers, normalized controls to `30px`, replaced the 3-line Load index help text with a 1-line dynamic hint, added live `blur` size-suffix extraction in `assets/admin/motored-tire-box.js`, made compatible motorcycles clickable admin links (via `version_id` in `MatchEngine`), guarded non-simple products on render & save, and validated `TireAttributePlan` before mutating `_motored_full_size` or attributes.
+- **Block 3 (robustness, cleanup, i18n, storefront polish):**
+  - Applied `CatalogRepository::clean_variant()` before `has_year_overlap()` in `quick_add_moto` and `save_version`; preserved existing model `cc`/`aliases` in `CatalogRepository::upsert_model()` when omitted on partial JSON imports; added delete confirmation dialogs; pruned deleted/draft bikes in `GarageRestController::hydrate_garage_profiles()` and guest 404 revalidation in `compat-garage.js`; removed dead `selector_url` setting/accessor, `FitmentRow::display()`, and legacy CRUD/tool ops; replaced flat pagination loop with `paginate_links()`; translated dry-run summaries, `JsonImporter` dry-run diagnostics and import status labels; guarded `Compatibility\RestController::register_routes()` with `Config::enabled()`; updated `compat.css` tokens for dark-theme safety and added `restUrl()` to `motored-ui.js`.
+- **Tests & i18n:** Added regression tests in `StorefrontTabsTest`, `MatchEngineTest`, `JsonImporterTest`, `SharedAdminUiTest`, and updated `FitmentRowTest`. Updated `.pot`, `es_AR.po`, and compiled `motored-core-es_AR.mo` (1,032 entries, 0 missing `es_AR` strings, binary round-trip verified).
+- **Checks run:** `node --check` passed on all 4 modified JS files; `node tests/js/compat-parity.test.js` passed **17/17**; static `SharedAdminUiTest` check passed. **Pending:** `composer check` (`phpcs`, `phpstan`, `phpunit`) could not be executed here because `php`/`composer` were unavailable in PATH/sandbox; run `composer check` and verify the visual changes in WordPress Studio.
+
+### 2026-11-24 — Mi Garage 404 endpoint fix
+
+- **Root causes:** `GarageEndpoint` only called `add_rewrite_endpoint( 'mi-garage', ... )` at `init@10` without registering `mi-garage` in `woocommerce_get_query_vars` or `query_vars`; `MiGarageModule` skipped CLI/cron/REST/AJAX contexts so any rewrite flush outside frontend/admin erased `mi-garage` from `wp_options.rewrite_rules`; `maybe_flush_rewrite_rules()` only checked `motored_compat_rewrite_ver === '1'` and never self-healed missing rules; `Plugin::activate()` did not reset `motored_compat_rewrite_ver`.
+- **Fixed:**
+  - `src/Modules/MiGarage/GarageEndpoint.php`: added `register_rewrite_hooks()` (`init@0` `add_endpoint`, `query_vars@0` `add_query_vars`, `woocommerce_get_query_vars` `add_wc_query_vars`), hooked `woocommerce_endpoint_mi-garage_title`, bumped `REWRITE_VERSION` to `'2'`, added `is_missing_from_rewrite_rules()` self-heal (with 5-minute `motored_garage_rewrite_heal` lock transient, skipping AJAX and Plain permalinks).
+  - `src/Modules/MiGarage/MiGarageModule.php`: loads in all contexts and registers the zero-cost rewrite/query-var hooks even in CLI/cron/REST/AJAX so flushes never wipe `mi-garage` (cron/CLI return immediately afterwards with 0 queries/assets).
+  - `src/Plugin.php`: `activate()` deletes `GarageEndpoint::REWRITE_OPT` so plugin reactivation always flushes on the next `admin_init`.
+  - Added unit tests in `tests/Unit/Modules/MiGarage/GarageEndpointTest.php` and updated `docs/VERIFY.md` #100 and module READMEs.
+
+### 2026-11-24 — Compatibility, Mi Garage, CatalogFilters, BikePages & Seo implementation (study remediation)
+
+- **Phase 0 (critical fixes, perf, copy, scorecard):**
+  - Fixed S0-2 (`Storefront::robots_noindex()` gated with `is_catalog_request()`), S1-4 (`GarageEndpoint::robots_noindex()` on `mi-garage`), P1-2 & P1-3 (`Storefront::maybe_enqueue_catalog_assets()` loads `compat.css` in `<head>` and gates JS/CSS to catalog views, indexed products, `mi-garage`, or logout cookie), P1-1 & B7 (`FacetEngine::snapshot( bool $search )` cached/memoized with isolated `SnapshotInvalidator` search tracking; deterministic `size_combinations()` sort), Decision 5 (`LayeredNavHooks` + `replace_native_layered_nav`), P2-3 (`MatchEngine::bike_profile_many()` + `CatalogRepository` batch helpers in `<= 3` queries), B1 & §5 copy (`TireSpecs::position_label()` single source of truth, `RestController::bike_counts()`, disabled zero-count tabs with counts, no dead-end pair links on product banners, notify triggers), and B4 (`ReadinessReport` scorecard in `Productos > Compatibilidad > Readiness`).
+- **Phase 1 (`Modules\Seo`):** Added lightweight core SEO module (`Config`, `SeoContext`, `HeadRenderer`, `SitemapFilters`, `SeoMigration` `2026112405`, `Redirects` 404-only, `SeoAdmin`, `SeoModule`).
+- **Phases 2–5 (`Modules\BikePages` + Guest Garage):**
+  - Emitted `motored_compat_catalog_changed` across all 12 write methods of `CatalogRepository` (with pre-delete/pre-update context), `motored_compat_product_index_changed` in `ProductIndexRepository`, and `motored_compat_import_chunk_done` in `ImportRunner`.
+  - Added `PostType` (`motored_bike`, `motored_bike_brand`), `Signature` (per-model OEM size signature grouping & year merging), `BikePageSync` (batched Action Scheduler sync preserving manual edits, 301 redirects via `Seo\Redirects`, `_motored_indexable`), `HubLinks` (single-query cached URL map powering clickable per-motorcycle links in `CompatListRenderer` + `compat-tab.js` and brand/archive hubs), `BikeRenderer` (`[motored_moto]` conversion anatomy, "Complete the set" pair block, FAQPage/ItemList/BreadcrumbList/Motorcycle JSON-LD, zero `<h1>`, zero `Product` schema), `DemandMigration` (`2026112406`), `BikeDemandHooks`, `DemandStore`, `DemandRestController` (`POST /compat/notify`), `DemandPrivacy`, `BikePagesAdmin`, `SizePages` (Stage 6 `/medidas/` opt-in), and `[motored_mi_garage]` guest garage management (`GarageEndpoint` + `compat-garage-page.js`).
+- **Docs, Skills & i18n:** Added `Modules\Seo` and `Modules\BikePages` READMEs and skills, updated `docs/VERIFY.md` (#123–#129), `docs/ARCHITECTURE.md`, and synced `.pot`/`.po`/`.mo` (`1,191` entries, `1,167` scanned `motored-core` strings, 0 missing/untranslated, binary `.mo` round-trip verified).
+- **Review & Verification (PHP 8.4.27 via Studio bundled binary with `mbstring` + `sodium`, Composer not on PATH):**
+  - Fixed static-analysis and coding-standards issues surfaced by `composer check` tooling: void Action Scheduler wrappers (`BikePageSync::sync_model_action()`, `BikePagesModule`), `term_exists()` return handling (`BikePageSync::ensure_brand_term()`), `DAY_IN_SECONDS` constant guard (`DemandStore::schedule_purge()`), PHPDoc type/alignment fixes (`SeoContext`, `BikeRenderer`, `Signature`), bounded brand directory query (`posts_per_page => 100`, `no_found_rows => true` in `HubLinks`), Yoda condition (`PostType`), removed forbidden `background`/`font-size` properties from `.motored-box__preview`/`.motored-box__panel-title` in `assets/admin/motored-admin.css`, and test isolation fixes (`BikePagesModuleTest`, `GarageEndpointTest`).
+  - Audited `Modules\Seo`, `Modules\BikePages`, and `src/Integration/` for `style=`, theme names/hooks (`get_header`, `get_footer`), `admin-ajax`, and PII masking: clean.
+  - `phpcs`: **214/214 files passed** (0 errors, 0 warnings).
+  - `phpstan analyse --memory-limit=1G` (level 6): **208/208 files passed** (0 errors).
+  - `phpunit`: **707 tests, 3,899 assertions, 0 errors, 0 failures, 2 skipped**.
+  - `node --check` (`compat-garage.js`, `compat-garage-page.js`, `compat-tab.js`, `compat-selector.js`) passed; `node --test tests/js/compat-parity.test.js` passed **17/17**.
+  - Pending live staging checks in WordPress Studio per `docs/STAGING-CHECKLIST.md` and `docs/VERIFY.md` (#123–#129).
+
+### 2026-11-24 — BikePages/Compatibility visual review: Phase 1 fixes
+
+Found by visual testing + code review of the study implementation (see review in chat / `STUDY-COMPAT-GARAGE-FILTERS.md`).
+- **`(%d)` shown literally** on the product banner: `compat-garage.js` `fmt()` replaced only `%s`. Now `%[sd]`; covered by
+  `tests/js/compat-parity.test.js` (`fmt` exposed on `motoredGarageApi`).
+- **"Delanteras (1)" with no front tire:** `MatchEngine::matching_product_counts()` added kits to front AND rear, while the
+  `?pos=` filter excludes kits. Extracted pure `count_by_position()` (kits count only as kits), cache key `mcnt2_`;
+  regression test in `MatchEngineTest`. Also removes the dead-end "Completá el juego: delanteras" link.
+- **Banner/garage/tab links went to `?moto=` instead of the bike page:** `HubLinks` filter was frontend-only, but those
+  payloads come from REST. Now `register_url_filter()` in REST; test in `BikePagesModuleTest`.
+- **Masculine tire labels** ("Trasero", "Delantero 120/70ZR17"): `TireSpecs::position_label()` uses
+  `_x( …, 'tire position' )` → Delantera / Trasera / Delantera / Trasera. Admin/attribute "Front"/"Rear" unchanged.
+- **English H1 "Tires for …":** sync builds titles in the site locale; `SYNC_VERSION = 2` queues one rebuild on the next
+  plugin admin screen (edited titles preserved by `_motored_synced_title`).
+- **"Written by in" on bike pages (block themes):** plugin `single-motored_bike` block template (VERIFY #130).
+- **Unstyled chip/buttons:** `.motored-bike-page`/`-hub`/`.motored-notify-form` now share the token block (`--motored-ok`,
+  `--motored-focus`…); bar tabs and bike-page jump links are theme-independent chips (`.is-active`, `.is-disabled`);
+  primary CTAs add core `wp-element-button`. Asset versions bumped (`-compat2`, `-garage4`).
+- i18n: 4 entries added to `.pot`/`.po`; `.mo` recompiled with the Python writer, previous catalog unchanged (diffed).
+- Checks (PHP 8.4.27 Studio): phpcs OK, phpstan L6 0 errors, phpunit 709 tests OK (2 skipped), node parity + fmt OK.
+- Next (Phase 2): slug without year (sticky, 301), shorter `<title>`, single "indexable" rule (in stock), 410, SEO-plugin guard.
+
+### 2026-11-24 — BikePages/Seo: Phase 2 (URLs, title, indexability, 410, SEO-plugin coexistence)
+
+- **Slug without the year:** `/cubiertas-para/benelli-trk-502/` instead of `…-2017/`. The page covers a year range
+  ("2017+"), riders search "<marca> <modelo>", and `year_from` in the URL changed whenever an older year was added.
+  Year stays in H1/`<title>`. `Signature::assign_post_slugs()`: one page per model owns the clean slug (sticky —
+  never handed to a newer generation); other signatures use `-{year_from}[-variant]` (year_to never in the URL).
+  `SYNC_VERSION = 3` rebuilds once; every rename leaves a 301 through the existing `Seo\Redirects` path.
+- **`<title>`:** `BikeRenderer::seo_title()` → "Cubiertas Benelli TRK 502 (2017+): medidas y precios | Sitio", dropping
+  the site name, then the topic, to stay <= 60 chars. Obsolete "Tires for … · Sizes and prices" string removed.
+- **Indexability = one rule:** new `BikePages\Availability` (published + visible + in stock/backorder) used by the
+  sync flag, the sitemap flag and the hero "N cubiertas en stock". Before, the flag counted out-of-stock tires.
+  **Bug fixed:** the flag was only recomputed when the product INDEX row changed; stock flips and product
+  publish/unpublish never triggered it. Now `woocommerce_product_set_stock_status` + `transition_post_status`
+  (indexed tires only, all contexts, queue-only) schedule the debounced sweep (VERIFY #133).
+- **410 Gone:** `BikePages\GoneHandler` (template_redirect@20, 404-only, 1 query) for trashed bike pages without a
+  301 target (VERIFY #132).
+- **SEO-plugin coexistence:** `HeadRenderer::external_seo_plugin()` (lazy constant check + filter
+  `motored_seo_external_plugin`): title/description/canonical/OG and `WebPage`/`BreadcrumbList` are left to
+  Yoast/Rank Math/AIOSEO/SEOPress/TSF; we keep robots + `ItemList`/`FAQPage` (VERIFY #131).
+- Tests: slug assignment (fresh/migration/sticky), title widths, 410 path parser, external-plugin head output.
+
+### 2026-11-24 — BikePages/Compatibility: Phase 3 (performance)
+
+Measured on the local site (no object cache, TT5) with a temporary query-count mu-plugin (removed afterwards).
+| Page | Before | After | Baseline (plain page) |
+|---|---|---|---|
+| `/cubiertas-para/` hub | 263 queries, 171 KB | 93 queries, 106 KB | 88 |
+| `/cubiertas-para/marca/benelli/` | 141 | 94 | 88 |
+| `/cubiertas-para/benelli-trk-502/` | 114 | 111 | 88 |
+| `/shop/?moto=…` | 109 | 108 | — |
+- **Hub bug:** the theme archive loop printed every bike post's content, so `[motored_moto]` rendered 10 FULL bike pages
+  (10 product grids) on `/cubiertas-para/`, and the brands directory never showed (TT5 has no archive-description
+  block; `core/term-description` skips our filter). Fix: outside its singular page the shortcode prints a 0-query
+  card (`_motored_oem_sizes` meta, sync v4); block themes get plugin hub templates (`archive-motored_bike`,
+  `taxonomy-motored_bike_brand`) with H1 + `[motored_bike_hub]` (brands + every bike page, 2 queries).
+- **One partition per bike:** `MatchEngine::matching_ids_by_position()` replaces 4–5 candidate queries (ids per
+  position + counts) with one; counts and grids now come from the same lists, and a dual tire is listed only on the
+  axles it actually fits. Bar fallback counting removed.
+- **Mi Garage strings:** 11 page-only strings moved to `GarageAssets::page_i18n()` (inline only with
+  `compat-garage-page.js`); unused `frontPlural`/`rearPlural` dropped.
+- **Meta description:** `BikeRenderer::seo_description()` keeps it <= 160 chars (Benelli was 166).
+- **Data found while testing (not code):** BMW S1000RR (2010–2011 and 2012–2014) have no OEM fitments; Bajaj Dominar
+  D400 lists `150/90-15` as a second OEM front and `100/80-17` as a second OEM rear. Fix in Compatibility > Motos.
+
+### 2026-11-24 — Review (motored-review): Compatibility, Mi Garage, CatalogFilters, BikePages, Seo after Phases 1–3
+
+Scope: the study implementation + Phases 1–3. Tools: phpcs OK, phpstan L6 0 errors, phpunit 714 tests OK (2 skipped),
+node parity + fmt OK, i18n script: 1,159 code strings, 0 missing in `.pot`/`.po`, 0 untranslated.
+Measured on the local site (TT5, no object cache) with a temporary localhost-only mu-plugin (plugin on vs off via
+`option_active_plugins` filter, query count + SAVEQUERIES trace); the mu-plugin was removed afterwards.
+
+Findings — fixed:
+- **N+1 on every product page:** `HubLinks::version_slug_url_map()` called `get_permalink()` per bike page = 46 queries
+  without Redis. Now selects `p.*` and primes `update_post_cache()` in the same query (cache key `bike_page_urls_v2`).
+  Product page 178 -> 134 queries (plugin off: 118).
+- **Rule 1 (0 queries on pages without Motored features):** option reads moved behind cheap context checks:
+  `Compatibility\Storefront::maybe_enqueue_catalog_assets()` (context first), `Seo\Redirects::maybe_redirect()`
+  (`is_404()` first), `Seo\HeadRenderer` title/canonical/robots/head (no context and no search/paged -> return before
+  the option), CatalogFilters native layered nav (frontend: `widget_display_callback` only when such a widget renders;
+  admin keeps `widgets_init` unregister). Home/page/checkout: +4 -> +1 query.
+- **Copy:** kit products said "Esta cubierta sirve…" -> new `compatWithKit` "Este kit sirve para tu %s".
+  Factory sizes in the product banner / Mi Garage now "Delantera 120/70ZR17" (no colon), same as bar and bike page.
+
+Verified OK: one `<h1>`, one canonical, JSON-LD `BreadcrumbList/WebPage/ItemList/FAQPage` (no `Product`) on bike pages;
+`noindex,follow` on `?moto=`, `?pos=`, search, non-indexable bike pages, Mi Garage; sitemap lists only the 6 indexable
+bike pages; banner/tab links point to bike pages (rear, kit); Mi Garage page strings load only there; notify REST
+rejects invalid contact / missing consent (422, es_AR); admin handlers check `manage_woocommerce` + nonce; CSV export
+formula-safe; demand logs masked; no theme names/selectors, no inline `style=`; new options autoload=false.
+
+Pending / decisions:
+- **+1 query on every page** (`motored_bike_pages`): the CPT/taxonomy rewrite slugs are configurable, so
+  `register_post_type()` needs the option on every request. Options: make that one option autoload=yes (small, ~1 KB),
+  or fix the slugs (no setting). Owner decision; rule 4 says autoload=false.
+- Cart page +2 queries: Compatibility primes fits for the cross-sells Product Collection block (feature-adjacent).
+- Product page still +16 over plugin-off (index lookups, compatible-motorcycles list, attribute row, payment plans,
+  review photos) — feature page, within expectations; not profiled further.
+- Not run here: Redis on/off cold+warm, Classic vs Blocks checkout, HPOS, another block theme and a classic theme
+  (STAGING-CHECKLIST + VERIFY #124–#134), notify insert + privacy export/erase (avoided writing PII on the local DB).
+- Catalog data: BMW S1000RR (2010–2011, 2012–2014) without OEM fitments; Bajaj Dominar D400 with suspicious extra
+  OEM sizes (150/90-15 front, 100/80-17 rear).
+
+### 2026-11-24 — Decision: `motored_bike_pages` is autoloaded (rule 4 exception)
+
+- Owner decision after the review: the BikePages option is read on every request by `register_post_type()`
+  (configurable `/cubiertas-para/` and brand slugs), which cost +1 query on every page. It is now autoloaded.
+- Implemented as an explicit allow-list, not a per-call flag: `Support\Options::AUTOLOAD_MODULES = array( 'bike_pages' )`;
+  `Options::update()`/`ensure()` and the WooCommerce settings fields (`BikePagesAdmin`, `'autoload' =>
+  Options::autoload(...)`) use it; `Options::sync_autoload()` flips existing installs on `admin_init` using the in-memory
+  alloptions (no query when already right). AGENTS.md rule 4 and the review skill name the exception.
+- Found while verifying: on this install the option had never been saved (defaults only), and a MISSING option is
+  also 1 query per request (`notoptions` is not persistent without an object cache). `sync_autoload()` therefore also
+  creates it EMPTY + autoloaded (defaults stay in code, so later default changes still apply).
+- Result (local, plugin on vs off): home 86/86, page 84/84, checkout 60/60 — **0 added queries** (was +4 before the
+  review, +1 after it). Cart +1 (cross-sells Product Collection, feature-adjacent).
+- Test: `OptionsTest::test_only_bike_pages_is_autoloaded_and_sync_flips_it_once`.
+
+### 2026-11-24 — Stock alerts and integrated storefront remediation
+
+- Product decision: one Avisame CTA. Logged-in customers use saved WC_Customer billing phone + account email without a channel selector. Guests use an accessible native dialog with one contact, explicit consent and optional native WooCommerce registration/login. Existing accounts are never linked without authentication. My Account registration is enabled on the local site; there is no custom auto-registration API or automatic login.
+- WooCommerce core provides customer CRUD, registration, stock hooks, email transport/templates and Action Scheduler, but the installed core does not provide this customer-facing motorcycle/axle compatibility waitlist. No new plugin was installed.
+- `OrderNotifications\\BikeDemandNotifier` consumes BikePages events; WAHA remains transport-only. Migration `2026112407` extends demand state without storing contacts/text in AS arguments. Claims are atomic, send-time availability is checked, WAHA has first priority, and email is a terminal fallback (or the only supplied contact). OFF/test modes must never be bypassed through real email. Signed cancellation works without login. Email acceptance is not a read/delivery receipt; process-crash recovery of ambiguous `sending` rows remains an operator decision.
+- Captured contacts remain the consented snapshot; changing an account later does not silently rewrite existing subscriptions. Guest optional signup uses the native form and is not an inline quick-account conversion experiment.
+- Commercial BikePages counts/grids/recommendations/summaries now share published + visible + purchasable + stock availability. Summaries no longer stop at 24; longer grids link to the native paginated filtered shop. Missing technical data is explicitly qualified. Signatures include approved alternatives (OEM-only hashes preserved); sync version 5 queues reconciliation.
+- Scoped CSS fixes classic WC card grids in block themes and contains the technical table in a keyboard-scrollable mobile region. CatalogFilters preloads styles in head for explicit shortcode pages/configured shop widgets, but remains disabled on the local site; the no-Redis full-snapshot scaling strategy was not changed without representative data.
+- Public guest garage: local page `/mi-garage/` (ID 118, validated core paragraph + shortcode); non-autoloaded `motored_mi_garage_page_id` selects its guest link. Utility page is noindex and omitted from the core sitemap. Account garage endpoint is unchanged.
+- Landing sitemap requires a positive stored indexability flag and respects explicit noindex. A manual index cannot override live availability noindex. Stored sitemap metadata still reconciles asynchronously and external HTML cache purge remains provider/plugin-specific.
+- Verification: 726 PHPUnit tests / 3986 assertions, one skipped; PHPStan clean; 17 JS parity cases + formatter cases; local REST/queue/mail integration passed with HTTP blocked and mail intercepted. Browser checks at 1040/390px covered modal focus/Escape, guest submit (mock response), account direct request (simulated UI configuration), public guest garage and no JS errors. Server-side account ownership was tested with a temporary native customer; fixtures were deleted.
+- Operational block: local WAHA is OFF with no endpoint configured. No real WhatsApp or email was sent; enabling production delivery requires endpoint/session/key setup, a controlled-recipient test and healthy cron/AS. Redis cold/down, thousands of products, external cache purge and additional themes remain staging checks.
+- Existing unrelated working-tree edits were preserved; no bulk reset or commit was performed.
+
+### 2026-11-25 — Report remediation: remaining gaps closed
+
+- Verified against the technical report: Avisame (single CTA, account contacts, guest dialog, WAHA-first `BikeDemandNotifier`, email fallback, signed cancel), spec qualification, shared commercial availability, untruncated summaries, OEM+alternatives signature, mobile table, block-theme grids, "Entendé los tipos de compatibilidad" link, sitemap/robots policy, public guest garage, atomic rate limit and specific 503 storage errors were already in place (entry of 2026-11-24).
+- **Paged archives (report §4.5):** `motored_seo[noindex_paged]` default is now `no`; `HeadRenderer::clean_current_url()` keeps `/page/N/` (or `?paged=N` without pretty permalinks) instead of canonicalizing page N to page 1. Sites that saved the option keep their stored value. Opt-in noindex still covered by `SeoModuleTest`.
+- **Mi Garage orphan bikes (report §6):** `GarageRestController::hydrate_garage_profiles()` returns `unavailable` labels; `compat-garage.js` emits `motored:garage-unavailable` and the garage page shows an es_AR notice. Not persisted (a version may be republished).
+- **Analytics dependency (report §6):** `GarageAssets::enqueue()` loads `motored-ui` as a dependency only when `analytics_events` is on (0 extra assets otherwise).
+- i18n: 2 strings added/changed; two duplicate msgids appended to the `.po` by the previous stage were removed (first translation kept, matches the shipped `.mo`); `.mo` recompiled with the Python writer and round-trip checked.
+- Still open (unchanged): FacetEngine full snapshot without Redis needs a representative catalog to measure; CatalogFilters disabled locally; real WAHA/email delivery needs endpoint/session configuration and a controlled-recipient test; catalog data (images, OEM data, specific content) is editorial work.
+
+### 2026-11-25 — Review (motored-review): Avisame, availability, Seo, Mi Garage after the report remediation
+
+Scope: BikePages demand capture/cancel, `OrderNotifications\BikeDemandNotifier`, `Waha\Sender` contract, `Availability`, `BikeRenderer` data path, `Seo\SitemapFilters`, garage JS. Tools (Studio PHP 8.3.36; `composer` not on PATH, binaries run directly): phpcs clean, PHPStan L6 0 errors, PHPUnit 729 tests OK (1 pre-existing skip), node parity 17 cases OK. Local site probes: guest POST without nonce reaches validation, invalid phone -> 422 es_AR, GET on the old unsubscribe route -> 404, cancel page renders in es_AR.
+
+Findings — fixed:
+- **Undeliverable phones accepted** (`DemandStore::parse_contacts()`): any 7+ digits were stored and only failed later in WAHA (customer told "saved", never notified when no e-mail). Now `Waha\Phone::normalize()` at capture; "011 15…" and "+54 9 11…" dedupe to one E.164.
+- **Accounts without a phone silently got e-mail only** (`DemandRestController`): the button now opens the dialog asking for WhatsApp (empty = e-mail); the typed number is used for this alert only (account is not modified).
+- **Generic success/error copy**: success now states the real channel; errors are specific (consent, contact, unknown bike, storage).
+- **Guest nonce vs page cache**: guests no longer need `X-Motored-Nonce` (a cached nonce > 24 h returned 403 "session expired"). Accounts keep `wp_rest` + the custom nonce. Guest abuse control = honeypot + atomic rate limit.
+- **Cancel link deleted on GET and answered raw JSON**: mail scanners/link previews would cancel alerts. New `DemandCancelHandler` (frontend, isset-only on other requests): GET = confirmation, POST = delete; REST route is POST-only.
+- **N+1 in availability** (`Availability::ids()/count()`): `wc_get_product()` per product without Redis (~3 queries each). Now `_prime_post_caches()` (verified in wordpress-stubs) in one batch / chunks of 20.
+- **Repeated availability checks in the sweep** (`BikeDemandNotifier::scan()`): evaluated per row; now once per bike+axle per batch.
+
+Reviewed OK: atomic CAS state machine (`transition()`), no contacts in AS args, WAHA OFF/test/auth/not_configured never fall back to e-mail, send-time availability recheck, terminal-only email fallback with 3 bounded attempts, stock flips trigger a scan via `motored_compat_product_index_changed`, sitemap requires flag=1 and respects the (constrained) robots override, masked logs.
+
+Pending / suggestions (not changed):
+- Rows stuck in `sending` after a worker crash need an operator action (no automatic recovery: re-sending could duplicate a WhatsApp).
+- An `all`-position alert fires when ANY axle has stock; the message says "delantera y trasera". Consider per-axle wording.
+- E-mail uses `wc_mail()` + WC header/footer; a registered `WC_Email` subclass would give the owner WooCommerce > Settings > Emails control (enable, subject, heading, preview) and inlined styles — the more native option.
+- No confirmation message at subscription time (a WhatsApp "te vamos a avisar" would validate the number on the spot; costs a message and WAHA rate).
+- "View all" link goes to the shop `?moto=&pos=`: the shop may list out-of-stock items the bike page excluded (counts can differ). FacetEngine snapshot without Redis still unmeasured at scale.
+- Not run: real WAHA delivery, real e-mail, Redis cold/down, other themes, browser check of the new account dialog (site JS verified with `node --check` only).
+
+### 2026-11-25 — Avisame e-mail moved to a native WC_Email
+
+- Owner decision (follow-up of the review): the stock-alert e-mail is now `OrderNotifications\Emails\StockAlertEmail extends WC_Email`, registered via `woocommerce_email_classes` and fetched from `WC()->mailer()->get_emails()` so the owner's saved settings apply. Replaces the hand-built `wc_mail()` + header/footer body.
+- Owner controls: enable/disable, subject (`{site_title}`, `{bike}`), heading, additional content, HTML/plain; theme-overridable templates. WhatsApp-first order and all safety switches unchanged.
+- Disabled e-mail: e-mail-only alerts are held as `paused/email_disabled` (re-enabled -> next sweep sends); WhatsApp terminal failure no longer queues a disabled e-mail (row `failed`).
+- Verified: PHPUnit (3 new notifier tests), phpcs, PHPStan; on the local site (WordPress bootstrapped in admin context, nothing sent) the e-mail is listed and enabled, subject/plain/HTML render in es_AR with the store's WooCommerce e-mail styles. Not verified: a real delivery.

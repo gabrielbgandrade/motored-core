@@ -35,10 +35,17 @@ final class CliCommands {
 	public function reindex(): void {
 		$cursor  = 0;
 		$batches = 0;
-		do {
-			$cursor = ProductIndexSync::reindex_batch( $cursor, ProductIndexSync::REINDEX_BATCH );
-			++$batches;
-		} while ( null !== $cursor );
+		try {
+			do {
+				$cursor = ProductIndexSync::reindex_batch( $cursor, ProductIndexSync::REINDEX_BATCH );
+				++$batches;
+			} while ( null !== $cursor );
+		} catch ( \RuntimeException $exception ) {
+			if ( is_callable( array( 'WP_CLI', 'error' ) ) ) {
+				call_user_func( array( 'WP_CLI', 'error' ), 'Compatibility reindex interrupted.' );
+			}
+			return;
+		}
 
 		self::log_success( sprintf( 'Reindexed product compatibility batches: %d.', $batches ) );
 	}

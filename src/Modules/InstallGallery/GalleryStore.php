@@ -7,6 +7,8 @@
 
 namespace Motored\Core\Modules\InstallGallery;
 
+use Motored\Core\Integration\ActionScheduler;
+
 use Motored\Core\Modules\ReviewPhotos\PhotoMeta;
 
 defined( 'ABSPATH' ) || exit;
@@ -18,6 +20,50 @@ defined( 'ABSPATH' ) || exit;
  *   changes (see GallerySync). It is a cache of data that lives in comment meta and can be rebuilt at any time.
  */
 final class GalleryStore {
+
+	public const BACKFILL_HOOK    = 'motored_gallery_backfill';
+	public const BACKFILL_PENDING = 'motored_gallery_backfill_pending';
+
+	/**
+	 * Starts a pending gallery backfill.
+	 */
+	public static function schedule_backfill(): bool {
+		if ( 'yes' !== get_option( self::BACKFILL_PENDING ) && ! update_option( self::BACKFILL_PENDING, 'yes', false ) ) {
+			return false;
+		}
+		return self::resume_backfill();
+	}
+
+	/**
+	 * Ensures an interrupted backfill can restart after deactivation.
+	 */
+	public static function resume_backfill(): bool {
+		if ( 'yes' !== get_option( self::BACKFILL_PENDING ) ) {
+			return true;
+		}
+		return ActionScheduler::has_scheduled( self::BACKFILL_HOOK )
+			|| ActionScheduler::schedule( time(), self::BACKFILL_HOOK, array( 0 ), true );
+	}
+
+	/**
+	 * Rebuilds a bounded slice and schedules its successor.
+	 *
+	 * @param int $cursor Last processed product ID.
+	 * @throws \RuntimeException When the batch cannot be completed.
+	 */
+	public static function backfill_batch( int $cursor ): void {
+		$ids = self::backfill_ids( $cursor, 50 );
+		foreach ( $ids as $id ) {
+			if ( ! self::rebuild( $id ) ) {
+				throw new \RuntimeException( 'Could not rebuild the gallery backfill product.' );
+			}
+		}
+		if ( count( $ids ) < 50 ) {
+			delete_option( self::BACKFILL_PENDING );
+		} elseif ( ! ActionScheduler::schedule( time(), self::BACKFILL_HOOK, array( max( $ids ) ) ) ) {
+			throw new \RuntimeException( 'Could not schedule the next gallery backfill batch.' );
+		}
+	}
 
 	public const INSTALL_META = '_motored_install_photos';
 	public const REVIEW_META  = '_motored_review_gallery';
@@ -47,9 +93,9 @@ final class GalleryStore {
 	 *
 	 * @param int $product_id Product id.
 	 */
-	public static function rebuild( int $product_id ): void {
+	public static function rebuild( int $product_id ): bool {
 		if ( $product_id < 1 || 'product' !== get_post_type( $product_id ) ) {
-			return;
+			return true;
 		}
 		$comments = get_comments(
 			array(
@@ -83,14 +129,18 @@ final class GalleryStore {
 		$entries = GalleryItems::review_entries( $entries );
 		$current = self::review_entries( $product_id );
 		if ( $current === $entries ) {
-			return; // Unchanged: no write, no cache purge.
+			return true; // Unchanged: no write, no cache purge.
 		}
 		if ( array() === $entries ) {
-			delete_post_meta( $product_id, self::REVIEW_META );
+			$stored = delete_post_meta( $product_id, self::REVIEW_META );
 		} else {
-			update_post_meta( $product_id, self::REVIEW_META, $entries );
+			$stored = update_post_meta( $product_id, self::REVIEW_META, $entries );
+		}
+		if ( false === $stored && self::review_entries( $product_id ) !== $entries ) {
+			return false;
 		}
 		self::purge( $product_id );
+		return true;
 	}
 
 	/**
@@ -115,11 +165,30 @@ final class GalleryStore {
 	 * (admin tool & one-off upgrade migration only; never runs on frontend page views).
 	 *
 	 * @return int Number of products rebuilt.
+	 * @throws \RuntimeException When a product cannot be rebuilt.
 	 */
 	public static function rebuild_all(): int {
+		$ids = self::backfill_ids( 0, PHP_INT_MAX );
+		foreach ( $ids as $id ) {
+			if ( ! self::rebuild( $id ) ) {
+				throw new \RuntimeException( 'Could not rebuild the gallery product.' );
+			}
+		}
+		return count( $ids );
+	}
+
+	/**
+	 * Finds affected product IDs after a cursor.
+	 *
+	 * @param int $cursor Last product ID.
+	 * @param int $limit Maximum number of products.
+	 * @return list<int>
+	 * @throws \RuntimeException When the query fails.
+	 */
+	private static function backfill_ids( int $cursor, int $limit ): array {
 		global $wpdb;
 		if ( ! is_object( $wpdb ) || ! isset( $wpdb->comments, $wpdb->commentmeta, $wpdb->postmeta ) ) {
-			return 0;
+			return array();
 		}
 		// One indexed query, no cap: products with approved photo reviews PLUS products whose derived list may
 		// be stale (so leftovers of unapproved/deleted reviews are cleared too).
@@ -128,14 +197,21 @@ final class GalleryStore {
 			$wpdb->prepare(
 				"SELECT DISTINCT c.comment_post_ID FROM {$wpdb->comments} c
 				INNER JOIN {$wpdb->commentmeta} cm ON cm.comment_id = c.comment_ID AND cm.meta_key = %s
-				WHERE c.comment_approved = '1' AND c.comment_parent = 0
+				WHERE c.comment_approved = '1' AND c.comment_parent = 0 AND c.comment_post_ID > %d
 				UNION
-				SELECT DISTINCT pm.post_id FROM {$wpdb->postmeta} pm WHERE pm.meta_key = %s",
+				SELECT DISTINCT pm.post_id FROM {$wpdb->postmeta} pm WHERE pm.meta_key = %s AND pm.post_id > %d
+				ORDER BY comment_post_ID LIMIT %d",
 				PhotoMeta::KEY,
-				self::REVIEW_META
+				$cursor,
+				self::REVIEW_META,
+				$cursor,
+				$limit
 			)
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		if ( ! empty( $wpdb->last_error ) ) {
+			throw new \RuntimeException( 'Could not read gallery backfill products.' );
+		}
 		$product_ids = array();
 		foreach ( is_array( $ids ) ? $ids : array() as $raw ) {
 			$pid = is_scalar( $raw ) ? (int) $raw : 0;
@@ -143,9 +219,6 @@ final class GalleryStore {
 				$product_ids[ $pid ] = $pid;
 			}
 		}
-		foreach ( $product_ids as $pid ) {
-			self::rebuild( $pid );
-		}
-		return count( $product_ids );
+		return array_values( $product_ids );
 	}
 }

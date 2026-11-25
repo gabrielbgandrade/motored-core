@@ -36,7 +36,6 @@ final class Config {
 		'auto_fill_dimensions'    => 'no',
 		'disclaimer'              => '',
 		'shop_url'                => '',
-		'selector_url'            => '',
 	);
 
 	/**
@@ -119,14 +118,6 @@ final class Config {
 			return $custom;
 		}
 		return __( "Always verify the size, load index and speed rating in your motorcycle's manual.", 'motored-core' );
-	}
-
-	/**
-	 * Page where customers pick their motorcycle (the one holding [motored_buscador]); defaults to the home page.
-	 */
-	public static function selector_url(): string {
-		$custom = trim( (string) Options::get( self::OPTION_KEY, 'selector_url', '' ) );
-		return '' !== $custom ? $custom : home_url( '/' );
 	}
 
 	/**

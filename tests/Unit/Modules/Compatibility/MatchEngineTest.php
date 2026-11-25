@@ -118,6 +118,73 @@ final class MatchEngineTest extends TestCase {
 		$this->assertSame( 'equiv', $both_res['match'] );
 	}
 
+	public function test_count_by_position_counts_kits_only_as_kits(): void {
+		$bike = $this->sample_bike();
+		$row  = static fn( string $pos, ?string $f, ?string $r ): array => array(
+			'position'         => $pos,
+			'front_canonical'  => $f,
+			'rear_canonical'   => $r,
+			'front_load'       => null,
+			'rear_load'        => null,
+			'front_speed_rank' => null,
+			'rear_speed_rank'  => null,
+			'construction'     => TireSpecs::CONST_RADIAL,
+		);
+		$counts = MatchEngine::count_by_position(
+			array(
+				$row( TireSpecs::POS_REAR, null, '4.10-18' ),
+				$row( TireSpecs::POS_KIT, '90/90-21', '4.10-18' ),
+				$row( TireSpecs::POS_BOTH, '120/80-18', '120/80-18' ),
+				$row( TireSpecs::POS_FRONT, '80/100-21', null ),
+			),
+			$bike,
+			false
+		);
+		// Regression: the kit used to be added to front and rear too ("Delanteras (1)" with no front tire).
+		$this->assertSame(
+			array(
+				'all'   => 3,
+				'front' => 0,
+				'rear'  => 2,
+				'kit'   => 1,
+			),
+			$counts
+		);
+	}
+
+	public function test_partition_ranks_best_fit_first_and_lists_only_matched_axles(): void {
+		$bike = $this->sample_bike();
+		$row  = static fn( int $id, string $pos, ?string $f, ?string $r, ?int $fs = null ): array => array(
+			'product_id'       => $id,
+			'position'         => $pos,
+			'front_canonical'  => $f,
+			'rear_canonical'   => $r,
+			'front_load'       => null,
+			'rear_load'        => null,
+			'front_speed_rank' => $fs,
+			'rear_speed_rank'  => null,
+			'construction'     => TireSpecs::CONST_RADIAL,
+		);
+		$lists = MatchEngine::partition_by_position(
+			array(
+				$row( 1, TireSpecs::POS_REAR, null, '120/80-18' ),                  // Rear, equivalent.
+				$row( 2, TireSpecs::POS_REAR, null, '4.10-18' ),                    // Rear, OEM -> ranks first.
+				$row( 3, TireSpecs::POS_KIT, '90/90-21', '4.10-18' ),               // Kit only.
+				$row( 4, TireSpecs::POS_FRONT, '90/90-21', null, TireSpecs::speed_rank( 'S' ) ), // Speed below H: out.
+			),
+			$bike,
+			false
+		);
+		$this->assertSame( array( 2, 3, 1 ), $lists['all'] );
+		$this->assertSame( array(), $lists['front'] );
+		$this->assertSame( array( 2, 1 ), $lists['rear'] );
+		$this->assertSame( array( 3 ), $lists['kit'] );
+		$this->assertSame(
+			array( 'all' => 3, 'front' => 0, 'rear' => 2, 'kit' => 1 ),
+			MatchEngine::count_by_position( array( $row( 2, TireSpecs::POS_REAR, null, '4.10-18' ), $row( 3, TireSpecs::POS_KIT, '90/90-21', '4.10-18' ), $row( 1, TireSpecs::POS_REAR, null, '120/80-18' ) ), $bike, false )
+		);
+	}
+
 	public function test_bike_profile_applies_one_hop_equivalences_from_oem_only_and_never_transitive(): void {
 		$this->fake_storage();
 		Functions\when( 'sanitize_title' )->alias( static fn( $s ) => strtolower( trim( (string) $s ) ) );
@@ -148,7 +215,7 @@ final class MatchEngineTest extends TestCase {
 			)
 		);
 		$wpdb->shouldReceive( 'get_results' )->andReturn(
-			// 1st call: fitments_for_version (1 OEM + 1 ALT).
+			// 1st call: fitments_for_version (2 OEM + 1 ALT).
 			array(
 				array(
 					'id'               => 1,
@@ -158,6 +225,19 @@ final class MatchEngineTest extends TestCase {
 					'canonical'        => '4.10-18',
 					'fit_type'         => 'oem',
 					'min_load'         => null,
+					'min_speed_rank'   => null,
+					'req_construction' => null,
+					'source'           => 'manual',
+					'note'             => '',
+				),
+				array(
+					'id'               => 3,
+					'version_id'       => 1,
+					'position'         => 'rear',
+					'size_id'          => 22,
+					'canonical'        => '4.00-18',
+					'fit_type'         => 'oem',
+					'min_load'         => 50,
 					'min_speed_rank'   => null,
 					'req_construction' => null,
 					'source'           => 'manual',
@@ -177,14 +257,22 @@ final class MatchEngineTest extends TestCase {
 					'note'             => '',
 				),
 			),
-			// 2nd call: equivalences_from_sizes for rear OEM (4.10-18 -> 120/80-18 only, no 2-hop chain).
+			// 2nd call: two OEM sources lead to the same target. The exact equivalence wins.
 			array(
+				array(
+					'source_size_id'   => 22,
+					'source_canonical' => '4.00-18',
+					'target_size_id'   => 21,
+					'target_canonical' => '120/80-18',
+					'is_approximate'   => 1,
+					'note'             => '',
+				),
 				array(
 					'source_size_id'   => 20,
 					'source_canonical' => '4.10-18',
 					'target_size_id'   => 21,
 					'target_canonical' => '120/80-18',
-					'is_approximate'   => 1,
+					'is_approximate'   => 0,
 					'note'             => '',
 				),
 			)
@@ -258,5 +346,71 @@ final class MatchEngineTest extends TestCase {
 		$this->assertCount( 1, $out['items'] );
 		$this->assertSame( 'z900', $out['items'][0]['slug'] );
 		$this->assertSame( array( 'front', 'rear' ), $out['items'][0]['positions'] );
+	}
+
+	public function test_reverse_matching_uses_preferred_oem_source_before_rating_checks(): void {
+		$row = array(
+			'version_id'       => 1,
+			'version_slug'     => 'moto-1',
+			'brand_name'       => 'Honda',
+			'model_name'       => 'XR',
+			'aliases'          => '',
+			'year_from'        => 2020,
+			'year_to'          => 0,
+			'variant'          => '',
+			'fit_type'         => 'equiv',
+			'min_speed_rank'   => null,
+			'req_construction' => null,
+		);
+		$approximate = $row + array( 'approx' => 1, 'equiv_from' => '4.00-18', 'min_load' => 50 );
+		$preferred   = $row + array( 'approx' => 0, 'equiv_from' => '4.10-18', 'min_load' => 60 );
+		$match       = new \ReflectionMethod( MatchEngine::class, 'index_hits_by_version' );
+
+		$this->assertSame( array(), $match->invoke( null, array( $approximate, $preferred ), 55, null, '', false ) );
+		$this->assertSame( array(), $match->invoke( null, array( $preferred, $approximate ), 55, null, '', false ) );
+	}
+
+	public function test_build_axes_from_fitments_preserves_constraints_for_preview_and_storefront(): void {
+		$wpdb         = \Mockery::mock( 'wpdb_fake' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn( $sql ) => $sql );
+		$wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+		$GLOBALS['wpdb'] = $wpdb;
+
+		$axes = MatchEngine::build_axes_from_fitments(
+			array(
+				array(
+					'id'               => 1,
+					'version_id'       => 10,
+					'position'         => TireSpecs::POS_FRONT,
+					'size_id'          => 100,
+					'canonical'        => '120/70-17',
+					'fit_type'         => TireSpecs::FIT_OEM,
+					'min_load'         => 58,
+					'min_speed_rank'   => TireSpecs::speed_rank( 'W' ),
+					'req_construction' => TireSpecs::CONST_RADIAL,
+					'designation'      => '120/70ZR17',
+					'source'           => 'manual',
+					'note'             => '',
+				),
+			)
+		);
+		unset( $GLOBALS['wpdb'] );
+
+		$diag = array(
+			'position'         => TireSpecs::POS_FRONT,
+			'front_canonical'  => '120/70-17',
+			'rear_canonical'   => null,
+			'front_load'       => 58,
+			'rear_load'        => null,
+			'front_speed_rank' => TireSpecs::speed_rank( 'W' ),
+			'rear_speed_rank'  => null,
+			'construction'     => TireSpecs::CONST_DIAGONAL,
+		);
+		$this->assertFalse( MatchEngine::evaluate_product( $diag, $axes, false )['compatible'] );
+
+		$rad                 = $diag;
+		$rad['construction'] = TireSpecs::CONST_RADIAL;
+		$this->assertTrue( MatchEngine::evaluate_product( $rad, $axes, false )['compatible'] );
 	}
 }

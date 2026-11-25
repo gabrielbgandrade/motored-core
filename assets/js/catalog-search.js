@@ -9,34 +9,21 @@
 	var B = (C.restBase || '').replace(/\/$/, '');
 	var T = C.i18n || {};
 	var ui = window.motoredUi;
-	var SIZE_PREFIX = 'motored_sizes_';
-	var S_KEY = SIZE_PREFIX + (C.sizesVer || '1');
-	var memory = {};
 	var sizesPromise = null;
 	if (!B || !ui) {
 		return;
 	}
 
-	function lsGet(k) {
-		try {
-			return window.localStorage.getItem(k);
-		} catch (e) {
-			return memory[k] || null;
-		}
-	}
-
-	function lsSet(k, v) {
-		memory[k] = v;
-		try {
-			window.localStorage.setItem(k, v);
-			// Drop size lists of previous snapshot versions.
-			for (var i = window.localStorage.length - 1; i >= 0; i--) {
-				var key = window.localStorage.key(i);
-				if (key && key !== k && key.indexOf(SIZE_PREFIX) === 0) {
-					window.localStorage.removeItem(key);
-				}
+	function restEndpoint(configured, path) {
+		var url = new URL(configured || B, location.href);
+		if (!configured) {
+			if (url.searchParams.has('rest_route')) {
+				url.searchParams.set('rest_route', url.searchParams.get('rest_route').replace(/\/$/, '') + path);
+			} else {
+				url.pathname = url.pathname.replace(/\/$/, '') + path;
 			}
-		} catch (e) {}
+		}
+		return url;
 	}
 
 	function withQuery(url, query) {
@@ -56,21 +43,11 @@
 		if (sizesPromise) {
 			return sizesPromise;
 		}
-		var raw = lsGet(S_KEY);
-		if (raw) {
-			try {
-				var cached = JSON.parse(raw);
-				if (Array.isArray(cached)) {
-					sizesPromise = Promise.resolve(cached);
-					return sizesPromise;
-				}
-			} catch (e) {}
-		}
 		sizesPromise = ui
-			.getJson(B + '/filters/sizes/' + encodeURIComponent(C.sizesVer || '1'))
+			.getJson(restEndpoint(C.sizesUrl, '/filters/sizes').href)
 			.then(function (d) {
 				var list = (d && d.sizes) || [];
-				lsSet(S_KEY, JSON.stringify(list));
+
 				return list;
 			})
 			.catch(function (err) {
@@ -303,14 +280,17 @@
 		var live = form.querySelector('[data-role="smart-live"]');
 		var timer;
 		var seq = 0;
+		var submission = 0;
 		var items = [];
 		var itemsFor = '';
 		var activeIdx = -1;
 
 		function close() {
+			seq++;
 			list.hidden = true;
 			list.textContent = '';
 			items = [];
+			itemsFor = '';
 			activeIdx = -1;
 			input.setAttribute('aria-expanded', 'false');
 			input.removeAttribute('aria-activedescendant');
@@ -382,8 +362,10 @@
 
 		function fetchFor(q) {
 			var mine = ++seq;
-			return ui.getJson(B + '/filters/suggest?q=' + encodeURIComponent(q)).then(function (d) {
-				if (mine === seq) {
+			var url = restEndpoint(C.suggestUrl, '/filters/suggest');
+			url.searchParams.set('q', q);
+			return ui.getJson(url.href).then(function (d) {
+				if (mine === seq && input.value.trim() === q && document.activeElement === input) {
 					render(d, q);
 				}
 				return d;
@@ -391,34 +373,23 @@
 		}
 
 		/** Enter without a highlighted option: jump straight to an exact size/rim/motorcycle match. */
-		function smartTarget(q, list2) {
-			var first = list2 && list2[0];
-			if (!first) {
-				return null;
-			}
-			if (first.type === 'size' || first.type === 'rim') {
-				return /^\s*(?:\d|r\s*\d|rodado|aro)/i.test(q) ? first : null;
-			}
-			if (first.type === 'moto') {
-				return ui.compact(first.label).indexOf(ui.compact(q)) === 0 && list2.filter(function (x) {
-					return x.type === 'moto';
-				}).length === 1
-					? first
-					: null;
-			}
-			return null;
+		function smartTarget(q, suggestions) {
+			var exact = suggestions.filter(function (item) {
+				return item.exact || (item.type === 'moto' && ui.compact(item.label) === ui.compact(q));
+			});
+			return exact.length === 1 ? exact[0] : null;
 		}
 
 		input.addEventListener('input', function () {
+			submission++;
 			clearTimeout(timer);
+			close();
 			var q = input.value.trim();
 			if (q.length < 2) {
-				seq++;
-				close();
 				return;
 			}
 			timer = setTimeout(function () {
-				fetchFor(q).catch(close);
+				fetchFor(q).catch(function () {});
 			}, 250);
 		});
 
@@ -443,6 +414,7 @@
 		});
 
 		form.addEventListener('submit', function (e) {
+			var submitted = ++submission;
 			var q = input.value.trim();
 			if (q.length < 2) {
 				return;
@@ -452,6 +424,9 @@
 			var ready = itemsFor === q ? Promise.resolve({ items: items }) : fetchFor(q);
 			ready
 				.then(function (d) {
+					if (submitted !== submission || input.value.trim() !== q) {
+						return;
+					}
 					var target = smartTarget(q, (d && d.items) || []);
 					if (target) {
 						go(target);
@@ -460,7 +435,9 @@
 					}
 				})
 				.catch(function () {
-					form.submit();
+					if (submitted === submission && input.value.trim() === q) {
+						form.submit();
+					}
 				});
 		});
 	}

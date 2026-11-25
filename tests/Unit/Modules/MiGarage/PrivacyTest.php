@@ -1,9 +1,9 @@
 <?php
-namespace Motored\Core\Tests\Unit\Modules\Compatibility;
+namespace Motored\Core\Tests\Unit\Modules\MiGarage;
 
 use Brain\Monkey\Functions;
-use Motored\Core\Modules\Compatibility\GarageRepository;
-use Motored\Core\Modules\Compatibility\Privacy;
+use Motored\Core\Modules\MiGarage\GarageRepository;
+use Motored\Core\Modules\MiGarage\Privacy;
 use Motored\Core\Tests\Unit\TestCase;
 
 final class PrivacyTest extends TestCase {

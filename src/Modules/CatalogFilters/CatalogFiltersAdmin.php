@@ -8,6 +8,7 @@
 namespace Motored\Core\Modules\CatalogFilters;
 
 use Motored\Core\Admin\SectionRegistry;
+use Motored\Core\Integration\WooCommerce\LayeredNavHooks;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -37,11 +38,16 @@ final class CatalogFiltersAdmin {
 	 * @return array<int,array<string,mixed>>
 	 */
 	public function settings(): array {
+		$desc = __( 'Theme-agnostic tire search ([motored_buscador]), faceted sidebar filters ([motored_filtros] and classic widget) and smart suggestions.', 'motored-core' );
+		if ( Config::enabled() && ! Config::replace_native_layered_nav() && LayeredNavHooks::has_active_native_layered_nav_widget() ) {
+			$desc .= ' ' . __( 'Warning: WooCommerce native layered navigation widgets are active in a sidebar alongside CatalogFilters, which can cause duplicate filters and divergent counts.', 'motored-core' );
+		}
+
 		return array(
 			array(
 				'title' => __( 'Catalog filters & storefront search', 'motored-core' ),
 				'type'  => 'title',
-				'desc'  => __( 'Theme-agnostic tire search ([motored_buscador]), faceted sidebar filters ([motored_filtros] and classic widget) and smart suggestions.', 'motored-core' ),
+				'desc'  => $desc,
 				'id'    => 'motored_catalog_filters_title',
 			),
 			array(
@@ -66,6 +72,14 @@ final class CatalogFiltersAdmin {
 				'id'       => 'motored_catalog_filters[noindex_filtered]',
 				'type'     => 'checkbox',
 				'default'  => Config::DEFAULTS['noindex_filtered'],
+				'autoload' => false,
+			),
+			array(
+				'title'    => __( 'Replace native layered navigation', 'motored-core' ),
+				'desc'     => __( 'Unregister WooCommerce native layered navigation widgets so CatalogFilters is the single facet system (recommended).', 'motored-core' ),
+				'id'       => 'motored_catalog_filters[replace_native_layered_nav]',
+				'type'     => 'checkbox',
+				'default'  => Config::DEFAULTS['replace_native_layered_nav'],
 				'autoload' => false,
 			),
 			array(

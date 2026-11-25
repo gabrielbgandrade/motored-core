@@ -11,11 +11,16 @@
 .motored-compat-badge,
 .motored-compat-bar,
 .motored-garage-cta,
-.motored-garage-page {
+.motored-garage-page,
+.motored-bike-page,
+.motored-bike-hub,
+.motored-bike-card,
+.motored-notify-form,
+.motored-notify-dialog {
 	--motored-accent: var(--motored-accent-color, currentColor);
 	--motored-on-accent: var(--motored-on-accent-color, #fff);
-	--motored-border: rgba(0, 0, 0, 0.16);
-	--motored-bg: #fff;
+	--motored-border: color-mix(in srgb, currentColor 20%, transparent);
+	--motored-bg: var(--motored-surface-color, transparent);
 	--motored-radius: 8px;
 	--motored-ok: #1b7f4b;
 	--motored-no: #b43c2f;
@@ -32,7 +37,9 @@
 .motored-compat-banner *,
 .motored-compat-bar *,
 .motored-garage-cta *,
-.motored-garage-page * {
+.motored-garage-page *,
+.motored-bike-page *,
+.motored-bike-hub * {
 	box-sizing: border-box;
 }
 
@@ -43,6 +50,7 @@
 .motored-compat-selector :focus-visible,
 .motored-compat-banner :focus-visible,
 .motored-compat-bar :focus-visible,
+.motored-bike-page :focus-visible,
 .motored-garage-cta :focus-visible,
 .motored-garage-page :focus-visible {
 	outline: 2px solid var(--motored-focus);
@@ -444,6 +452,46 @@
 	margin-bottom: 0.45rem;
 }
 
+.motored-compat-bar__tab,
+.motored-bike-hero__jump {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.3rem 0.8rem;
+	border: 1px solid var(--motored-border);
+	border-radius: 999px;
+	font-size: 0.9em;
+	font-weight: 600;
+	line-height: 1.4;
+	color: inherit;
+	text-decoration: none;
+}
+
+.motored-compat-bar__tab:hover,
+.motored-bike-hero__jump:hover {
+	border-color: var(--motored-accent);
+}
+
+.motored-compat-bar__tab.is-active {
+	border-color: var(--motored-accent);
+	box-shadow: inset 0 0 0 1px var(--motored-accent);
+}
+
+.motored-compat-bar__tab.is-disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+.motored-compat-badge__missing {
+	margin-top: 0.45rem;
+	font-size: 0.9em;
+}
+
+.motored-compat-bar__count {
+	font-size: 0.9em;
+	opacity: 0.85;
+}
+
 .motored-compat-bar__disclaimer {
 	margin: 0;
 	opacity: 0.78;
@@ -567,4 +615,277 @@
 	.motored-garage-cta {
 		transition: opacity 0.15s ease;
 	}
+}
+
+/* BikePages landing & hub blocks (theme-agnostic; tokens come from the shared block at the top) */
+
+.motored-bike-hero {
+	padding: 0.9rem 1rem;
+	margin: 0 0 1.25rem;
+	border: 1px solid var(--motored-border);
+	border-left: 4px solid var(--motored-accent);
+	border-radius: var(--motored-radius);
+	background: var(--motored-bg);
+}
+
+.motored-bike-hero__badges,
+.motored-bike-hero__nav,
+.motored-bike-versions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.85rem;
+}
+
+.motored-bike-hero__nav {
+	margin-top: 0.75rem;
+}
+
+.motored-bike-hero__chip {
+	padding: 0.2rem 0.55rem;
+	border-radius: 999px;
+	font-weight: 700;
+	border: 1px solid var(--motored-ok);
+	color: var(--motored-ok);
+}
+
+.motored-bike-hero__chip[hidden],
+.motored-notify-form[hidden],
+.motored-notify-form__msg[hidden] {
+	display: none;
+}
+
+.motored-notify-form__honeypot {
+	position: absolute;
+	left: -9999px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+.motored-bike-sizes__scroll {
+	max-width: 100%;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+}
+
+.motored-bike-sizes__table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 0.5rem 0;
+}
+
+.motored-bike-sizes__table th,
+.motored-bike-sizes__table td {
+	padding: 0.5rem 0.65rem;
+	border-bottom: 1px solid var(--motored-border);
+	text-align: left;
+}
+
+.motored-bike-versions {
+	margin: 0 0 1.25rem;
+	padding: 0.65rem 0.9rem;
+	border: 1px solid var(--motored-border);
+	border-radius: var(--motored-radius);
+}
+
+.motored-bike-versions__cur {
+	font-weight: 700;
+}
+
+.motored-bike-section {
+	margin: 1.5rem 0;
+}
+
+/* Classic WC cards need an explicit layout when used outside a native shop template. */
+.motored-bike-section ul.products {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+	gap: 1.5rem;
+	list-style: none;
+	padding: 0;
+	margin: 1rem 0;
+}
+
+.motored-bike-section ul.products::before,
+.motored-bike-section ul.products::after {
+	display: none;
+}
+
+.motored-bike-section ul.products li.product {
+	float: none;
+	width: auto;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.motored-bike-section .woocommerce-loop-product__link {
+	display: block;
+	text-decoration: none;
+}
+
+.motored-bike-section .woocommerce-loop-product__title {
+	font-size: 1.1rem;
+	line-height: 1.35;
+	margin: 0.75rem 0;
+}
+
+.motored-bike-section .product img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+.motored-bike-section .product .price {
+	display: block;
+	margin: 0.5rem 0;
+}
+
+.motored-notify-dialog {
+	width: min(480px, calc(100vw - 2rem));
+	max-height: calc(100dvh - 2rem);
+	overflow-y: auto;
+	padding: 1.5rem;
+	border: 1px solid var(--motored-border);
+	border-radius: var(--motored-radius);
+	background: var(--wp--preset--color--base, Canvas);
+	color: var(--wp--preset--color--contrast, CanvasText);
+}
+
+.motored-notify-dialog::backdrop {
+	background: rgb(0 0 0 / 55%);
+}
+
+.motored-notify-dialog__close {
+	display: block;
+	margin-left: auto;
+	min-height: 44px;
+	cursor: pointer;
+}
+
+.motored-notify-dialog h2 {
+	font-size: 1.4rem;
+	line-height: 1.3;
+}
+
+.motored-notify-dialog .motored-notify-form {
+	display: grid;
+	gap: 1rem;
+}
+
+.motored-notify-dialog .motored-notify-form__input {
+	display: block;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 44px;
+	margin-top: 0.5rem;
+	padding: 0.65rem;
+	font: inherit;
+}
+
+.motored-notify-dialog :focus-visible {
+	outline: 2px solid var(--motored-focus);
+	outline-offset: 3px;
+}
+
+.motored-bike-pair {
+	margin: 1.5rem 0;
+	padding: 1rem;
+	border: 1px solid var(--motored-border);
+	border-radius: var(--motored-radius);
+}
+
+.motored-bike-pair__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 0.85rem;
+	margin: 0.75rem 0;
+}
+
+.motored-bike-pair__card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	padding: 0.75rem;
+	border: 1px solid var(--motored-border);
+	border-radius: var(--motored-radius);
+}
+
+.motored-bike-pair__pos {
+	font-size: 0.82em;
+	font-weight: 700;
+	text-transform: uppercase;
+	opacity: 0.75;
+}
+
+.motored-bike-faq__item {
+	padding: 0.6rem 0;
+	border-bottom: 1px solid var(--motored-border);
+}
+
+.motored-bike-faq__item summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.motored-bike-hub__brands {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	list-style: none;
+	padding: 0;
+}
+
+.motored-bike-hub__models {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+	gap: 0.35rem 1.25rem;
+	margin: 0.5rem 0 1.5rem;
+	padding: 0;
+	list-style: none;
+}
+
+.motored-bike-hub--all h2 {
+	margin: 1.5rem 0 0.25rem;
+	font-size: 1.15em;
+}
+
+/* Bike page summary inside archive/search listings (0 queries) */
+.motored-bike-card {
+	margin: 0.35rem 0 0.75rem;
+}
+
+.motored-bike-card p {
+	margin: 0.2rem 0;
+}
+
+.motored-notify-form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	max-width: 440px;
+	margin: 0.65rem 0;
+	padding: 0.75rem;
+	border: 1px solid var(--motored-border);
+	border-radius: var(--motored-radius);
+}
+
+.motored-notify-form__input {
+	width: 100%;
+	min-height: 2.3rem;
+	padding: 0.4rem 0.65rem;
+	border: 1px solid var(--motored-border);
+	border-radius: var(--motored-radius);
+}
+
+.motored-notify-form__msg.is-ok {
+	color: var(--motored-ok);
+	font-weight: 600;
+}
+
+.motored-notify-form__msg.is-error {
+	color: var(--motored-no);
+	font-weight: 600;
 }

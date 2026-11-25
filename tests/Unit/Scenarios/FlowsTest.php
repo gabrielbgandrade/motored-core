@@ -180,13 +180,9 @@ final class FlowsTest extends TestCase {
 		$this->assertSame( array(), $this->updates );
 	}
 
-	/** Consistency: kinds, hooks, jobs and placeholders agree across modules. */
-	public function test_action_hooks_are_the_ones_the_modules_register(): void {
-		$this->assertEqualsCanonicalizing( array( Sender::HOOK, Retention::HOOK, Scanner::HOOK, \Motored\Core\Modules\PaymentPlans\Reconciler::HOOK, \Motored\Core\Modules\OrderTracking\TrackingNotifier::EMAIL_HOOK, \Motored\Core\Modules\Compatibility\ProductIndexSync::REINDEX_HOOK, \Motored\Core\Modules\Compatibility\ImportRunner::HOOK, \Motored\Core\Modules\ImageOptimizer\BulkRunner::HOOK ), Plugin::ACTION_HOOKS );
+	public function test_uninstall_cancels_the_entire_action_group(): void {
 		$uninstall = (string) file_get_contents( dirname( __DIR__, 3 ) . '/uninstall.php' );
-		foreach ( Plugin::ACTION_HOOKS as $hook ) {
-			$this->assertStringContainsString( "'" . $hook . "'", $uninstall, 'uninstall.php unschedules ' . $hook );
-		}
+		$this->assertStringContainsString( "as_unschedule_all_actions( '', array(), 'motored-core' )", $uninstall );
 	}
 
 	public function test_every_enqueued_kind_has_a_registered_handler(): void {
@@ -202,10 +198,11 @@ final class FlowsTest extends TestCase {
 			\Motored\Core\Modules\Recovery\RecoveryResultHandler::KIND,
 			\Motored\Core\Modules\ReviewRequests\Scheduler::KIND,
 			\Motored\Core\Modules\OrderTracking\TrackingNotifier::KIND,
+			\Motored\Core\Modules\OrderNotifications\BikeDemandNotifier::KIND,
 		);
-		$this->assertSame( 4, count( array_unique( $kinds ) ) );
+		$this->assertSame( 5, count( array_unique( $kinds ) ) );
 		preg_match_all( '/^\s*Sender::register_handler\(/m', $src, $m );
-		$this->assertCount( 4, $m[0], 'One register_handler per kind.' );
+		$this->assertCount( 5, $m[0], 'One register_handler per kind.' );
 		preg_match_all( "/Sender::enqueue\(\s*'([a-z_]+)'/", $src, $literal );
 		foreach ( $literal[1] as $kind ) {
 			$this->assertContains( $kind, $kinds );

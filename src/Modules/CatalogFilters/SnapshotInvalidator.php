@@ -147,51 +147,68 @@ final class SnapshotInvalidator {
 		}
 		self::$marked_this_request = true;
 		if ( Cache::is_persistent() ) {
-			Cache::set( self::DIRTY_KEY, time(), 86400, self::BUCKET );
+			Cache::set( self::DIRTY_KEY, bin2hex( random_bytes( 8 ) ), 86400, self::BUCKET );
 		}
 	}
 
 	/**
 	 * Whether the cached snapshot is dirty and eligible for rebuild (cooldown elapsed).
+	 *
+	 * @param string $variant Snapshot variant ('catalog'|'search').
 	 */
-	public static function should_rebuild_now(): bool {
+	public static function should_rebuild_now( string $variant = 'catalog' ): bool {
 		if ( ! Cache::is_persistent() ) {
 			return true;
 		}
-		$dirty_ts = (int) Cache::get( self::DIRTY_KEY, self::BUCKET );
-		if ( $dirty_ts <= 0 ) {
+		$suffix  = 'search' === $variant ? '_search' : '';
+		$dirty   = self::generation();
+		$rebuilt = Cache::get( 'rebuilt_generation' . $suffix, self::BUCKET );
+		if ( '' === $dirty || $dirty === $rebuilt ) {
 			return false;
 		}
-		$last_build = (int) Cache::get( self::LAST_BUILD_KEY, self::BUCKET );
+		$last_build = (int) Cache::get( self::LAST_BUILD_KEY . $suffix, self::BUCKET );
 		return ( time() - $last_build ) >= self::REBUILD_COOLDOWN;
 	}
 
 	/**
 	 * Acquires a short-lived rebuild lock to prevent stampedes when persistent cache is active.
+	 *
+	 * @param string $variant Snapshot variant ('catalog'|'search').
 	 */
-	public static function acquire_lock(): bool {
+	public static function acquire_lock( string $variant = 'catalog' ): bool {
 		if ( ! Cache::is_persistent() ) {
 			return true;
 		}
-		return Cache::add( self::LOCK_KEY, 1, self::LOCK_TTL, self::BUCKET );
+		$suffix = 'search' === $variant ? '_search' : '';
+		return Cache::add( self::LOCK_KEY . $suffix, 1, self::LOCK_TTL, self::BUCKET );
 	}
 
 	/**
-	 * Releases the rebuild lock and records the rebuild timestamp (clearing dirty flag).
+	 * Releases the rebuild lock and records the generation included in the rebuild.
 	 *
-	 * @param bool $rebuilt Whether a fresh snapshot was written.
+	 * @param bool        $rebuilt    Whether a fresh snapshot was written.
+	 * @param string|null $generation Generation read before the snapshot query.
+	 * @param string      $variant    Snapshot variant ('catalog'|'search').
 	 */
-	public static function finish_rebuild( bool $rebuilt = true ): void {
+	public static function finish_rebuild( bool $rebuilt = true, ?string $generation = null, string $variant = 'catalog' ): void {
 		if ( ! Cache::is_persistent() ) {
 			return;
 		}
+		$suffix = 'search' === $variant ? '_search' : '';
 		if ( $rebuilt ) {
 			$now = time();
-			Cache::set( self::LAST_BUILD_KEY, $now, 86400, self::BUCKET );
-			Cache::delete( self::DIRTY_KEY, self::BUCKET );
+			Cache::set( self::LAST_BUILD_KEY . $suffix, $now, 86400, self::BUCKET );
+			Cache::set( 'rebuilt_generation' . $suffix, $generation ?? self::generation(), 86400, self::BUCKET );
 			self::bump_version();
 		}
-		Cache::delete( self::LOCK_KEY, self::BUCKET );
+		Cache::delete( self::LOCK_KEY . $suffix, self::BUCKET );
+	}
+
+	/**
+	 * Current catalog change generation.
+	 */
+	public static function generation(): string {
+		return (string) Cache::get( self::DIRTY_KEY, self::BUCKET );
 	}
 
 	/**

@@ -37,23 +37,10 @@ final class Plugin {
 		Modules\ReviewRequests\ReviewRequestsModule::class,
 		Modules\PaymentPlans\PaymentPlansModule::class,
 		Modules\Compatibility\CompatibilityModule::class,
+		Modules\MiGarage\MiGarageModule::class,
 		Modules\CatalogFilters\CatalogFiltersModule::class,
-	);
-
-	/**
-	 * Action Scheduler hooks owned by the plugin (group motored-core).
-	 *
-	 * @var list<string>
-	 */
-	public const ACTION_HOOKS = array(
-		'motored_waha_send',
-		'motored_recovery_cleanup',
-		'motored_recovery_scan',
-		'motored_plans_reconcile',
-		'motored_tracking_email',
-		'motored_compat_reindex',
-		'motored_compat_import',
-		'motored_image_opt_batch',
+		Modules\Seo\SeoModule::class,
+		Modules\BikePages\BikePagesModule::class,
 	);
 
 	/**
@@ -118,8 +105,13 @@ final class Plugin {
 		Options::register_defaults( 'general', self::GENERAL_DEFAULTS );
 		Options::ensure( 'general' );
 		( new Migrations( self::migrations() ) )->run();
+		Modules\InstallGallery\GalleryStore::resume_backfill();
 		Modules\Recovery\Retention::schedule();
 		Modules\Recovery\Scanner::schedule();
+		Modules\BikePages\DemandStore::schedule_purge();
+		delete_option( Modules\MiGarage\GarageEndpoint::REWRITE_OPT );
+		delete_option( Modules\BikePages\PostType::REWRITE_VER_OPT );
+		delete_option( Modules\BikePages\SizePages::REWRITE_VER_OPT );
 	}
 
 	/**
@@ -127,9 +119,7 @@ final class Plugin {
 	 * plugin is inactive (activation and admin_init re-create the recurring ones). Data is kept.
 	 */
 	public static function deactivate(): void {
-		foreach ( self::ACTION_HOOKS as $hook ) {
-			Integration\ActionScheduler::unschedule_all( $hook );
-		}
+		Integration\ActionScheduler::unschedule_all();
 	}
 
 	/**
@@ -148,7 +138,22 @@ final class Plugin {
 			'2026112201' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up' ) ),
 			'2026112301' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up_2026112301' ) ),
 			'2026112302' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up' ) ),
-			'2026112401' => \Closure::fromCallable( array( Modules\InstallGallery\GalleryStore::class, 'rebuild_all' ) ),
+			'2026112401' => \Closure::fromCallable( array( Modules\InstallGallery\GalleryStore::class, 'schedule_backfill' ) ),
+			'2026112402' => static function (): bool {
+				return Modules\Recovery\RecoveryMigration::up()
+					&& Modules\Recovery\SuppressionMigration::up()
+					&& Modules\Compatibility\CompatibilityMigration::up();
+			},
+			// Kit per-axle sheet: front_construction / rear_construction on the product index.
+			'2026112403' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up' ) ),
+			// Repairs index rows that stored a term ID as size ID (ensure_size() insert_id bug).
+			'2026112404' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up_2026112404' ) ),
+			// SEO 301/302 redirects table.
+			'2026112405' => \Closure::fromCallable( array( Modules\Seo\SeoMigration::class, 'up' ) ),
+			// BikePages demand capture table.
+			'2026112406' => \Closure::fromCallable( array( Modules\BikePages\DemandMigration::class, 'up' ) ),
+			// Demand delivery lifecycle and authenticated contact ownership.
+			'2026112407' => \Closure::fromCallable( array( Modules\BikePages\DemandMigration::class, 'up' ) ),
 		);
 	}
 
@@ -192,7 +197,11 @@ final class Plugin {
 	 * Runs pending migrations (admin only).
 	 */
 	public function run_migrations(): void {
+		if ( ! $this->context->is_admin_screen() || ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
 		( new Migrations( self::migrations() ) )->run();
+		Modules\InstallGallery\GalleryStore::resume_backfill();
 	}
 
 	/**
