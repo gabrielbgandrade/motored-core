@@ -266,7 +266,7 @@ final class GarageEndpoint {
 				'motored-compat-garage-page',
 				MOTORED_CORE_URL . 'assets/js/compat-garage-page.js',
 				array( GarageAssets::HANDLE ),
-				MOTORED_CORE_VERSION . '-garage10',
+				MOTORED_CORE_VERSION . '-garage11',
 				array(
 					'strategy'  => 'defer',
 					'in_footer' => true,
@@ -283,10 +283,8 @@ final class GarageEndpoint {
 			if ( ! is_user_logged_in() && '' !== $account_url ) {
 				echo '<div class="motored-garage-guest">';
 				echo '<p class="motored-garage-guest__title">' . esc_html__( 'Guardá tus motos en tu cuenta', 'motored-core' ) . '</p>';
-				echo '<p class="motored-garage-guest__cta"><a href="' . esc_url( $account_url ) . '">' . esc_html__( 'Iniciá sesión o creá tu cuenta gratis', 'motored-core' ) . '</a> ' . esc_html__( 'para:', 'motored-core' ) . '</p>';
+				echo '<p class="motored-garage-guest__cta"><a href="' . esc_url( $account_url ) . '">' . esc_html__( 'Iniciá sesión o creá tu cuenta', 'motored-core' ) . '</a> </p>';
 				echo '<ul class="motored-garage-guest__perks">';
-				echo '<li>' . esc_html__( 'Ver solo cubiertas compatibles con tu moto', 'motored-core' ) . '</li>';
-				echo '<li>' . esc_html__( 'Acceder a tu garage desde cualquier dispositivo', 'motored-core' ) . '</li>';
 				echo '</ul>';
 				echo '</div>';
 			}

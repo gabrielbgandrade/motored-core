@@ -1075,14 +1075,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "110/80-19",
+                  "size": "110/80R19",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "CFMOTO 800MT manual specifies 110/80 R19 front and 150/70 R17 rear. Delantera."
                 },
                 {
                   "position": "rear",
-                  "size": "150/70-17",
+                  "size": "150/70R17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "CFMOTO 800MT manual specifies 110/80 R19 front and 150/70 R17 rear. Trasera."
@@ -1893,14 +1893,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "120/70-17",
+                  "size": "120/70ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Honda owner manuals/specifications identify 120/70ZR17 front and 190/50ZR17 rear for these generations. Delantera."
                 },
                 {
                   "position": "rear",
-                  "size": "190/50-17",
+                  "size": "190/50ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Honda owner manuals/specifications identify 120/70ZR17 front and 190/50ZR17 rear for these generations. Trasera."
@@ -1925,14 +1925,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "120/70-17",
+                  "size": "120/70ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Honda owner manuals/specifications identify 120/70ZR17 front and 190/50ZR17 rear for these generations. Delantera."
                 },
                 {
                   "position": "rear",
-                  "size": "190/50-17",
+                  "size": "190/50ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Honda owner manuals/specifications identify 120/70ZR17 front and 190/50ZR17 rear for these generations. Trasera."
@@ -1957,14 +1957,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "120/70-17",
+                  "size": "120/70ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Honda owner manuals/specifications identify 120/70ZR17 front and 190/50ZR17 rear for these generations. Delantera."
                 },
                 {
                   "position": "rear",
-                  "size": "190/50-17",
+                  "size": "190/50ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Honda owner manuals/specifications identify 120/70ZR17 front and 190/50ZR17 rear for these generations. Trasera."
@@ -2173,14 +2173,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "120/70-17",
+                  "size": "120/70ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Honda approval table for 2003-04 and Bridgestone fitment catalogue for CBR600RR 2003 onward. Delantera."
                 },
                 {
                   "position": "rear",
-                  "size": "180/55-17",
+                  "size": "180/55ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Honda approval table for 2003-04 and Bridgestone fitment catalogue for CBR600RR 2003 onward. Trasera."
@@ -2237,14 +2237,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "130/70-16",
+                  "size": "130/70ZR16",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "OEM Honda, SC28."
                 },
                 {
                   "position": "rear",
-                  "size": "180/55-17",
+                  "size": "180/55ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "OEM Honda, SC28."
@@ -2261,14 +2261,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "130/70-16",
+                  "size": "130/70ZR16",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "OEM Honda, SC33."
                 },
                 {
                   "position": "rear",
-                  "size": "180/55-17",
+                  "size": "180/55ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "OEM Honda, SC33."
@@ -2285,14 +2285,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "120/70-17",
+                  "size": "120/70ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "OEM Honda, SC44."
                 },
                 {
                   "position": "rear",
-                  "size": "190/50-17",
+                  "size": "190/50ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "OEM Honda, SC44."
@@ -2309,14 +2309,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "120/70-17",
+                  "size": "120/70ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "OEM Honda, SC50."
                 },
                 {
                   "position": "rear",
-                  "size": "190/50-17",
+                  "size": "190/50ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "OEM Honda, SC50."
@@ -2795,14 +2795,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "120/70-17",
+                  "size": "120/70ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Kawasaki GTR1400 2008 manual lists 120/70ZR17 front and 190/50ZR17 rear. Delantera."
                 },
                 {
                   "position": "rear",
-                  "size": "190/50-17",
+                  "size": "190/50ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Kawasaki GTR1400 2008 manual lists 120/70ZR17 front and 190/50ZR17 rear. Trasera."
@@ -4373,14 +4373,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "120/70-17",
+                  "size": "120/70ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Suzuki Digital Archive lists 120/70ZR17 front and 180/55ZR17 rear for GSX-R600 2001. Delantera."
                 },
                 {
                   "position": "rear",
-                  "size": "180/55-17",
+                  "size": "180/55ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Suzuki Digital Archive lists 120/70ZR17 front and 180/55ZR17 rear for GSX-R600 2001. Trasera."
@@ -5415,14 +5415,14 @@
               "fitments": [
                 {
                   "position": "front",
-                  "size": "120/70-17",
+                  "size": "120/70ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Yamaha MT-09 2014 owner manual lists 120/70 ZR17 front and 180/55 ZR17 rear. Delantera."
                 },
                 {
                   "position": "rear",
-                  "size": "180/55-17",
+                  "size": "180/55ZR17",
                   "fit_type": "oem",
                   "source": "manufacturer",
                   "note": "Yamaha MT-09 2014 owner manual lists 120/70 ZR17 front and 180/55 ZR17 rear. Trasera."

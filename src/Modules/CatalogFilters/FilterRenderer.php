@@ -274,6 +274,12 @@ final class FilterRenderer {
 			$label = TireSpecs::position_label( TireSpecs::normalize_position( $slug ) );
 			return '' !== $label ? $label : $fallback;
 		}
+		if ( in_array( $facet, array( TireSpecs::ATTR_CONSTRUCTION, TireSpecs::ATTR_TUBE, TireSpecs::ATTR_USAGE ), true ) ) {
+			$fixed = \Motored\Core\Modules\Compatibility\AttributeInstaller::fixed_term_sets();
+			if ( isset( $fixed[ $facet ][ $slug ] ) ) {
+				return (string) $fixed[ $facet ][ $slug ];
+			}
+		}
 		return $fallback;
 	}
 
@@ -400,19 +406,25 @@ final class FilterRenderer {
 			return $out;
 		}
 		if ( function_exists( 'is_search' ) && is_search() ) {
-			$query               = new \WP_Query(
-				array(
-					'post_type'              => 'product',
-					'post_status'            => 'publish',
-					's'                      => get_search_query( false ),
-					'fields'                 => 'ids',
-					'posts_per_page'         => -1,
-					'no_found_rows'          => true,
-					'update_post_meta_cache' => false,
-					'update_post_term_cache' => false,
-				)
-			);
-			$out['universe_ids'] = array_fill_keys( array_map( 'intval', (array) $query->posts ), true );
+			$raw_s = trim( (string) get_search_query( false ) );
+			if ( strlen( $raw_s ) >= 2 ) {
+				$ids                 = ProductSearch::search( $raw_s, Config::grid_hides_out_of_stock(), 200 );
+				$out['universe_ids'] = array_fill_keys( $ids, true );
+			} else {
+				$query               = new \WP_Query(
+					array(
+						'post_type'              => 'product',
+						'post_status'            => 'publish',
+						's'                      => $raw_s,
+						'fields'                 => 'ids',
+						'posts_per_page'         => -1,
+						'no_found_rows'          => true,
+						'update_post_meta_cache' => false,
+						'update_post_term_cache' => false,
+					)
+				);
+				$out['universe_ids'] = array_fill_keys( array_map( 'intval', (array) $query->posts ), true );
+			}
 		}
 		return $out;
 	}

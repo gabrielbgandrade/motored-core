@@ -38,7 +38,7 @@ final class GalleryAdmin {
 		add_action( 'woocommerce_admin_field_motored_install_gallery_tools', array( $this, 'render_tools' ) );
 		add_action( 'admin_post_' . self::ACTION_SYNC, array( $this, 'handle_sync_reviews' ) );
 		AttributeHooks::register_product_box_hooks( array( $this, 'add_meta_box' ), array( $this, 'save' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ), 20 );
 	}
 
 	/**
@@ -88,10 +88,12 @@ final class GalleryAdmin {
 				'type'     => 'select',
 				'default'  => Config::DEFAULTS['placement'],
 				'options'  => array(
-					Config::PLACE_BEFORE_TABS => __( 'Below product summary (above tabs)', 'motored-core' ),
-					Config::PLACE_AFTER_TABS  => __( 'Below product tabs', 'motored-core' ),
-					Config::PLACE_TAB         => __( 'As a product tab', 'motored-core' ),
-					Config::PLACE_SHORTCODE   => __( 'Manual placement only ([motored_install_gallery])', 'motored-core' ),
+					Config::PLACE_BELOW_GALLERY     => __( 'Below product gallery', 'motored-core' ),
+					Config::PLACE_AFTER_ADD_TO_CART => __( 'Below Add to Cart button', 'motored-core' ),
+					Config::PLACE_BEFORE_TABS       => __( 'Below product summary (above tabs)', 'motored-core' ),
+					Config::PLACE_AFTER_TABS        => __( 'Below product tabs', 'motored-core' ),
+					Config::PLACE_TAB               => __( 'As a product tab', 'motored-core' ),
+					Config::PLACE_SHORTCODE         => __( 'Manual placement only ([motored_install_gallery])', 'motored-core' ),
 				),
 				'autoload' => false,
 			),
@@ -199,25 +201,27 @@ final class GalleryAdmin {
 
 		Ui::box_open( true );
 		printf(
-			'<div id="motored-ig" data-max="%1$d" data-title="%2$s" data-btn="%3$s" data-rm="%4$s" data-prev="%5$s" data-next="%6$s" data-nocap="%7$s">',
+			'<div id="motored-ig" data-max="%1$d" data-title="%2$s" data-btn="%3$s" data-rm="%4$s" data-prev="%5$s" data-next="%6$s" data-cap-ph="%7$s" data-cap-lbl="%8$s">',
 			(int) GalleryItems::MAX_INSTALL,
 			esc_attr__( 'Installation photos', 'motored-core' ),
 			esc_attr__( 'Add to the gallery', 'motored-core' ),
 			esc_attr__( 'Remove photo', 'motored-core' ),
 			esc_attr__( 'Move left', 'motored-core' ),
 			esc_attr__( 'Move right', 'motored-core' ),
-			esc_attr__( 'No caption', 'motored-core' )
+			esc_attr__( 'Caption (e.g. motorcycle)', 'motored-core' ),
+			esc_attr__( 'Photo caption', 'motored-core' )
 		);
 		echo '<input type="hidden" name="' . esc_attr( self::FIELD ) . '[present]" value="1" />';
 		echo '<input type="hidden" name="' . esc_attr( self::FIELD ) . '[ids]" value="' . esc_attr( implode( ',', $ids ) ) . '" />';
 		echo '<ul class="motored-box__thumbs">';
+		$cap_ph  = __( 'Caption (e.g. motorcycle)', 'motored-core' );
+		$cap_lbl = __( 'Photo caption', 'motored-core' );
 		foreach ( $ids as $id ) {
 			$caption = wp_get_attachment_caption( $id );
 			$cap_str = is_string( $caption ) ? trim( $caption ) : '';
-			$cap_lbl = '' !== $cap_str ? $cap_str : __( 'No caption', 'motored-core' );
 			echo '<li data-id="' . (int) $id . '">';
 			echo wp_get_attachment_image( $id, 'thumbnail' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core markup.
-			echo '<span class="motored-box__cap' . ( '' === $cap_str ? ' motored-box__cap--empty' : '' ) . '">' . esc_html( $cap_lbl ) . '</span>';
+			echo '<input type="text" class="motored-box__cap-input" name="' . esc_attr( self::FIELD ) . '[captions][' . (int) $id . ']" value="' . esc_attr( $cap_str ) . '" placeholder="' . esc_attr( $cap_ph ) . '" maxlength="160" aria-label="' . esc_attr( $cap_lbl ) . '" />';
 			echo '<span class="motored-box__controls">';
 			echo '<button type="button" class="button button-small" data-prev="1" aria-label="' . esc_attr__( 'Move left', 'motored-core' ) . '">&larr;</button>';
 			echo '<button type="button" class="button button-small" data-next="1" aria-label="' . esc_attr__( 'Move right', 'motored-core' ) . '">&rarr;</button>';
@@ -270,6 +274,33 @@ final class GalleryAdmin {
 			$product->delete_meta_data( GalleryStore::INSTALL_META );
 		} else {
 			$product->update_meta_data( GalleryStore::INSTALL_META, $ids );
+			$captions = isset( $posted['captions'] ) && is_array( $posted['captions'] ) ? $posted['captions'] : array();
+			if ( array() !== $captions && function_exists( 'wp_update_post' ) ) {
+				foreach ( $ids as $id ) {
+					if ( ! array_key_exists( $id, $captions ) || ! is_scalar( $captions[ $id ] ) ) {
+						continue;
+					}
+					if ( ! current_user_can( 'edit_post', $id ) ) {
+						continue;
+					}
+					$new_cap = trim( sanitize_text_field( (string) $captions[ $id ] ) );
+					if ( function_exists( 'mb_substr' ) ) {
+						$new_cap = mb_substr( $new_cap, 0, 160, 'UTF-8' );
+					} else {
+						$new_cap = substr( $new_cap, 0, 160 );
+					}
+					$cur_cap = wp_get_attachment_caption( $id );
+					$cur_cap = is_string( $cur_cap ) ? trim( $cur_cap ) : '';
+					if ( $new_cap !== $cur_cap ) {
+						wp_update_post(
+							array(
+								'ID'           => $id,
+								'post_excerpt' => $new_cap,
+							)
+						);
+					}
+				}
+			}
 		}
 		GalleryStore::rebuild( (int) $product->get_id() );
 	}
@@ -279,18 +310,45 @@ final class GalleryAdmin {
 	 */
 	public function enqueue(): void {
 		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( ! is_object( $screen ) || 'product' !== $screen->id || 'post' !== $screen->base ) {
+		if ( ! is_object( $screen ) ) {
 			return;
 		}
+		// Carrega na tela clássica de edição de produto (product/post) e também quando o post sendo
+		// editado é um produto (cobre editor de blocos e outras telas de administração de produto).
+		$is_product_screen = 'product' === $screen->id && 'post' === $screen->base;
+		$post_id           = isset( $_GET['post'] ) && is_scalar( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		$is_block_product  = $post_id > 0 && 'product' === get_post_type( $post_id );
+		if ( ! $is_product_screen && ! $is_block_product ) {
+			return;
+		}
+		// Carrega o media do WordPress (inclui media-editor, media-views, wp.media) antes do nosso script.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only post id check for media modal attachment context.
-		$post_id = isset( $_GET['post'] ) && is_scalar( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
 		wp_enqueue_media( $post_id > 0 ? array( 'post' => $post_id ) : array() );
+		$script_ver = MOTORED_CORE_VERSION;
+		if ( defined( 'MOTORED_CORE_DIR' ) ) {
+			$script_path = MOTORED_CORE_DIR . 'assets/admin/motored-install-gallery.js';
+			if ( is_file( $script_path ) ) {
+				$mtime = filemtime( $script_path );
+				if ( false !== $mtime ) {
+					$script_ver = (string) $mtime;
+				}
+			}
+		}
 		wp_enqueue_script(
 			self::HANDLE,
 			MOTORED_CORE_URL . 'assets/admin/motored-install-gallery.js',
-			array( 'media-editor' ),
-			MOTORED_CORE_VERSION,
+			array( 'media-editor', 'media-views' ),
+			$script_ver,
 			true
+		);
+		// Passa dados para o script de forma confiável (post_id para contexto do media modal).
+		wp_localize_script(
+			self::HANDLE,
+			'motoredIG',
+			array(
+				'postId' => (int) $post_id,
+				'max'    => (int) GalleryItems::MAX_INSTALL,
+			)
 		);
 	}
 

@@ -11,9 +11,11 @@ w=f.querySelector(W);
 if(!w)return;
 var i=w.querySelector('input'),m=w.querySelector('.motored-rp-msg'),t=w.querySelector('.motored-rp-thumbs'),
 d=w.dataset,max=+d.max,mb=d.mb*1048576,u=[];
-function setEnctype(){f=i.form||w.closest('form');if(f){f.enctype=f.encoding='multipart/form-data';f.setAttribute('enctype','multipart/form-data');}}
+function resolveForm(){return i.form||i.closest('form')||w.closest('form');}
+function setEnctype(){var form=resolveForm();if(form){form.enctype=form.encoding='multipart/form-data';form.setAttribute('enctype','multipart/form-data');f=form;}}
 setEnctype();
-if(f)f.addEventListener('submit',setEnctype);
+var form=resolveForm();
+if(form)form.addEventListener('submit',setEnctype);
 i.addEventListener('change',function(){
 setEnctype();
 u.forEach(function(x){URL.revokeObjectURL(x)});u=[];t.textContent=m.textContent='';

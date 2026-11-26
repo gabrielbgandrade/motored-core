@@ -63,5 +63,12 @@ final class FormScript {
 				'in_footer' => true,
 			)
 		);
+		// Garante enctype=multipart/form-data no formulário de review assim que possível,
+		// antes mesmo do script diferido executar. Sem isso o navegador nunca envia $_FILES.
+		wp_add_inline_script(
+			self::HANDLE,
+			"(function(){var i=document.getElementById('motored_review_photos');if(i){var f=i.form||i.closest('form');if(f){f.enctype=f.encoding='multipart/form-data';f.setAttribute('enctype','multipart/form-data');}}})();",
+			'before'
+		);
 	}
 }

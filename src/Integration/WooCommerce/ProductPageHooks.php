@@ -15,6 +15,26 @@ defined( 'ABSPATH' ) || exit;
 final class ProductPageHooks {
 
 	/**
+	 * Hooks an action printed right below the native product gallery inside the gallery column
+	 * (classic template: sale flash is priority 10, product images are priority 20).
+	 *
+	 * @param callable $callback fn(): void.
+	 */
+	public static function register_after_gallery( callable $callback ): void {
+		add_action( 'woocommerce_before_single_product_summary', $callback, 30 );
+	}
+
+	/**
+	 * Hooks an action printed right below the Add to Cart button inside the product summary
+	 * (classic template: add-to-cart is priority 30, meta/SKU is priority 40). Also runs on out-of-stock products.
+	 *
+	 * @param callable $callback fn(): void.
+	 */
+	public static function register_after_add_to_cart( callable $callback ): void {
+		add_action( 'woocommerce_single_product_summary', $callback, 35 );
+	}
+
+	/**
 	 * Hooks an action printed right below the product gallery + summary and above the tabs (priority 8).
 	 *
 	 * @param callable $callback fn(): void.
@@ -51,5 +71,23 @@ final class ProductPageHooks {
 	 */
 	public static function register_product_details_block( callable $callback ): void {
 		add_filter( 'render_block_woocommerce/product-details', $callback, 10, 1 );
+	}
+
+	/**
+	 * Block themes: appends the gallery right below the Product Image Gallery block when placement is `below_gallery`.
+	 *
+	 * @param callable $callback fn( string $content ): string.
+	 */
+	public static function register_product_gallery_block( callable $callback ): void {
+		add_filter( 'render_block_woocommerce/product-image-gallery', $callback, 10, 1 );
+	}
+
+	/**
+	 * Block themes: appends the gallery right below the Add to Cart Form block when placement is `after_add_to_cart`.
+	 *
+	 * @param callable $callback fn( string $content ): string.
+	 */
+	public static function register_add_to_cart_block( callable $callback ): void {
+		add_filter( 'render_block_woocommerce/add-to-cart-form', $callback, 10, 1 );
 	}
 }

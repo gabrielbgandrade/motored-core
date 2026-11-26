@@ -16,13 +16,17 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Config {
 
-	public const OPTION_KEY        = 'install_gallery';
-	public const PLACE_BEFORE_TABS = 'before_tabs';
-	public const PLACE_AFTER_TABS  = 'after_tabs';
-	public const PLACE_TAB         = 'tab';
-	public const PLACE_SHORTCODE   = 'shortcode';
+	public const OPTION_KEY              = 'install_gallery';
+	public const PLACE_BELOW_GALLERY     = 'below_gallery';
+	public const PLACE_AFTER_ADD_TO_CART = 'after_add_to_cart';
+	public const PLACE_BEFORE_TABS       = 'before_tabs';
+	public const PLACE_AFTER_TABS        = 'after_tabs';
+	public const PLACE_TAB               = 'tab';
+	public const PLACE_SHORTCODE         = 'shortcode';
 
 	private const PLACEMENTS = array(
+		self::PLACE_BELOW_GALLERY,
+		self::PLACE_AFTER_ADD_TO_CART,
 		self::PLACE_BEFORE_TABS,
 		self::PLACE_AFTER_TABS,
 		self::PLACE_TAB,
@@ -33,7 +37,7 @@ final class Config {
 		'enabled'         => 'yes',
 		'include_reviews' => 'yes',
 		'visible'         => '8',
-		'placement'       => self::PLACE_BEFORE_TABS,
+		'placement'       => self::PLACE_BELOW_GALLERY,
 	);
 
 	/**

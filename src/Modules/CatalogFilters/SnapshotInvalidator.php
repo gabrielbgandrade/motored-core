@@ -43,6 +43,10 @@ final class SnapshotInvalidator {
 		add_action( 'transition_post_status', array( $this, 'on_status_transition' ), 20, 3 );
 		add_action( 'wp_trash_post', array( $this, 'on_delete_post' ) );
 		add_action( 'before_delete_post', array( $this, 'on_delete_post' ) );
+		add_action( 'motored_compat_product_index_changed', array( $this, 'on_compat_index_changed' ) );
+		if ( is_admin() ) {
+			add_action( 'save_post_product', array( $this, 'on_admin_product_save' ), 20, 2 );
+		}
 	}
 
 	/**
@@ -54,6 +58,7 @@ final class SnapshotInvalidator {
 		$taxes = array(
 			'product_cat',
 			'product_brand',
+			'product_tag',
 			'product_visibility',
 		);
 		foreach ( Config::ATTRIBUTE_SLUGS as $slug ) {
@@ -61,6 +66,7 @@ final class SnapshotInvalidator {
 		}
 		$taxes[] = 'pa_' . TireSpecs::ATTR_FRONT_SIZE;
 		$taxes[] = 'pa_' . TireSpecs::ATTR_REAR_SIZE;
+		$taxes[] = 'pa_' . TireSpecs::ATTR_LINE;
 		return array_values( array_unique( $taxes ) );
 	}
 
@@ -134,6 +140,30 @@ final class SnapshotInvalidator {
 	public function on_delete_post( $post_id ): void {
 		$id = (int) $post_id;
 		if ( $id > 0 && 'product' === get_post_type( $id ) ) {
+			self::mark_dirty();
+		}
+	}
+
+	/**
+	 * Hook: motored_compat_product_index_changed — keeps ProductSearch in sync with tire/kit compatibility updates.
+	 */
+	public function on_compat_index_changed(): void {
+		ProductSearch::reset();
+		self::mark_dirty();
+	}
+
+	/**
+	 * Hook: save_post_product (admin only) — refreshes search index when title, description or SKU is edited in wp-admin.
+	 *
+	 * @param mixed $post_id Post ID.
+	 * @param mixed $post    WP_Post instance.
+	 */
+	public function on_admin_product_save( $post_id, $post = null ): void {
+		if ( ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || ( function_exists( 'wp_is_post_revision' ) && wp_is_post_revision( (int) $post_id ) ) ) {
+			return;
+		}
+		if ( is_object( $post ) && isset( $post->post_status ) && 'publish' === (string) $post->post_status ) {
+			ProductSearch::reset();
 			self::mark_dirty();
 		}
 	}

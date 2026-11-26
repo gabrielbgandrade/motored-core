@@ -3038,6 +3038,14 @@ msgid "Where the gallery appears in classic WooCommerce templates. You can also 
 msgstr ""
 
 #: src/Modules/InstallGallery/GalleryAdmin.php:91
+msgid "Below product gallery"
+msgstr ""
+
+#: src/Modules/InstallGallery/GalleryAdmin.php:92
+msgid "Below Add to Cart button"
+msgstr ""
+
+#: src/Modules/InstallGallery/GalleryAdmin.php:92
 msgid "Below product summary (above tabs)"
 msgstr ""
 
@@ -3101,6 +3109,16 @@ msgstr ""
 #: src/Modules/InstallGallery/GalleryAdmin.php:208
 #: src/Modules/InstallGallery/GalleryAdmin.php:223
 msgid "Move right"
+msgstr ""
+
+#: src/Modules/InstallGallery/GalleryAdmin.php:210
+#: src/Modules/InstallGallery/GalleryAdmin.php:217
+msgid "Caption (e.g. motorcycle)"
+msgstr ""
+
+#: src/Modules/InstallGallery/GalleryAdmin.php:211
+#: src/Modules/InstallGallery/GalleryAdmin.php:218
+msgid "Photo caption"
 msgstr ""
 
 #: src/Modules/InstallGallery/GalleryAdmin.php:209
@@ -3171,8 +3189,24 @@ msgstr ""
 msgid "Next photo"
 msgstr ""
 
-#: src/Modules/InstallGallery/GalleryDisplay.php:219
+#: src/Modules/InstallGallery/GalleryDisplay.php:271
 msgid "View review"
+msgstr ""
+
+#: src/Modules/InstallGallery/GalleryDisplay.php:272
+msgid "Installation photo"
+msgstr ""
+
+#: src/Modules/InstallGallery/GalleryDisplay.php:273
+msgid "Customer review"
+msgstr ""
+
+#: src/Modules/InstallGallery/GalleryDisplay.php:274
+msgid "Verified purchase"
+msgstr ""
+
+#: src/Modules/InstallGallery/GalleryDisplay.php:275
+msgid "Real photo fitted on a motorcycle."
 msgstr ""
 
 #: src/Modules/InstallGallery/GalleryDisplay.php:294
@@ -5553,4 +5587,349 @@ msgstr ""
 
 #: templates/emails/motored-stock-alert.php
 msgid "Cancel this alert and delete my contact"
+msgstr ""
+
+#: src/Modules/Seo/SiteContextBuilder.php:215
+#, php-format
+msgid "Motorcycle tires in Argentina. Find the exact tire size for your motorcycle at %s."
+msgstr ""
+
+#: src/Modules/Seo/SiteContextBuilder.php:277
+#, php-format
+msgid "Buy %1$s at %2$s. Check motorcycle compatibility, specs and payment options."
+msgstr ""
+
+#: src/Modules/Seo/SiteContextBuilder.php:336
+#, php-format
+msgid "Browse motorcycle tires by size, brand or bike model at %s."
+msgstr ""
+
+#: src/Modules/Seo/SiteContextBuilder.php:356
+#, php-format
+msgid "Motorcycle tires in %1$s. Check stock, sizes and compatibility at %2$s."
+msgstr ""
+
+#: src/Modules/Seo/SiteContextBuilder.php:399
+#, php-format
+msgid "%1$s — Page %2$d"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:55
+msgid "General SEO & Home Page"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:57
+msgid "Full-site SEO built natively on WordPress core and Redis: titles, meta descriptions, canonicals, Open Graph, JSON-LD, XML sitemaps, robots.txt and 301 redirects."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:61
+msgid "Enable Motored SEO"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:62
+msgid "Activate titles, descriptions, canonicals, sitemaps, redirects and JSON-LD (automatically steps back if Yoast/Rank Math is active)."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:69
+msgid "Manage full site SEO"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:70
+msgid "Extend SEO to Home, Products, Shop, Categories, Brands, Pages and Blog posts (not just motorcycle landing pages)."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:77
+msgid "Title separator"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:78
+msgid "Symbol between the page title and your store name."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:91
+msgid "Home page SEO title"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:92
+msgid "Leave blank to use \"Site name | Tagline\". Ideal length: 50–60 characters."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:101
+msgid "Home page meta description"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:102
+msgid "Shown in Google search snippets for your home page. Ideal length: 130–155 characters."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:112
+msgid "Emit noindex, follow on internal search pages (?s=)."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:120
+msgid "Emit noindex, follow on /page/2+ URLs. Leave off so Google can crawl deep catalog pages with self-referencing canonicals."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:132
+msgid "Business Identity, Local SEO & Social (Schema / Open Graph)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:134
+msgid "Powers Google AutoPartsStore/Organization Knowledge Graph, Sitelinks Searchbox, enriched WooCommerce Product snippets and WhatsApp/social cards."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:138
+msgid "Open Graph & Twitter cards"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:139
+msgid "Output og:*, product:* and twitter:card tags for crisp WhatsApp, Instagram and Facebook link previews."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:147
+msgid "Output AutoPartsStore, WebSite (SearchAction), BreadcrumbList, CollectionPage, Article, ItemList and FAQPage schema."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:154
+msgid "Enrich WooCommerce Product schema"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:155
+msgid "Add Brand, MPN/SKU, NewCondition, seller reference, gallery images and tire specs to WooCommerce native Product JSON-LD."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:163
+msgid "Fallback social share image (recommended 1200×630 px) when a page has no featured image."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:171
+msgid "Business name (Organization)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:172
+msgid "Leave blank to use the WordPress site title."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:181
+msgid "Organization logo URL"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:182
+msgid "Leave blank to use the theme custom logo automatically."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:190
+msgid "Business phone (Local SEO)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:191
+msgid "International format, e.g. +54 9 11 1234-5678."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:199
+msgid "City (Local SEO)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:206
+msgid "Province / Region (Local SEO)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:213
+msgid "Social profile URLs (sameAs)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:214
+msgid "One URL per line (Instagram, Facebook, YouTube, TikTok). Links your official profiles in Google Knowledge Graph."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:227
+msgid "XML Sitemap, robots.txt & 301 Redirects"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:229
+msgid "Protects crawl budget, prevents duplicate filter indexing, adds <lastmod> to sitemaps and caches 404 redirects in Redis."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:233
+msgid "Disable users XML sitemap"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:234
+msgid "Remove /wp-sitemap-users-1.xml to avoid exposing admin usernames and thin author archives."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:241
+msgid "Optimize virtual robots.txt"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:242
+msgid "Disallow cart/checkout/account/filter/sort query parameters and declare the XML sitemap URL."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:249
+msgid "Automatic 301 on slug changes"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:250
+msgid "Automatically save a 301 redirect whenever you change the URL slug of a published product, page, post or bike page."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:274
+msgid "Sitemap & 301 Redirects"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:285
+msgid "Open XML Sitemap"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:286
+msgid "Open robots.txt"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:293
+msgid "Source path (old URL)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:299
+msgid "Target URL or path"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:305
+msgid "301 (Permanent)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:306
+msgid "302 (Temporary)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:308
+msgid "HTTP status"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:315
+msgid "Add redirect"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:319
+msgid "No 301/302 redirects recorded yet. Slug changes and manual rules will appear here."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:324
+msgid "Source path"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:325
+msgid "Target URL"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:326
+msgid "Code"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:327
+msgid "Action"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:369
+msgid "Redirect saved."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:370
+msgid "Could not save redirect. Check source path and target URL (loops are not allowed)."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:388
+msgid "Redirect deleted."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:388
+msgid "Could not delete redirect."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:404
+msgid "Motored SEO"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:430
+msgid "Auto-generated from product/page summary when left blank."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:441
+msgid "Ideal: 50–60 characters. Leave blank to generate automatically."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:447
+msgid "Ideal: 130–155 characters. Leave blank to generate automatically."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:450
+msgid "Canonical URL override"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:453
+msgid "Optional. Leave blank to use the clean self-referencing permalink."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:456
+msgid "Automatic (recommended)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:459
+msgid "Force noindex, nofollow"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:461
+msgid "Search engine indexing (robots)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:227
+msgid "Google Merchant Center & Shipping / Returns (Schema)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:229
+msgid "Enables free Google Shopping listings via a lightweight Redis-cached XML feed (no Google plugin required) and fills Return/Shipping fields in Product JSON-LD."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:233
+msgid "Enable Google Merchant XML feed"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:234
+msgid "Expose /feed/motored-merchant/ for Google Merchant Center scheduled fetch (Redis-cached, simple & variable products)."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:241
+msgid "Google product category"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:242
+msgid "Official Google taxonomy ID (913 = Motor Vehicle Tires)."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:249
+msgid "Return policy window (days)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:250
+msgid "Emits hasMerchantReturnPolicy in Product JSON-LD (10 days in Argentina; 0 to omit)."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:263
+msgid "Flat shipping cost (optional)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:264
+msgid "Enter 0 for free shipping or a flat ARS estimate for shippingDetails & Merchant feed. Leave blank if shipping varies by postcode."
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:273
+msgid "Handling time (max business days)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:286
+msgid "Transit time (max business days)"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:363
+msgid "Open Google Merchant Feed (XML)"
 msgstr ""

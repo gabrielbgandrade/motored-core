@@ -102,10 +102,14 @@ final class SizeParser {
 		$found = array();
 		$seen  = array();
 
-		$add = static function ( array $item ) use ( &$found, &$seen ): void {
-			if ( ! isset( $seen[ $item['canonical'] ] ) ) {
-				$seen[ $item['canonical'] ] = true;
-				$found[]                    = $item;
+		$add = static function ( array $item, string $raw_token ) use ( &$found, &$seen ): void {
+			$desig                = self::designation( $raw_token );
+			$item['designation']  = null !== $desig ? $desig['designation'] : $item['canonical'];
+			$item['construction'] = null !== $desig ? $desig['construction'] : '';
+			$dedup_key            = $item['designation'];
+			if ( ! isset( $seen[ $dedup_key ] ) ) {
+				$seen[ $dedup_key ] = true;
+				$found[]            = $item;
 			}
 		};
 
@@ -124,7 +128,8 @@ final class SizeParser {
 							'width'     => $width_str,
 							'aspect'    => $aspect,
 							'rim'       => $rim,
-						)
+						),
+						(string) $m[0]
 					);
 				}
 			}
@@ -142,7 +147,8 @@ final class SizeParser {
 							'width'     => $m[1],
 							'aspect'    => null,
 							'rim'       => $rim,
-						)
+						),
+						(string) $m[0]
 					);
 				}
 			}
@@ -162,7 +168,8 @@ final class SizeParser {
 							'width'     => $width_str,
 							'aspect'    => null,
 							'rim'       => $rim,
-						)
+						),
+						(string) $m[0]
 					);
 				}
 			}

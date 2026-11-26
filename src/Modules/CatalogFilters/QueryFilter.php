@@ -26,11 +26,13 @@ final class QueryFilter {
 	 */
 	public function register(): void {
 		add_action( 'woocommerce_product_query', array( $this, 'filter_product_query' ), 25 );
+		add_filter( 'posts_search', array( $this, 'bypass_native_search_sql' ), 20, 2 );
 		add_filter( 'wp_robots', array( $this, 'robots_noindex' ), 20 );
 	}
 
 	/**
-	 * Hook: woocommerce_product_query — intersects ?oferta=1 / ?kit_medida= with existing post__in (never overwrites ?moto=).
+	 * Hook: woocommerce_product_query — powers broad ?s= product searches (kits, sizes, specs, SKUs,
+	 * descriptions, motorcycles) and intersects ?oferta=1 / ?kit_medida= with existing post__in.
 	 *
 	 * @param mixed $query WP_Query instance.
 	 */
@@ -38,12 +40,25 @@ final class QueryFilter {
 		if ( ! $query instanceof \WP_Query ) {
 			return;
 		}
-		$state = FilterState::from_query();
-		if ( ! $state->on_sale() && '' === $state->kit_size() ) {
+		$state      = FilterState::from_query();
+		$raw_search = method_exists( $query, 'is_search' ) && $query->is_search() ? trim( (string) $query->get( 's' ) ) : '';
+		$has_search = strlen( $raw_search ) >= 2;
+		if ( ! $has_search && ! $state->on_sale() && '' === $state->kit_size() ) {
 			return;
 		}
 		if ( ! Config::enabled() ) {
 			return;
+		}
+
+		if ( $has_search ) {
+			$matched = ProductSearch::search( $raw_search, Config::grid_hides_out_of_stock(), 200 );
+			self::intersect_post_in( $query, $matched );
+			$query->set( 'motored_smart_search', true );
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public catalog sort parameter, read only.
+			$chosen_sort = isset( $_GET['orderby'] ) && is_string( $_GET['orderby'] ) && '' !== $_GET['orderby'];
+			if ( ! $chosen_sort && ! empty( $matched ) ) {
+				$query->set( 'orderby', 'post__in' );
+			}
 		}
 
 		if ( $state->on_sale() ) {
@@ -52,6 +67,21 @@ final class QueryFilter {
 		if ( '' !== $state->kit_size() ) {
 			self::intersect_post_in( $query, array_keys( ProductIndexRepository::kit_ids_with_size( $state->kit_size() ) ) );
 		}
+	}
+
+	/**
+	 * Hook: posts_search — clears WordPress' rigid title/content LIKE clause for queries already resolved by ProductSearch,
+	 * keeping is_search() and get_search_query() intact for theme headings, breadcrumbs and sidebar filters.
+	 *
+	 * @param mixed $search SQL search clause.
+	 * @param mixed $query  WP_Query instance.
+	 * @return string
+	 */
+	public function bypass_native_search_sql( $search, $query ): string {
+		if ( $query instanceof \WP_Query && true === $query->get( 'motored_smart_search' ) ) {
+			return '';
+		}
+		return is_string( $search ) ? $search : '';
 	}
 
 	/**

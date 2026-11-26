@@ -54,7 +54,7 @@ final class StorefrontAssets {
 				self::HANDLE_CSS,
 				MOTORED_CORE_URL . 'assets/css/catalog-filters.css',
 				array( SharedAssets::HANDLE_COMPAT_CSS ),
-				MOTORED_CORE_VERSION . '-filters5'
+				MOTORED_CORE_VERSION . '-filters6'
 			);
 		}
 	}

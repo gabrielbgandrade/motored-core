@@ -23,33 +23,84 @@ final class ReviewPhotosAdmin {
 		ReviewsSection::ensure();
 		add_filter( 'motored_reviews_section_fields', array( $this, 'add_fields' ), 10 );
 		add_action( 'add_meta_boxes_comment', array( $this, 'add_meta_box' ) );
+		add_action( 'add_meta_boxes_product', array( $this, 'rename_reviews_box' ), 40 );
 		add_filter( 'comment_text', array( $this, 'append_photos_to_list' ), 20, 2 );
 	}
 
 	/**
-	 * Shows the photos under the review text in the WooCommerce Reviews list and the Comments list
-	 * (core `comment_text` filter; the screen check keeps it out of every other admin screen).
+	 * Renames the native WooCommerce product reviews meta box (`commentsdiv`) using our plugin text domain
+	 * so `es_AR` shows "Reseñas" instead of WooCommerce's default "Valoraciones" (runs after WC prio 30).
+	 */
+	public function rename_reviews_box(): void {
+		global $wp_meta_boxes;
+		if ( ! is_array( $wp_meta_boxes ) || empty( $wp_meta_boxes['product'] ) || ! is_array( $wp_meta_boxes['product'] ) ) {
+			return;
+		}
+		foreach ( $wp_meta_boxes['product'] as $context => $priorities ) {
+			if ( ! is_array( $priorities ) ) {
+				continue;
+			}
+			foreach ( $priorities as $priority => $boxes ) {
+				if ( is_array( $boxes ) && isset( $boxes['commentsdiv'] ) && is_array( $boxes['commentsdiv'] ) ) {
+					$wp_meta_boxes['product'][ $context ][ $priority ]['commentsdiv']['title'] = __( 'Reviews', 'motored-core' );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Shows lazy-loaded thumbnails under the review text in the WooCommerce Reviews list, Comments list,
+	 * and the Product edit screen's Reviews meta box (including its `get-comments` AJAX loader).
 	 *
 	 * @param mixed $text    Comment text.
 	 * @param mixed $comment WP_Comment.
 	 * @return mixed
 	 */
 	public function append_photos_to_list( $text, $comment = null ) {
-		if ( ! is_string( $text ) || ! is_object( $comment ) || ! function_exists( 'get_current_screen' ) ) {
+		if ( ! is_string( $text ) || ! is_object( $comment ) ) {
 			return $text;
 		}
-		$screen = get_current_screen();
-		if ( ! is_object( $screen ) || ! in_array( $screen->id, array( 'product_page_product-reviews', 'edit-comments' ), true ) ) {
+		$allowed = false;
+		if ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only action check for WP core comments box AJAX.
+			$action  = isset( $_REQUEST['action'] ) && is_string( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( $_REQUEST['action'] ) ) : '';
+			$allowed = in_array( $action, array( 'get-comments', 'replyto-comment', 'edit-comment' ), true );
+		} elseif ( function_exists( 'get_current_screen' ) ) {
+			$screen  = get_current_screen();
+			$allowed = is_object( $screen ) && in_array( $screen->id, array( 'product_page_product-reviews', 'edit-comments', 'product' ), true );
+		}
+		if ( ! $allowed ) {
 			return $text;
+		}
+		$ids = PhotoMeta::ids( (int) ( $comment->comment_ID ?? 0 ) );
+		if ( array() === $ids ) {
+			return $text;
+		}
+		if ( function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $ids, false, true );
 		}
 		$html = '';
-		foreach ( PhotoMeta::ids( (int) ( $comment->comment_ID ?? 0 ) ) as $id ) {
-			$url = wp_get_attachment_url( $id );
-			if ( is_string( $url ) && '' !== $url ) {
-				$html .= '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . wp_get_attachment_image( $id, array( 48, 48 ) ) . '</a> ';
+		foreach ( $ids as $id ) {
+			$url = wp_get_attachment_image_url( $id, 'large' );
+			if ( ! is_string( $url ) || '' === $url ) {
+				$url = wp_get_attachment_url( $id );
+			}
+			$img = wp_get_attachment_image(
+				$id,
+				'thumbnail',
+				false,
+				array(
+					'loading'  => 'lazy',
+					'decoding' => 'async',
+					'width'    => 48,
+					'height'   => 48,
+				)
+			);
+			if ( is_string( $url ) && '' !== $url && '' !== $img ) {
+				$html .= '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . $img . '</a>';
 			}
 		}
-		return '' === $html ? $text : $text . '<p>' . wp_kses_post( $html ) . '</p>';
+		return '' === $html ? $text : $text . '<div class="motored-box__rv-photos">' . wp_kses_post( $html ) . '</div>';
 	}
 
 	/**

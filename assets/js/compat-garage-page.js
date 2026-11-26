@@ -11,7 +11,6 @@
 	var G = window.motoredGarageApi;
 	var UNDO_MS = 5000;
 	var pending = null;
-	var removing = new Set();
 
 	if (!G) {
 		return;
@@ -61,35 +60,32 @@
 		clearTimeout(p.timer);
 		notice('');
 		if (c.loggedIn) {
-			removing.add(p.slug);
 			G.api('DELETE', '/garage/' + encodeURIComponent(p.slug)).catch(function (error) {
+				G.wr(p.prev);
 				showNetworkError(error);
-			}).finally(function () {
-				removing.delete(p.slug);
-				draw();
 			});
-			return;
 		}
-		var next = G.rd();
-		next.bikes = next.bikes.filter(function (x) {
-			return x.slug !== p.slug;
-		});
-		delete next.profiles[p.slug];
-		if (next.active === p.slug) {
-			next.active = next.bikes[0] ? next.bikes[0].slug : '';
-		}
-		G.wr(next);
 	}
 
 	function remove(bike) {
 		commitPending();
-		pending = { slug: bike.slug, timer: setTimeout(commitPending, UNDO_MS) };
-		draw();
+		var prev = G.rd();
+		var next = G.rd();
+		next.bikes = next.bikes.filter(function (x) {
+			return x.slug !== bike.slug;
+		});
+		delete next.profiles[bike.slug];
+		if (next.active === bike.slug) {
+			next.active = next.bikes[0] ? next.bikes[0].slug : '';
+		}
+		G.wr(next);
+		pending = { slug: bike.slug, prev: prev, timer: setTimeout(commitPending, UNDO_MS) };
 		notice(String(t.removedBike || '%s').replace('%s', bike.label), function () {
 			if (pending && pending.slug === bike.slug) {
 				clearTimeout(pending.timer);
+				var restore = pending.prev;
 				pending = null;
-				draw();
+				G.wr(restore);
 			}
 			notice('');
 		});
@@ -103,9 +99,7 @@
 	}
 
 	function drawList(wrap, s) {
-		var bikes = s.bikes.filter(function (bike) {
-			return !removing.has(bike.slug) && (!pending || pending.slug !== bike.slug);
-		});
+		var bikes = s.bikes.slice();
 		var page = wrap.closest('[data-shop-url]');
 		var shop = (page && page.dataset.shopUrl) || c.shopUrl || '/';
 		var focusedCard = wrap.contains(D.activeElement) && D.activeElement.closest('.motored-garage-card');
@@ -160,6 +154,7 @@
 				var use = el('button', 'motored-garage-card__link', t.useBike || '');
 				use.type = 'button';
 				use.addEventListener('click', function () {
+					commitPending();
 					if (c.loggedIn) {
 						use.disabled = true;
 						G.api('POST', '/garage', { action: 'set_active', slug: bike.slug })
@@ -252,6 +247,7 @@
 			}
 		});
 		drawer.addEventListener('close', function () {
+			commitPending();
 			D.documentElement.classList.remove('motored-garage-drawer-open');
 			if (opener) {
 				opener.focus({ preventScroll: true });

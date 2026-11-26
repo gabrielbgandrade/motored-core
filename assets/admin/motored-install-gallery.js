@@ -1,20 +1,15 @@
 /**
  * Admin: "Installation photos" box of the product screen.
  *
- * Opens the native WordPress media modal (`wp.media`) to pick gallery images. No library, no jQuery
- * of our own: WordPress loads `media-views` (and its dependencies) through the script handle.
+ * Opens the native WordPress media modal (`wp.media`) to pick gallery images, lets the user edit
+ * each photo's caption inline, reorder items with left/right arrows, or unlink them from the product.
+ * No jQuery or external libraries of our own: WordPress loads `media-views` through the script handle.
  */
 (function () {
 	'use strict';
 
 	var frame = null;
 
-	/**
-	 * Logs a diagnostic message without throwing, so a failure never becomes a silent no-op.
-	 *
-	 * @param {string}          message Message.
-	 * @param {Error|undefined} error   Optional error object.
-	 */
 	function logError(message, error) {
 		if (window.console && typeof window.console.error === 'function') {
 			if (typeof error === 'undefined') {
@@ -26,10 +21,12 @@
 	}
 
 	function partsOf(box) {
+		var input = box.querySelector('input[name*="[ids]"]') || box.querySelector('input[name$="[ids]"]');
+		var list  = box.querySelector('.motored-box__thumbs');
 		return {
 			box: box,
-			input: box.querySelector('input[name$="[ids]"]'),
-			list: box.querySelector('.motored-box__thumbs'),
+			input: input,
+			list: list,
 			countEl: box.querySelector('[data-count]'),
 			data: box.dataset
 		};
@@ -39,7 +36,16 @@
 		if (!p.input || !p.list) {
 			return;
 		}
-		var ids = [].map.call(p.list.children, function (li) {
+		var items = Array.prototype.slice.call(p.list.children);
+		var ids = items.map(function (li, i) {
+			var prev = li.querySelector('button[data-prev]');
+			var next = li.querySelector('button[data-next]');
+			if (prev) {
+				prev.disabled = i === 0;
+			}
+			if (next) {
+				next.disabled = i === items.length - 1;
+			}
 			return li.dataset.id;
 		});
 		p.input.value = ids.join(',');
@@ -61,16 +67,26 @@
 	}
 
 	function buildItem(att, data) {
+		var id = String(att.id);
 		var li = document.createElement('li');
-		li.dataset.id = String(att.id);
+		li.dataset.id = id;
+
 		var img = new Image();
 		var thumb = att.sizes && (att.sizes.thumbnail || att.sizes.medium) ? (att.sizes.thumbnail || att.sizes.medium) : att;
 		img.src = thumb.url || '';
 		img.alt = att.alt || '';
-		var cap = document.createElement('span');
-		var text = (att.caption || '').trim();
-		cap.className = 'motored-box__cap' + (text ? '' : ' motored-box__cap--empty');
-		cap.textContent = text || data.nocap || '';
+
+		var capInput = document.createElement('input');
+		capInput.type = 'text';
+		capInput.className = 'motored-box__cap-input';
+		capInput.name = 'motored_igallery[captions][' + id + ']';
+		capInput.value = (att.caption || '').trim();
+		capInput.maxLength = 160;
+		capInput.placeholder = data.capPh || '';
+		if (data.capLbl) {
+			capInput.setAttribute('aria-label', data.capLbl);
+		}
+
 		var controls = document.createElement('span');
 		controls.className = 'motored-box__controls';
 		controls.append(
@@ -78,28 +94,15 @@
 			makeBtn('data-next', '\u2192', data.next, ''),
 			makeBtn('data-rm', '\u00d7', data.rm, 'button-link-delete')
 		);
-		li.append(img, cap, controls);
+		li.append(img, capInput, controls);
 		return li;
 	}
 
-	/**
-	 * Returns the current selection of the frame, guarding every step (state may be null while opening).
-	 *
-	 * @param {Object} f Media frame.
-	 * @return {Object|null}
-	 */
 	function selectionOf(f) {
 		var state = f && typeof f.state === 'function' ? f.state() : null;
 		return state && typeof state.get === 'function' ? state.get('selection') : null;
 	}
 
-	/**
-	 * Builds the media frame once (native WordPress pattern: title + button + image library + multiple).
-	 *
-	 * @param {Function} media `wp.media` factory.
-	 * @param {Object}   p     Box parts.
-	 * @return {Object} Frame.
-	 */
 	function buildFrame(media, p) {
 		var f = media({
 			title: p.data.title,
@@ -134,6 +137,61 @@
 		return f;
 	}
 
+	function waitForMedia(cb) {
+		var attempts = 0;
+		var maxAttempts = 25;
+		var timer = setInterval(function () {
+			attempts++;
+			var media = window.wp && window.wp.media;
+			if (typeof media === 'function') {
+				clearInterval(timer);
+				cb(media);
+			} else if (attempts >= maxAttempts) {
+				clearInterval(timer);
+				cb(null);
+			}
+		}, 200);
+	}
+
+	function openMediaModal(media, p) {
+		try {
+			if (!frame) {
+				frame = buildFrame(media, p);
+			}
+			frame.open();
+		} catch (err) {
+			frame = null;
+			logError('Could not open the media modal:', err);
+		}
+	}
+
+	function openAddMedia(box) {
+		var p = partsOf(box);
+		if (!p.input || !p.list) {
+			logError('Missing input or list in #motored-ig.');
+			return;
+		}
+		var media = window.wp && window.wp.media;
+		if (typeof media !== 'function') {
+			waitForMedia(function (m) {
+				if (!m) {
+					logError('wp.media is not available on this screen.');
+					return;
+				}
+				openMediaModal(m, p);
+			});
+			return;
+		}
+		openMediaModal(media, p);
+	}
+
+	function initAll() {
+		var box = document.getElementById('motored-ig');
+		if (box) {
+			sync(partsOf(box));
+		}
+	}
+
 	document.addEventListener('click', function (e) {
 		var target = e.target;
 		if (!target || typeof target.closest !== 'function') {
@@ -143,13 +201,22 @@
 		if (!box) {
 			return;
 		}
+
+		// Match buttons specifically so #motored-ig's own data-rm / data-prev / data-next label attributes never match.
+		var addBtn = target.closest('button[data-add]');
+		if (addBtn && box.contains(addBtn)) {
+			e.preventDefault();
+			openAddMedia(box);
+			return;
+		}
+
 		var p = partsOf(box);
 		if (!p.input || !p.list) {
 			return;
 		}
 
-		var rmBtn = target.closest('[data-rm]');
-		if (rmBtn) {
+		var rmBtn = target.closest('button[data-rm]');
+		if (rmBtn && box.contains(rmBtn)) {
 			e.preventDefault();
 			var item = rmBtn.closest('li');
 			if (item) {
@@ -159,8 +226,8 @@
 			return;
 		}
 
-		var prevBtn = target.closest('[data-prev]');
-		if (prevBtn) {
+		var prevBtn = target.closest('button[data-prev]');
+		if (prevBtn && box.contains(prevBtn)) {
 			e.preventDefault();
 			var li = prevBtn.closest('li');
 			if (li && li.previousElementSibling) {
@@ -170,8 +237,8 @@
 			return;
 		}
 
-		var nextBtn = target.closest('[data-next]');
-		if (nextBtn) {
+		var nextBtn = target.closest('button[data-next]');
+		if (nextBtn && box.contains(nextBtn)) {
 			e.preventDefault();
 			var cur = nextBtn.closest('li');
 			if (cur && cur.nextElementSibling) {
@@ -180,30 +247,11 @@
 			}
 			return;
 		}
-
-		if (!target.closest('[data-add]')) {
-			return;
-		}
-		e.preventDefault();
-
-		// `wp.media` is provided by `media-editor` (via `wp_enqueue_media`); check at click time.
-		var media = window.wp && window.wp.media;
-		if (typeof media !== 'function') {
-			logError(
-				'wp.media is not available, so the media modal cannot open. Check that media-editor is loaded on this screen.'
-			);
-			return;
-		}
-
-		try {
-			if (!frame) {
-				frame = buildFrame(media, p);
-			}
-			frame.open();
-		} catch (err) {
-			// A broken frame must not be reused; report instead of silently doing nothing.
-			frame = null;
-			logError('Could not open the media modal:', err);
-		}
 	});
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', initAll);
+	} else {
+		initAll();
+	}
 })();

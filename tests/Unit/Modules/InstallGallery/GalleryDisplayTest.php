@@ -154,4 +154,40 @@ final class GalleryDisplayTest extends TestCase {
 
 		$this->assertStringContainsString( 'motored-install-gallery', ( new GalleryDisplay() )->shortcode() );
 	}
+
+	public function test_below_gallery_placement_embeds_review_content_for_split_lightbox(): void {
+		$this->fake_storage();
+		$this->options['motored_install_gallery'] = array( 'placement' => Config::PLACE_BELOW_GALLERY );
+		$this->product(
+			array(
+				'_motored_review_gallery' => array( array( 'id' => 9, 'c' => 31, 'r' => 5 ) ),
+			)
+		);
+		$this->render_stubs();
+		Functions\when( 'get_comments' )->justReturn(
+			array(
+				(object) array(
+					'comment_ID'       => '31',
+					'comment_author'   => 'Juan Perez',
+					'comment_date_gmt' => '2026-11-20 12:00:00',
+					'comment_content'  => 'Excelente agarre en ripio y asfalto.',
+				),
+			)
+		);
+		Functions\when( 'wp_date' )->justReturn( '20 nov 2026' );
+		Functions\when( 'wc_review_is_from_verified_owner' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+
+		ob_start();
+		( new GalleryDisplay() )->render_below_gallery();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'data-placement="below_gallery"', $html );
+		$this->assertStringContainsString( 'data-author="Juan Perez"', $html );
+		$this->assertStringContainsString( 'data-date="20 nov 2026"', $html );
+		$this->assertStringContainsString( 'data-review-text="Excelente agarre en ripio y asfalto."', $html );
+		$this->assertStringContainsString( 'data-verified="1"', $html );
+		$this->assertStringContainsString( 'data-prod-name="Pirelli Diablo Rosso"', $html );
+	}
 }

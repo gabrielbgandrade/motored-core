@@ -430,6 +430,47 @@
 		}
 	}
 
+	function bikeIcon() {
+		var NS = 'http://www.w3.org/2000/svg';
+		var wrap = el('span', BADGE + '__icon');
+		wrap.setAttribute('aria-hidden', 'true');
+		var svg = D.createElementNS(NS, 'svg');
+		svg.setAttribute('viewBox', '0 0 32 32');
+		svg.setAttribute('width', '26');
+		svg.setAttribute('height', '26');
+		svg.setAttribute('focusable', 'false');
+		[
+			'M16.0034 0C7.1744 0 0 7.1744 0 16.0034C0 24.8324 7.1744 32 16.0034 32C24.8324 32 32.0068 24.8256 32.0068 16.0034C32.0068 7.18118 24.8256 0 16.0034 0ZM16.0034 2.31235C23.5508 2.31235 29.6944 8.45603 29.6944 16.0034C29.6944 23.5508 23.5508 29.6944 16.0034 29.6944C8.45603 29.6944 2.31235 23.5508 2.31235 16.0034C2.31235 8.45603 8.44925 2.31235 16.0034 2.31235Z',
+			'M5.6351 21.7402H14.125C14.0369 21.3333 13.9894 20.8993 13.9894 20.4585C13.9894 18.0987 15.3253 16.0373 17.2782 14.993L17.6648 16.1051C16.1594 16.9798 15.149 18.6005 15.149 20.4585C15.149 23.2388 17.4071 25.4969 20.1873 25.4969C22.9676 25.4969 25.2257 23.2388 25.2257 20.4585C25.2257 17.6783 22.9676 15.4202 20.1873 15.4202C19.9432 15.4202 19.6991 15.4405 19.4618 15.4812L16.6544 7.41172C16.5188 7.02519 16.1594 6.77429 15.7525 6.77429H13.7928C13.2638 6.77429 12.8366 7.2015 12.8366 7.73043C12.8366 8.25935 13.2638 8.68656 13.7928 8.68656H15.0744L15.7457 10.626C15.6711 10.5853 15.6033 10.5446 15.5219 10.5039C13.2232 9.41214 9.92754 9.71051 8.75441 11.4872C8.05596 12.5518 6.44884 12.5247 4.74 12.2873C4.35348 13.4605 4.1297 14.7082 4.1297 16.0101C4.1297 18.0919 4.67219 20.0517 5.62154 21.7537L5.6351 21.7402ZM18.3158 17.9699L19.2922 20.7773C19.4279 21.1706 19.8008 21.4147 20.1941 21.4147C20.2958 21.4147 20.4043 21.3943 20.5061 21.3604C21.0011 21.1841 21.2655 20.6416 21.096 20.1466L20.1195 17.3325C20.1195 17.3325 20.167 17.3257 20.1941 17.3257C21.9233 17.3257 23.327 18.7294 23.327 20.4585C23.327 22.1877 21.9233 23.5914 20.1941 23.5914C18.4649 23.5914 17.0613 22.1877 17.0613 20.4585C17.0613 19.4346 17.5563 18.5395 18.3158 17.9631V17.9699Z',
+			'M20.9604 12.8774H21.6181C21.8758 12.8774 22.086 12.6671 22.086 12.4095V9.03247C22.086 8.77479 21.8758 8.56458 21.6181 8.56458H20.8587C19.5974 8.56458 18.5802 9.65633 18.7158 10.9447C18.8311 12.0636 19.8415 12.8774 20.9604 12.8774Z',
+		].forEach(function (d) {
+			var p = D.createElementNS(NS, 'path');
+			p.setAttribute('fill', 'currentColor');
+			p.setAttribute('d', d);
+			svg.appendChild(p);
+		});
+		wrap.appendChild(svg);
+		return wrap;
+	}
+
+	function garageTriggerLink(label, cls, picker) {
+		var drawer = D.getElementById('motored-garage-drawer');
+		if (drawer && typeof drawer.showModal === 'function') {
+			var a = el('a', cls, label);
+			a.href = c.garageUrl || '#';
+			a.setAttribute('data-motored-garage-open', '');
+			a.setAttribute('aria-haspopup', 'dialog');
+			a.setAttribute('aria-controls', drawer.id);
+			return a;
+		}
+		if (c.garageUrl) {
+			var link = el('a', cls, label);
+			link.href = c.garageUrl;
+			return link;
+		}
+		return picker ? pickerButton(picker, label, cls) : null;
+	}
+
 	function drawBanner(marker, fit, pf) {
 		var banner = marker.closest('.motored-compat-banner');
 		var status = banner && banner.querySelector('.motored-compat-banner__status');
@@ -440,82 +481,51 @@
 		status.textContent = '';
 		if (!pf) {
 			var ask = el('div', BADGE + ' ' + BADGE + '--empty');
-			ask.appendChild(el('p', BADGE + '__title', t.askFit || ''));
-			if (picker) {
-				ask.appendChild(pickerButton(picker, t.pickBike || '', 'button wp-element-button ' + BADGE + '__btn'));
+			var lead = el('div', BADGE + '__lead');
+			lead.append(bikeIcon(), el('p', BADGE + '__title', t.askFit || ''));
+			ask.appendChild(lead);
+			var pickTrigger = garageTriggerLink(t.pickBike || '', 'button wp-element-button ' + BADGE + '__btn', picker);
+			if (pickTrigger) {
+				ask.appendChild(pickTrigger);
 			}
 			status.appendChild(ask);
 			return;
 		}
 		var r = ev(fit, pf);
 		var actions = el('div', BADGE + '__actions');
-		var allTarget = function (pos) {
-			if (pf.pageUrl) {
-				if (pos === 'front') {
-					return pf.pageUrl + '#delanteras';
-				}
-				if (pos === 'rear') {
-					return pf.pageUrl + '#traseras';
-				}
-				return pf.pageUrl;
-			}
-			return urlWithMoto(pf.slug, pos || '', shopUrl());
-		};
-		var box;
+		// From a product page, always send the shopper straight to the filtered catalog (?moto=...) for fast comparison.
+		var catalogUrl = urlWithMoto(pf.slug, '', shopUrl());
+		var box = el('div', BADGE + ' ' + (r.ok ? BADGE + '--ok' : BADGE + '--no'));
+		var body = el('div', BADGE + '__body');
+		var totalCnt = pf.counts && typeof pf.counts.all === 'number' ? pf.counts.all : null;
+		var allLabel = totalCnt !== null && t.seeCompatCount ? fmt(t.seeCompatCount, totalCnt) : (t.seeCompat || '');
+
 		if (r.ok) {
-			box = el('div', BADGE + ' ' + BADGE + '--ok');
 			// A kit is not "una cubierta": say what the shopper is looking at.
 			var okTpl = r.ps[0] === 'kit' && t.compatWithKit ? t.compatWithKit : t.compatWith;
-			box.appendChild(el('p', BADGE + '__title', '✓ ' + fmt(okTpl, pf.label)));
-			box.appendChild(el('p', BADGE + '__meta', detailText(r, fit)));
-			var totalCnt = pf.counts && typeof pf.counts.all === 'number' ? pf.counts.all : null;
-			var allLabel = totalCnt !== null && t.seeCompatCount ? fmt(t.seeCompatCount, totalCnt) : (t.seeCompat || '');
+			body.appendChild(el('p', BADGE + '__title', '✓ ' + fmt(okTpl, pf.label)));
+			body.appendChild(el('p', BADGE + '__meta', detailText(r, fit)));
 			var all = el('a', BADGE + '__link', allLabel);
-			all.href = allTarget('');
+			all.href = catalogUrl;
 			actions.appendChild(all);
-			// Pair suggestion: only link when the other axle actually has products; otherwise offer demand notify.
-			if (fit.p === 'front' || fit.p === 'rear') {
-				var other = fit.p === 'front' ? 'rear' : 'front';
-				var otherCnt = pf.counts && typeof pf.counts[other] === 'number' ? pf.counts[other] : null;
-				if (otherCnt === null || otherCnt > 0) {
-					var pairTpl = otherCnt !== null
-						? (other === 'rear' ? (t.pairRearCount || t.pairRear) : (t.pairFrontCount || t.pairFront))
-						: (other === 'rear' ? t.pairRear : t.pairFront);
-					var pairText = otherCnt !== null ? fmt(pairTpl, otherCnt) : fmt(pairTpl, pf.label);
-					var pair = el('a', BADGE + '__link', pairText);
-					pair.href = allTarget(other);
-					actions.appendChild(pair);
-				} else {
-					var missingText = fmt(other === 'rear' ? t.noPairRear : t.noPairFront, pf.label);
-					var missingWrap = el('div', BADGE + '__missing');
-					missingWrap.appendChild(el('span', BADGE + '__missing-text', missingText + ' '));
-					missingWrap.appendChild(buildNotifyForm(pf.slug, other, pf.label));
-					box.appendChild(missingWrap);
-				}
-			}
 		} else {
-			// With an active bike the product page always tells the truth (no "select your bike" here).
-			box = el('div', BADGE + ' ' + BADGE + '--no');
-			box.appendChild(el('p', BADGE + '__title', fmt(t.incompatWith, pf.label)));
+			// With an active bike the product page always tells the truth.
+			body.appendChild(el('p', BADGE + '__title', fmt(t.incompatWith, pf.label)));
 			var oem = oemText(pf);
 			if (oem) {
-				box.appendChild(el('p', BADGE + '__meta', (t.yourBikeUses ? t.yourBikeUses + ' ' : '') + oem));
+				body.appendChild(el('p', BADGE + '__meta', (t.yourBikeUses ? t.yourBikeUses + ' ' : '') + oem));
 			}
-			var seeCnt = pf.counts && typeof pf.counts.all === 'number' ? pf.counts.all : null;
-			var seeLbl = seeCnt !== null && t.seeCompatCount ? fmt(t.seeCompatCount, seeCnt) : (t.seeCompat || '');
-			var see = el('a', 'button alt wp-element-button ' + BADGE + '__btn', seeLbl);
-			see.href = allTarget('');
+			var see = el('a', 'button alt wp-element-button ' + BADGE + '__btn', allLabel);
+			see.href = catalogUrl;
 			actions.appendChild(see);
 		}
-		if (picker) {
-			actions.appendChild(pickerButton(picker, t.changeBike || '', BADGE + '__link'));
+
+		var gTrigger = garageTriggerLink(t.viewGarage || '', BADGE + '__link', picker);
+		if (gTrigger) {
+			actions.appendChild(gTrigger);
 		}
-		if (c.loggedIn && c.garageUrl) {
-			var gLink = el('a', BADGE + '__link', t.viewGarage || '');
-			gLink.href = c.garageUrl;
-			actions.appendChild(gLink);
-		}
-		box.appendChild(actions);
+		body.appendChild(actions);
+		box.append(bikeIcon(), body);
 		status.appendChild(box);
 	}
 

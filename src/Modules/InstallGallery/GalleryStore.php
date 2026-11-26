@@ -25,6 +25,21 @@ final class GalleryStore {
 	public const BACKFILL_PENDING = 'motored_gallery_backfill_pending';
 
 	/**
+	 * One-time migration moving stores on the legacy `before_tabs` default to `below_gallery`.
+	 */
+	public static function migrate_placement_below_gallery(): bool {
+		$raw = get_option( 'motored_' . Config::OPTION_KEY, null );
+		if ( ! is_array( $raw ) ) {
+			return true;
+		}
+		if ( isset( $raw['placement'] ) && Config::PLACE_BEFORE_TABS === $raw['placement'] ) {
+			$raw['placement'] = Config::PLACE_BELOW_GALLERY;
+			update_option( 'motored_' . Config::OPTION_KEY, $raw, false );
+		}
+		return true;
+	}
+
+	/**
 	 * Starts a pending gallery backfill.
 	 */
 	public static function schedule_backfill(): bool {

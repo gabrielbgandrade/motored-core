@@ -265,10 +265,6 @@
 	background: rgba(0, 0, 0, 0.06);
 }
 
-.motored-search__option.is-active {
-	box-shadow: inset 3px 0 0 var(--motored-accent);
-}
-
 .motored-search__suggest-meta {
 	font-size: 0.85em;
 	opacity: 0.72;
@@ -313,7 +309,9 @@
 .motored-filters__kits {
 	margin: 0 0 0.75rem;
 	padding: 0.5rem 0.75rem;
-	border-left: 3px solid var(--motored-accent);
+	border: 1px solid var(--motored-border);
+	border-radius: var(--motored-radius);
+	background: rgba(0, 0, 0, 0.02);
 	font-size: 0.9em;
 }
 

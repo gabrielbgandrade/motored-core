@@ -113,6 +113,9 @@ final class TireAttributePlan {
 		if ( '' === $speed ) {
 			$speed = $suffix['speed'];
 		}
+		if ( '' === $speed && 1 === preg_match( '/\d{2,3}\s*\/\s*\d{2,3}\s*(ZR|VR)\s*\d/i', $front_raw, $sm ) ) {
+			$speed = strtoupper( $sm[1] );
+		}
 		if ( '' !== $speed ) {
 			if ( isset( TireSpecs::SPEED_RANKS[ $speed ] ) ) {
 				$terms[ TireSpecs::ATTR_SPEED_RATING ] = self::speed_term( $speed );

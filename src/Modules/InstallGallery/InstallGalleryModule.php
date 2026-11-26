@@ -56,9 +56,13 @@ final class InstallGalleryModule implements Module {
 		}
 		if ( $context->is_frontend() ) {
 			$display = new GalleryDisplay();
+			ProductPageHooks::register_after_gallery( array( $display, 'render_below_gallery' ) );
+			ProductPageHooks::register_after_add_to_cart( array( $display, 'render_after_add_to_cart' ) );
 			ProductPageHooks::register_before_tabs( array( $display, 'render_before_tabs' ) );
 			ProductPageHooks::register_after_summary( array( $display, 'render_after_tabs' ) );
 			ProductPageHooks::register_product_tab( array( $display, 'filter_product_tab' ) );
+			ProductPageHooks::register_product_gallery_block( array( $display, 'filter_gallery_block' ) );
+			ProductPageHooks::register_add_to_cart_block( array( $display, 'filter_add_to_cart_block' ) );
 			ProductPageHooks::register_product_details_block( array( $display, 'filter_details_block' ) );
 			add_shortcode( 'motored_install_gallery', array( $display, 'shortcode' ) );
 		}

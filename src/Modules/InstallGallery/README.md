@@ -11,8 +11,12 @@ A second gallery on the product page, separate from the native WooCommerce one: 
 ## Hooks and filters used
 | Hook/filter | Context | Why | Verification status -> VERIFY.md |
 |---|---|---|---|
-| `woocommerce_after_single_product_summary` (prio 8 & 11 via `ProductPageHooks`) | frontend | Prints gallery above (`before_tabs`, default) or below (`after_tabs`) product tabs | unverified -> VERIFY #112 |
+| `woocommerce_before_single_product_summary` (prio 30 via `ProductPageHooks`) | frontend | Prints gallery directly below the native product gallery (`below_gallery`, default) | unverified -> VERIFY #112 |
+| `woocommerce_single_product_summary` (prio 35 via `ProductPageHooks`) | frontend | Prints gallery directly below the Add to Cart button (`after_add_to_cart`) | unverified -> VERIFY #112 |
+| `woocommerce_after_single_product_summary` (prio 8 & 11 via `ProductPageHooks`) | frontend | Prints gallery above (`before_tabs`) or below (`after_tabs`) product tabs | unverified -> VERIFY #112 |
 | `woocommerce_product_tabs` (prio 35 via `ProductPageHooks`) | frontend | Registers optional `motored_install_gallery` product tab (`placement = tab`) | unverified -> VERIFY #117 |
+| `render_block_woocommerce/product-image-gallery` (via `ProductPageHooks`) | frontend | Block themes: appends the gallery below the Product Image Gallery block when placement is `below_gallery` | unverified -> VERIFY #122 |
+| `render_block_woocommerce/add-to-cart-form` (via `ProductPageHooks`) | frontend | Block themes: appends the gallery below the Add to Cart block when placement is `after_add_to_cart` | unverified -> VERIFY #122 |
 | `render_block_woocommerce/product-details` (via `ProductPageHooks`) | frontend | Block themes: prints the gallery before/after the Product Details block for `before_tabs` / `after_tabs` | unverified -> VERIFY #122 |
 | `transition_comment_status` (prio 10, 3 args) | all except CLI | Rebuilds `_motored_review_gallery` on approve/unapprove/spam/trash | partial -> VERIFY #113 |
 | `deleted_comment` (prio 10, 2 args) | all except CLI | Rebuilds `_motored_review_gallery` after review deletion | partial -> VERIFY #113 |

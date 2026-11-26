@@ -516,7 +516,6 @@ final class Storefront {
 		$out .= '<div class="motored-compat-bar__positions">' . $links . '</div>';
 		// Other Mi Garage bikes (client-side, cache-safe): compat-garage.js fills it.
 		$out .= '<div class="motored-compat-bar__switch" data-role="bar-switch" hidden></div>';
-		$out .= '<p class="motored-compat-bar__disclaimer"><small>' . esc_html( Config::disclaimer() ) . '</small></p>';
 		$out .= '</div>';
 		return $out;
 	}
@@ -698,6 +697,8 @@ final class Storefront {
 		$fit      = self::fit_for_product( $product->get_id() );
 		$is_kit   = is_array( $fit ) && TireSpecs::POS_KIT === (string) $fit['position'];
 		$kit_spec = $is_kit ? self::kit_spec_for( $product, $fit ) : null;
+		$attr_lbl = AttributeInstaller::attribute_labels();
+		$fixed_tx = AttributeInstaller::fixed_term_sets();
 		$managed  = array();
 		$consumed = array();
 		foreach ( TireAttributePlan::MANAGED as $slug ) {
@@ -750,17 +751,30 @@ final class Storefront {
 				'value' => '<p>' . esc_html( self::axle_summary( $kit_spec[ TireSpecs::POS_REAR ] ) ) . '</p>',
 			);
 		} elseif ( $is_kit ) {
-			foreach ( array( 'attribute_pa_' . TireSpecs::ATTR_FRONT_SIZE, 'attribute_pa_' . TireSpecs::ATTR_REAR_SIZE ) as $sz_key ) {
-				if ( isset( $rows[ $sz_key ] ) ) {
-					$out[ $sz_key ] = $rows[ $sz_key ];
+			foreach ( array( TireSpecs::ATTR_FRONT_SIZE, TireSpecs::ATTR_REAR_SIZE ) as $sz_slug ) {
+				$sz_key = 'attribute_pa_' . $sz_slug;
+				if ( isset( $rows[ $sz_key ] ) && is_array( $rows[ $sz_key ] ) ) {
+					$sz_row          = $rows[ $sz_key ];
+					$sz_row['label'] = $attr_lbl[ $sz_slug ] ?? ( $sz_row['label'] ?? '' );
+					$out[ $sz_key ]  = $sz_row;
 				}
 			}
 		}
 
-		// 6. Position.
+		// 6. Position (always localize label and fixed term value even if DB terms were seeded in English).
 		$pos_key = 'attribute_pa_' . TireSpecs::ATTR_POSITION;
-		if ( isset( $rows[ $pos_key ] ) ) {
-			$out[ $pos_key ] = $rows[ $pos_key ];
+		if ( isset( $rows[ $pos_key ] ) && is_array( $rows[ $pos_key ] ) ) {
+			$pos_row          = $rows[ $pos_key ];
+			$pos_row['label'] = $attr_lbl[ TireSpecs::ATTR_POSITION ] ?? ( $pos_row['label'] ?? '' );
+			$raw_pos_val      = isset( $pos_row['value'] ) ? self::plain_text( (string) $pos_row['value'] ) : '';
+			$norm_pos         = is_array( $fit ) && ! empty( $fit['position'] )
+				? (string) $fit['position']
+				: TireSpecs::normalize_position( $raw_pos_val );
+			$loc_pos          = '' !== $norm_pos ? TireSpecs::position_label( $norm_pos ) : '';
+			if ( '' !== $loc_pos ) {
+				$pos_row['value'] = '<p>' . esc_html( $loc_pos ) . '</p>';
+			}
+			$out[ $pos_key ] = $pos_row;
 		}
 
 		// 7. Combined Load & Speed Index (single tires only — e.g. "69H (up to 325 kg · 210 km/h)").
@@ -793,13 +807,22 @@ final class Storefront {
 
 		// 8-10. Tube type, Construction, Riding style (always omit Width, Aspect ratio, Rim diameter).
 		foreach ( array(
-			'attribute_pa_' . TireSpecs::ATTR_TUBE,
-			'attribute_pa_' . TireSpecs::ATTR_CONSTRUCTION,
-			'attribute_pa_' . TireSpecs::ATTR_USAGE,
-		) as $spec_key ) {
-			$per_axle = null !== $kit_spec && 'attribute_pa_' . TireSpecs::ATTR_USAGE !== $spec_key;
-			if ( isset( $rows[ $spec_key ] ) && ! $per_axle ) {
-				$out[ $spec_key ] = $rows[ $spec_key ];
+			TireSpecs::ATTR_TUBE,
+			TireSpecs::ATTR_CONSTRUCTION,
+			TireSpecs::ATTR_USAGE,
+		) as $spec_slug ) {
+			$spec_key = 'attribute_pa_' . $spec_slug;
+			$per_axle = null !== $kit_spec && TireSpecs::ATTR_USAGE !== $spec_slug;
+			if ( isset( $rows[ $spec_key ] ) && is_array( $rows[ $spec_key ] ) && ! $per_axle ) {
+				$spec_row          = $rows[ $spec_key ];
+				$spec_row['label'] = $attr_lbl[ $spec_slug ] ?? ( $spec_row['label'] ?? '' );
+				if ( TireSpecs::ATTR_CONSTRUCTION === $spec_slug && isset( $spec_row['value'] ) ) {
+					$norm_c = TireSpecs::normalize_construction( self::plain_text( (string) $spec_row['value'] ) );
+					if ( '' !== $norm_c && isset( $fixed_tx[ TireSpecs::ATTR_CONSTRUCTION ][ $norm_c ] ) ) {
+						$spec_row['value'] = '<p>' . esc_html( (string) $fixed_tx[ TireSpecs::ATTR_CONSTRUCTION ][ $norm_c ] ) . '</p>';
+					}
+				}
+				$out[ $spec_key ] = $spec_row;
 			}
 		}
 

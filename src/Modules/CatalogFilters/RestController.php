@@ -91,7 +91,7 @@ final class RestController {
 	 */
 	public function get_trending(): \WP_REST_Response|\WP_Error {
 		$ver       = SnapshotInvalidator::version();
-		$cache_key = 'motored_search_trending_' . md5( $ver . '|' . ( Config::only_in_stock() ? '1' : '0' ) );
+		$cache_key = 'motored_search_trending2_' . md5( $ver . '|' . ( Config::only_in_stock() ? '1' : '0' ) );
 		$cached    = get_transient( $cache_key );
 		if ( is_array( $cached ) ) {
 			return self::public_response( $cached, 300, 600 );
@@ -115,13 +115,18 @@ final class RestController {
 				if ( '' === $w_lbl || '' === $r_lbl ) {
 					continue;
 				}
-				$label = '' !== $p_lbl ? $w_lbl . '/' . $p_lbl . '-' . $r_lbl : $w_lbl . '-' . $r_lbl;
-				$query = array(
+				$fallback_lbl = '' !== $p_lbl ? $w_lbl . '/' . $p_lbl . '-' . $r_lbl : $w_lbl . '-' . $r_lbl;
+				$top_variant  = ! empty( $c['d'][0] ) && is_array( $c['d'][0] ) ? $c['d'][0] : null;
+				$label        = null !== $top_variant && ! empty( $top_variant['l'] ) ? (string) $top_variant['l'] : $fallback_lbl;
+				$query        = array(
 					'filter_' . TireSpecs::ATTR_WIDTH => (string) $c['w'],
 					'filter_' . TireSpecs::ATTR_RIM   => (string) $c['r'],
 				);
 				if ( ! empty( $c['p'] ) ) {
 					$query[ 'filter_' . TireSpecs::ATTR_PROFILE ] = (string) $c['p'];
+				}
+				if ( null !== $top_variant && ! empty( $top_variant['k'] ) && count( $c['d'] ?? array() ) > 1 ) {
+					$query[ 'filter_' . TireSpecs::ATTR_CONSTRUCTION ] = (string) $top_variant['k'];
 				}
 				$sizes[] = array(
 					'label' => $label,
@@ -224,7 +229,7 @@ final class RestController {
 		$q     = self::normalize_query( $raw_q );
 		try {
 			$snap     = FacetEngine::snapshot();
-			$items    = self::build_suggestions( $raw_q, Config::shop_url(), Config::only_in_stock(), $snap );
+			$items    = self::build_suggestions( $raw_q, Config::shop_url(), Config::only_in_stock() );
 			$products = strlen( $q ) >= 2 ? self::search_products( $raw_q, $snap, Config::only_in_stock(), 4 ) : array();
 		} catch ( \RuntimeException $exception ) {
 			return self::snapshot_error();
@@ -283,8 +288,23 @@ final class RestController {
 
 		// 1. Exact or parsed tire sizes (supports single "120/70ZR17", "120/70 17" AND kits "160/60 17 + 120/70 17").
 		$parsed_list = SizeParser::parse_all( $raw_q );
-		if ( count( $parsed_list ) >= 2 ) {
-			$kit_labels = array_map( static fn( array $p ): string => $p['canonical'], array_slice( $parsed_list, 0, 2 ) );
+		$pq          = ProductSearch::analyze_query( $raw_q );
+		$real_kits   = null === $snapshot ? ProductSearch::kit_suggestions( $raw_q, $shop_url, $only_in_stock ) : array();
+
+		// When the shopper clearly searches for a kit/pair (2 sizes, "+ 120", "kit", "combo"), put real matching kits first.
+		if ( $pq['wants_kit'] ) {
+			foreach ( $real_kits as $kit_item ) {
+				$k = 'kit:' . $kit_item['label'];
+				if ( ! isset( $seen[ $k ] ) ) {
+					$seen[ $k ] = true;
+					$results[]  = $kit_item;
+				}
+			}
+		}
+
+		// Fallback synthetic kit suggestion when 2+ sizes were typed and no real kit matched in stock yet.
+		if ( count( $parsed_list ) >= 2 && empty( $results ) ) {
+			$kit_labels = array_map( static fn( array $p ): string => (string) ( $p['designation'] ?? $p['canonical'] ), array_slice( $parsed_list, 0, 2 ) );
 			$kit_label  = sprintf(
 				/* translators: 1: first tire size, 2: second tire size. */
 				__( 'Kit %1$s + %2$s', 'motored-core' ),
@@ -302,63 +322,86 @@ final class RestController {
 			$results[]                   = array(
 				'type'  => 'kit',
 				'label' => $kit_label,
-				'meta'  => __( 'Kit / Pair', 'motored-core' ),
+				'meta'  => __( 'Complete kit', 'motored-core' ),
 				'url'   => $kit_url,
 			);
 		}
 
-		$is_single_size = 1 === count( $parsed_list );
+		$is_single_size = 1 === count( $parsed_list ) && ! $pq['wants_kit'];
 		foreach ( $parsed_list as $parsed ) {
-			$w_slug = FilterState::sanitize_term_slug( $parsed['width'] );
-			$p_slug = null !== $parsed['aspect'] ? (string) $parsed['aspect'] : null;
-			$r_slug = (string) $parsed['rim'];
+			$w_slug        = FilterState::sanitize_term_slug( $parsed['width'] );
+			$p_slug        = null !== $parsed['aspect'] ? (string) $parsed['aspect'] : null;
+			$r_slug        = (string) $parsed['rim'];
+			$typed_desig   = (string) ( $parsed['designation'] ?? $parsed['canonical'] );
+			$typed_const   = (string) ( $parsed['construction'] ?? '' );
 			$matched_combo = false;
 			foreach ( $combos as $c ) {
 				if ( $c['w'] === $w_slug && $c['r'] === $r_slug && ( null === $p_slug || $c['p'] === $p_slug ) ) {
 					$matched_combo = true;
-					$args          = array(
-						'filter_' . TireSpecs::ATTR_WIDTH => $c['w'],
-						'query_type_' . TireSpecs::ATTR_WIDTH => 'or',
-						'filter_' . TireSpecs::ATTR_RIM   => $c['r'],
-						'query_type_' . TireSpecs::ATTR_RIM => 'or',
-					);
-					if ( null !== $c['p'] && '' !== $c['p'] ) {
-						$args[ 'filter_' . TireSpecs::ATTR_PROFILE ]     = $c['p'];
-						$args[ 'query_type_' . TireSpecs::ATTR_PROFILE ] = 'or';
-					}
-					$label = '' !== $c['pl'] ? $c['wl'] . '/' . $c['pl'] . '-' . $c['rl'] : $c['wl'] . '-' . $c['rl'];
-					$url   = add_query_arg( $args, $shop_url );
-					$key   = 'size:' . $label;
-					if ( ! isset( $seen[ $key ] ) ) {
-						$seen[ $key ] = true;
-						$results[]    = array(
-							'type'  => 'size',
-							'exact' => $is_single_size,
-							'label' => $label,
-							/* translators: %d: number of available tires for this size. */
-							'meta'  => sprintf( __( 'Size (%d)', 'motored-core' ), $c['c'] ),
-							'url'   => $url,
+					$variants      = self::combo_variants_for_suggest( $c, $typed_desig, $typed_const );
+					$multi_const   = count( $variants ) > 1;
+					foreach ( $variants as $idx => $v ) {
+						$args = array(
+							'filter_' . TireSpecs::ATTR_WIDTH      => $c['w'],
+							'query_type_' . TireSpecs::ATTR_WIDTH  => 'or',
+							'filter_' . TireSpecs::ATTR_RIM        => $c['r'],
+							'query_type_' . TireSpecs::ATTR_RIM    => 'or',
 						);
+						if ( null !== $c['p'] && '' !== $c['p'] ) {
+							$args[ 'filter_' . TireSpecs::ATTR_PROFILE ]     = $c['p'];
+							$args[ 'query_type_' . TireSpecs::ATTR_PROFILE ] = 'or';
+						}
+						if ( '' !== $v['k'] && ( $multi_const || '' !== $typed_const ) ) {
+							$args[ 'filter_' . TireSpecs::ATTR_CONSTRUCTION ]     = $v['k'];
+							$args[ 'query_type_' . TireSpecs::ATTR_CONSTRUCTION ] = 'or';
+						}
+						$label = $v['l'];
+						$url   = add_query_arg( $args, $shop_url );
+						$key   = 'size:' . $label;
+						if ( ! isset( $seen[ $key ] ) ) {
+							$seen[ $key ] = true;
+							$results[]    = array(
+								'type'  => 'size',
+								'exact' => $is_single_size && 0 === $idx && ( ! $multi_const || '' !== $typed_const || $label === $typed_desig ),
+								'label' => $label,
+								'meta'  => self::size_suggest_meta( $v['k'], $v['c'] ),
+								'url'   => $url,
+							);
+						}
 					}
 				}
 			}
 			// Fallback: if parsed size wasn't in attribute combos (e.g. kit-only size), still offer a direct search suggestion.
 			if ( ! $matched_combo && $is_single_size ) {
-				$key = 'size:' . $parsed['canonical'];
+				$key = 'size:' . $typed_desig;
 				if ( ! isset( $seen[ $key ] ) ) {
 					$seen[ $key ] = true;
 					$results[]    = array(
 						'type'  => 'size',
-						'label' => $parsed['canonical'],
-						'meta'  => __( 'Search size', 'motored-core' ),
+						'label' => $typed_desig,
+						'meta'  => __( 'Search', 'motored-core' ),
 						'url'   => add_query_arg(
 							array(
-								's'         => $parsed['canonical'],
+								's'         => $typed_desig,
 								'post_type' => 'product',
 							),
 							home_url( '/' )
 						),
 					);
+				}
+			}
+		}
+
+		// When searching a single size or partial size, also suggest any in-stock Kits containing that size.
+		if ( ! $pq['wants_kit'] && ! empty( $real_kits ) ) {
+			foreach ( $real_kits as $kit_item ) {
+				if ( count( $results ) >= self::MAX_SUGGESTIONS ) {
+					break;
+				}
+				$k = 'kit:' . $kit_item['label'];
+				if ( ! isset( $seen[ $k ] ) ) {
+					$seen[ $k ] = true;
+					$results[]  = $kit_item;
 				}
 			}
 		}
@@ -393,35 +436,52 @@ final class RestController {
 
 		// 3. Partial size prefix match in cached combos (e.g. "120/70", "120/70zr", "120 70", "90/90", "4.10").
 		if ( count( $results ) < self::MAX_SUGGESTIONS && 1 === preg_match( '/^\d/', $q ) ) {
-			$q_digits = (string) preg_replace( '/[^0-9.,]+/', '-', str_replace( ',', '.', $q ) );
-			$q_digits = trim( $q_digits, '-' );
+			$q_digits    = (string) preg_replace( '/[^0-9.,]+/', '-', str_replace( ',', '.', $q ) );
+			$q_digits    = trim( $q_digits, '-' );
+			$partial_con = '';
+			if ( 1 === preg_match( '/\d\s*(zr|vr|r|vb|b)\b/i', $q, $pm ) ) {
+				$marker      = strtoupper( $pm[1] );
+				$partial_con = in_array( $marker, array( 'B', 'VB' ), true ) ? TireSpecs::CONST_BELTED : TireSpecs::CONST_RADIAL;
+			}
 			foreach ( $combos as $c ) {
 				if ( count( $results ) >= self::MAX_SUGGESTIONS ) {
 					break;
 				}
-				$label = '' !== $c['pl'] ? $c['wl'] . '/' . $c['pl'] . '-' . $c['rl'] : $c['wl'] . '-' . $c['rl'];
-				$key   = 'size:' . $label;
-				if ( isset( $seen[ $key ] ) ) {
+				$base_label   = '' !== $c['pl'] ? $c['wl'] . '/' . $c['pl'] . '-' . $c['rl'] : $c['wl'] . '-' . $c['rl'];
+				$label_digits = (string) preg_replace( '/[^0-9.]+/', '-', strtolower( $base_label ) );
+				if ( '' === $q_digits || ! str_contains( $label_digits, $q_digits ) ) {
 					continue;
 				}
-				$label_digits = (string) preg_replace( '/[^0-9.]+/', '-', strtolower( $label ) );
-				if ( '' !== $q_digits && str_contains( $label_digits, $q_digits ) ) {
+				$variants    = self::combo_variants_for_suggest( $c, '', $partial_con );
+				$multi_const = count( $variants ) > 1;
+				foreach ( $variants as $v ) {
+					if ( count( $results ) >= self::MAX_SUGGESTIONS ) {
+						break;
+					}
+					$label = $v['l'];
+					$key   = 'size:' . $label;
+					if ( isset( $seen[ $key ] ) ) {
+						continue;
+					}
 					$seen[ $key ] = true;
 					$args         = array(
-						'filter_' . TireSpecs::ATTR_WIDTH => $c['w'],
+						'filter_' . TireSpecs::ATTR_WIDTH     => $c['w'],
 						'query_type_' . TireSpecs::ATTR_WIDTH => 'or',
-						'filter_' . TireSpecs::ATTR_RIM   => $c['r'],
-						'query_type_' . TireSpecs::ATTR_RIM => 'or',
+						'filter_' . TireSpecs::ATTR_RIM       => $c['r'],
+						'query_type_' . TireSpecs::ATTR_RIM   => 'or',
 					);
 					if ( null !== $c['p'] && '' !== $c['p'] ) {
 						$args[ 'filter_' . TireSpecs::ATTR_PROFILE ]     = $c['p'];
 						$args[ 'query_type_' . TireSpecs::ATTR_PROFILE ] = 'or';
 					}
+					if ( '' !== $v['k'] && ( $multi_const || '' !== $partial_con ) ) {
+						$args[ 'filter_' . TireSpecs::ATTR_CONSTRUCTION ]     = $v['k'];
+						$args[ 'query_type_' . TireSpecs::ATTR_CONSTRUCTION ] = 'or';
+					}
 					$results[] = array(
 						'type'  => 'size',
 						'label' => $label,
-						/* translators: %d: number of available tires for this size. */
-						'meta'  => sprintf( __( 'Size (%d)', 'motored-core' ), $c['c'] ),
+						'meta'  => self::size_suggest_meta( $v['k'], $v['c'] ),
 						'url'   => add_query_arg( $args, $shop_url ),
 					);
 				}
@@ -489,6 +549,62 @@ final class RestController {
 	}
 
 	/**
+	 * Resolves the size designation variants of a combo for Smart Search suggestions (preserving R / ZR / B / -).
+	 *
+	 * @param array<string,mixed> $combo             Combo from FacetEngine::size_combinations().
+	 * @param string              $typed_designation Printed designation typed by the shopper (e.g. "120/70ZR17").
+	 * @param string              $typed_const       Construction implied by the shopper query ('radial'|'cinturado'|'diagonal'|'').
+	 * @return list<array{l:string,k:string,c:int}>
+	 */
+	private static function combo_variants_for_suggest( array $combo, string $typed_designation = '', string $typed_const = '' ): array {
+		$base_label = '' !== (string) ( $combo['pl'] ?? '' )
+			? (string) $combo['wl'] . '/' . (string) $combo['pl'] . '-' . (string) $combo['rl']
+			: (string) $combo['wl'] . '-' . (string) $combo['rl'];
+		$variants   = ! empty( $combo['d'] ) && is_array( $combo['d'] )
+			? $combo['d']
+			: array(
+				array(
+					'l' => $base_label,
+					'k' => '',
+					'c' => (int) ( $combo['c'] ?? 0 ),
+				),
+			);
+
+		if ( '' !== $typed_const ) {
+			// If the catalog products lack a construction attribute (only untagged "-" variant exists), adopt the shopper's typed designation label.
+			if ( 1 === count( $variants ) && '' === $variants[0]['k'] && '' !== $typed_designation ) {
+				$variants[0]['l'] = $typed_designation;
+			} else {
+				usort(
+					$variants,
+					static function ( array $a, array $b ) use ( $typed_designation, $typed_const ): int {
+						$a_exact = ( '' !== $typed_designation && $a['l'] === $typed_designation ) ? 2 : ( $a['k'] === $typed_const ? 1 : 0 );
+						$b_exact = ( '' !== $typed_designation && $b['l'] === $typed_designation ) ? 2 : ( $b['k'] === $typed_const ? 1 : 0 );
+						return ( $b_exact <=> $a_exact ) ?: ( $b['c'] <=> $a['c'] );
+					}
+				);
+			}
+		}
+
+		return $variants;
+	}
+
+	/**
+	 * Formats the right-hand meta label for a size suggestion, including the construction when known.
+	 *
+	 * @param string $const Normalized construction ('radial'|'diagonal'|'cinturado'|'').
+	 * @param int    $count Product count.
+	 */
+	private static function size_suggest_meta( string $const, int $count ): string {
+		$fixed = \Motored\Core\Modules\Compatibility\AttributeInstaller::fixed_term_sets();
+		if ( '' !== $const && isset( $fixed[ TireSpecs::ATTR_CONSTRUCTION ][ $const ] ) ) {
+			return (string) $fixed[ TireSpecs::ATTR_CONSTRUCTION ][ $const ] . ' (' . $count . ')';
+		}
+		/* translators: %d: number of available tires for this size. */
+		return sprintf( __( 'Size (%d)', 'motored-core' ), $count );
+	}
+
+	/**
 	 * Fast live product search for the smart-search mega-dropdown (supports single sizes, kits/pairs, brands and titles).
 	 *
 	 * @param string                                                                              $raw_q         Raw user query.
@@ -504,104 +620,14 @@ final class RestController {
 		}
 
 		$ver       = SnapshotInvalidator::version();
-		$cache_key = 'motored_search_prods_' . md5( $ver . '|' . ( $only_in_stock ? '1' : '0' ) . '|' . $q . '|' . $limit );
+		$cache_key = 'motored_search_prods3_' . md5( $ver . '|' . ( $only_in_stock ? '1' : '0' ) . '|' . $q . '|' . $limit );
 		$cached    = get_transient( $cache_key );
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
 
-		$ids         = array();
-		$seen_ids    = array();
-		$parsed_list = SizeParser::parse_all( $raw_q );
-
-		$push_id = static function ( int $pid ) use ( &$ids, &$seen_ids, $limit ): bool {
-			if ( $pid > 0 && ! isset( $seen_ids[ $pid ] ) ) {
-				$seen_ids[ $pid ] = true;
-				$ids[]            = $pid;
-			}
-			return count( $ids ) >= $limit;
-		};
-
-		// 1. Single parsed size: match directly against the in-memory facet snapshot (0 DB LIKE queries).
-		if ( 1 === count( $parsed_list ) ) {
-			$parsed = $parsed_list[0];
-			$w_slug = FilterState::sanitize_term_slug( $parsed['width'] );
-			$p_slug = null !== $parsed['aspect'] ? (string) $parsed['aspect'] : null;
-			$r_slug = (string) $parsed['rim'];
-			foreach ( ( $snap['products'] ?? array() ) as $prod ) {
-				if ( $only_in_stock && empty( $prod['in_stock'] ) ) {
-					continue;
-				}
-				$attrs = $prod['attrs'] ?? array();
-				$ws    = $attrs[ TireSpecs::ATTR_WIDTH ] ?? array();
-				$rs    = $attrs[ TireSpecs::ATTR_RIM ] ?? array();
-				$ps    = $attrs[ TireSpecs::ATTR_PROFILE ] ?? array();
-				if ( in_array( $w_slug, $ws, true ) && in_array( $r_slug, $rs, true ) && ( null === $p_slug || in_array( $p_slug, $ps, true ) ) ) {
-					if ( $push_id( (int) ( $prod['id'] ?? 0 ) ) ) {
-						break;
-					}
-				}
-			}
-		}
-
-		// 2. Database title/SKU match for kits (2+ sizes), partial sizes (e.g. "120/70ZR17"), models and brands.
-		global $wpdb;
-		if ( count( $ids ) < $limit && isset( $wpdb ) && is_object( $wpdb ) ) {
-			$tokens = array();
-			if ( ! empty( $parsed_list ) ) {
-				foreach ( array_slice( $parsed_list, 0, 2 ) as $p ) {
-					$tokens[] = null !== $p['aspect'] ? $p['width'] . '/' . $p['aspect'] : $p['width'];
-					$tokens[] = (string) $p['rim'];
-				}
-			} else {
-				// Strip ZR/VR/VB/R/B/D from partial tire codes like "120/70zr" -> "120/70".
-				$clean = (string) preg_replace( '/(\d{2,3}\s*\/\s*\d{2,3})\s*(?:zr|vr|vb|r|b|d)\b/i', '$1', $q );
-				$clean = str_replace( array( '+', ',' ), ' ', $clean );
-				foreach ( preg_split( '/\s+/', trim( $clean ) ) ?: array() as $tok ) {
-					if ( strlen( $tok ) >= 2 ) {
-						$tokens[] = $tok;
-					}
-				}
-			}
-			$tokens = array_values( array_unique( array_slice( $tokens, 0, 5 ) ) );
-
-			if ( ! empty( $tokens ) ) {
-				$where  = array( "p.post_type = 'product'", "p.post_status = 'publish'", 'p.post_parent = 0' );
-				$params = array();
-				foreach ( $tokens as $tok ) {
-					$where[]  = 'p.post_title LIKE %s';
-					$params[] = '%' . $wpdb->esc_like( $tok ) . '%';
-				}
-				$stock_join = '';
-				if ( $only_in_stock ) {
-					$stock_join = "LEFT JOIN {$wpdb->postmeta} pms ON pms.post_id = p.ID AND pms.meta_key = '_stock_status'";
-					$where[]    = "COALESCE(pms.meta_value, 'instock') <> 'outofstock'";
-				}
-				$params[] = $limit;
-				$sql      = "SELECT p.ID
-					FROM {$wpdb->posts} p
-					{$stock_join}
-					WHERE " . implode( ' AND ', $where ) . "
-					AND NOT EXISTS (
-						SELECT 1
-						FROM {$wpdb->term_relationships} trv
-						INNER JOIN {$wpdb->term_taxonomy} ttv ON ttv.term_taxonomy_id = trv.term_taxonomy_id AND ttv.taxonomy = 'product_visibility'
-						INNER JOIN {$wpdb->terms} tv ON tv.term_id = ttv.term_id AND tv.slug = 'exclude-from-search'
-						WHERE trv.object_id = p.ID
-					)
-					ORDER BY p.menu_order ASC, p.ID DESC
-					LIMIT %d";
-				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared below with dynamic LIKE token count, cached via transient.
-				$found_ids = $wpdb->get_col( $wpdb->prepare( $sql, $params ) );
-				if ( is_array( $found_ids ) ) {
-					foreach ( $found_ids as $fid ) {
-						if ( $push_id( (int) $fid ) ) {
-							break;
-						}
-					}
-				}
-			}
-		}
+		// Unified broad search across titles, SKUs, descriptions, technical attributes, kits and compatible bikes.
+		$ids = ProductSearch::search( $raw_q, $only_in_stock, $limit );
 
 		$products = array();
 		foreach ( $ids as $pid ) {

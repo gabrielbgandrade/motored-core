@@ -36,8 +36,8 @@ final class AttributeInstaller {
 			}
 			$id = AttributeHooks::attribute_id_by_slug( $slug );
 			if ( $id > 0 ) {
-				if ( TireSpecs::ATTR_LINE === $slug ) {
-					AttributeHooks::update_attribute_label( $id, $labels[ $slug ], array( 'Línea', 'Model line' ) );
+				if ( isset( $labels[ $slug ] ) ) {
+					AttributeHooks::update_attribute_label( $id, $labels[ $slug ] );
 				}
 				++$exists;
 				continue;

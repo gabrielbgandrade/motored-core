@@ -145,6 +145,19 @@ final class CompatibilityMigration {
 	}
 
 	/**
+	 * Migration 2026112601: refreshes installed tire attribute labels and seeded fixed terms in the active locale
+	 * (repairs stores where attributes/terms were initially created with English labels).
+	 */
+	public static function up_2026112601(): bool {
+		if ( \Motored\Core\Integration\WooCommerce\AttributeHooks::attribute_id_by_slug( TireSpecs::ATTR_POSITION ) > 0 ) {
+			AttributeInstaller::install_attributes();
+			AttributeInstaller::seed_fixed_terms();
+			\Motored\Core\Modules\CatalogFilters\SnapshotInvalidator::invalidate_now();
+		}
+		return true;
+	}
+
+	/**
 	 * CREATE TABLE statements in dbDelta format.
 	 *
 	 * @param string $prefix  Table prefix including "motored_" (e.g. "wp_motored_").

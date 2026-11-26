@@ -98,7 +98,14 @@ final class AttributeHooks {
 		}
 		$existing = get_term_by( 'slug', $slug, $taxonomy );
 		if ( $existing instanceof \WP_Term ) {
-			return (int) $existing->term_id;
+			$term_id = (int) $existing->term_id;
+			if ( '' !== trim( $name ) && (string) $existing->name !== $name && function_exists( 'wp_update_term' ) ) {
+				wp_update_term( $term_id, $taxonomy, array( 'name' => $name ) );
+			}
+			if ( $term_id > 0 && null !== $order && function_exists( 'update_term_meta' ) ) {
+				update_term_meta( $term_id, 'order', $order );
+			}
+			return $term_id;
 		}
 		$inserted = wp_insert_term( $name, $taxonomy, array( 'slug' => $slug ) );
 		if ( is_wp_error( $inserted ) ) {
@@ -208,6 +215,9 @@ final class AttributeHooks {
 			return false;
 		}
 		$current_name = (string) $attr->name;
+		if ( $current_name === $new_name ) {
+			return false;
+		}
 		if ( ! empty( $legacy_names ) && ! in_array( $current_name, $legacy_names, true ) ) {
 			return false;
 		}

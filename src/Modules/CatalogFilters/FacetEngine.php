@@ -470,20 +470,52 @@ final class FacetEngine {
 			$r_slug = (string) $rims[0];
 			$p_slug = ! empty( $profiles ) ? (string) $profiles[0] : null;
 			$key    = $w_slug . '|' . ( null !== $p_slug ? $p_slug : '' ) . '|' . $r_slug;
+			$wl     = (string) ( $labels[ TireSpecs::ATTR_WIDTH ][ $w_slug ] ?? $w_slug );
+			$pl     = null !== $p_slug ? (string) ( $labels[ TireSpecs::ATTR_PROFILE ][ $p_slug ] ?? $p_slug ) : '';
+			$rl     = (string) ( $labels[ TireSpecs::ATTR_RIM ][ $r_slug ] ?? $r_slug );
 
 			if ( ! isset( $combos[ $key ] ) ) {
 				$combos[ $key ] = array(
 					'w'  => $w_slug,
-					'wl' => (string) ( $labels[ TireSpecs::ATTR_WIDTH ][ $w_slug ] ?? $w_slug ),
+					'wl' => $wl,
 					'p'  => $p_slug,
-					'pl' => null !== $p_slug ? (string) ( $labels[ TireSpecs::ATTR_PROFILE ][ $p_slug ] ?? $p_slug ) : '',
+					'pl' => $pl,
 					'r'  => $r_slug,
-					'rl' => (string) ( $labels[ TireSpecs::ATTR_RIM ][ $r_slug ] ?? $r_slug ),
+					'rl' => $rl,
 					'c'  => 0,
+					'd'  => array(),
 				);
 			}
 			++$combos[ $key ]['c'];
+
+			$consts     = $p['attrs'][ TireSpecs::ATTR_CONSTRUCTION ] ?? array();
+			$const      = ! empty( $consts ) ? TireSpecs::normalize_construction( (string) $consts[0] ) : '';
+			$speeds     = $p['attrs'][ TireSpecs::ATTR_SPEED_RATING ] ?? array();
+			$speed_slug = ! empty( $speeds ) ? (string) $speeds[0] : '';
+			$speed_code = '' !== $speed_slug ? strtoupper( (string) ( $labels[ TireSpecs::ATTR_SPEED_RATING ][ $speed_slug ] ?? $speed_slug ) ) : '';
+			if ( 'W-PAR' === $speed_code ) {
+				$speed_code = '(W)';
+			}
+			$d_label = self::format_combo_designation( $wl, $pl, $rl, $const, $speed_code );
+			if ( ! isset( $combos[ $key ]['d'][ $d_label ] ) ) {
+				$combos[ $key ]['d'][ $d_label ] = array(
+					'l' => $d_label,
+					'k' => $const,
+					'c' => 0,
+				);
+			}
+			++$combos[ $key ]['d'][ $d_label ]['c'];
 		}
+
+		foreach ( $combos as &$combo ) {
+			$variants = array_values( $combo['d'] );
+			usort(
+				$variants,
+				static fn( array $a, array $b ): int => ( $b['c'] <=> $a['c'] ) ?: strcmp( $a['l'], $b['l'] )
+			);
+			$combo['d'] = $variants;
+		}
+		unset( $combo );
 
 		$list = array_values( $combos );
 		usort(
@@ -592,6 +624,33 @@ final class FacetEngine {
 			return (float) $norm;
 		}
 		return 999999.0;
+	}
+
+	/**
+	 * Builds the printed size designation (with construction R / ZR / B / -) for a single product in size_combinations().
+	 *
+	 * @param string $wl         Width label.
+	 * @param string $pl         Aspect ratio label ('' for imperial/alpha).
+	 * @param string $rl         Rim diameter label.
+	 * @param string $const      Normalized construction ('radial'|'diagonal'|'cinturado'|'').
+	 * @param string $speed_code Uppercase speed rating code ('W', '(W)', 'Y', 'ZR', 'H'...).
+	 */
+	private static function format_combo_designation( string $wl, string $pl, string $rl, string $const, string $speed_code ): string {
+		if ( '' !== $pl ) {
+			$sep = '-';
+			if ( in_array( $speed_code, array( 'ZR', '(W)', 'W', 'Y' ), true ) && ( TireSpecs::CONST_RADIAL === $const || 'ZR' === $speed_code ) ) {
+				$sep = 'ZR';
+			} elseif ( 'VR' === $speed_code ) {
+				$sep = 'VR';
+			} elseif ( TireSpecs::CONST_RADIAL === $const ) {
+				$sep = 'R';
+			} elseif ( TireSpecs::CONST_BELTED === $const ) {
+				$sep = 'B';
+			}
+			return $wl . '/' . $pl . $sep . $rl;
+		}
+		$sep = TireSpecs::CONST_BELTED === $const ? 'B' : ( TireSpecs::CONST_RADIAL === $const ? 'R' : '-' );
+		return $wl . $sep . $rl;
 	}
 
 	/**

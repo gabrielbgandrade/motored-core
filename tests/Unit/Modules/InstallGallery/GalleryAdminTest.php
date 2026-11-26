@@ -136,4 +136,34 @@ final class GalleryAdminTest extends TestCase {
 		}
 		$this->assertContains( 'motored_install_gallery[placement]', $ids );
 	}
+
+	public function test_save_updates_changed_attachment_captions_inline(): void {
+		$this->stubs();
+		$_POST['motored_ig_nonce'] = 'ok';
+		$_POST['motored_igallery'] = array(
+			'present'  => '1',
+			'ids'      => '5,8',
+			'captions' => array(
+				'5' => 'Benelli TRK 502',
+				'8' => 'Yamaha MT-07',
+			),
+		);
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_post_type' )->alias( fn( $id ) => 50 === $id ? 'product' : 'attachment' );
+		Functions\when( 'wp_attachment_is_image' )->justReturn( true );
+		Functions\when( 'wp_get_attachment_caption' )->alias( fn( $id ) => 8 === $id ? 'Yamaha MT-07' : '' );
+		Functions\expect( 'wp_update_post' )->once()->with(
+			array(
+				'ID'           => 5,
+				'post_excerpt' => 'Benelli TRK 502',
+			)
+		);
+		Functions\expect( 'get_comments' )->once()->andReturn( array() );
+		Functions\when( 'delete_post_meta' )->justReturn( true );
+
+		$product = $this->product();
+		( new GalleryAdmin() )->save( $product );
+		$this->assertSame( array( array( 'update', '_motored_install_photos', array( 5, 8 ) ) ), $product->calls );
+	}
 }

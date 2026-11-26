@@ -112,6 +112,7 @@ final class Plugin {
 		delete_option( Modules\MiGarage\GarageEndpoint::REWRITE_OPT );
 		delete_option( Modules\BikePages\PostType::REWRITE_VER_OPT );
 		delete_option( Modules\BikePages\SizePages::REWRITE_VER_OPT );
+		delete_option( Modules\Seo\MerchantFeed::REWRITE_VER_OPT );
 	}
 
 	/**
@@ -154,6 +155,10 @@ final class Plugin {
 			'2026112406' => \Closure::fromCallable( array( Modules\BikePages\DemandMigration::class, 'up' ) ),
 			// Demand delivery lifecycle and authenticated contact ownership.
 			'2026112407' => \Closure::fromCallable( array( Modules\BikePages\DemandMigration::class, 'up' ) ),
+			// Refresh global tire attribute labels and fixed terms into the active site locale (es_AR).
+			'2026112601' => \Closure::fromCallable( array( Modules\Compatibility\CompatibilityMigration::class, 'up_2026112601' ) ),
+			// Move InstallGallery default placement directly below the native product gallery.
+			'2026112602' => \Closure::fromCallable( array( Modules\InstallGallery\GalleryStore::class, 'migrate_placement_below_gallery' ) ),
 		);
 	}
 

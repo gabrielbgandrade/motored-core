@@ -179,4 +179,104 @@ final class SeoModuleTest extends TestCase {
 		( new Redirects() )->maybe_redirect();
 		$this->assertTrue( true );
 	}
+
+	public function test_sitemap_disables_users_adds_lastmod_and_optimizes_robots_txt(): void {
+		$sf = new SitemapFilters();
+		$this->assertFalse( $sf->filter_provider( (object) array(), 'users' ) );
+		$this->assertIsObject( $sf->filter_provider( (object) array(), 'posts' ) );
+
+		$entry = $sf->filter_posts_entry(
+			array( 'loc' => 'https://example.test/producto/x/' ),
+			(object) array( 'post_modified_gmt' => '2026-11-26 12:00:00' )
+		);
+		$this->assertSame( '2026-11-26T12:00:00+00:00', $entry['lastmod'] );
+
+		$robots = $sf->filter_robots_txt( "User-agent: *\nDisallow: /wp-admin/\n", true );
+		$this->assertStringContainsString( 'Disallow: /*?add-to-cart=*', $robots );
+		$this->assertStringContainsString( 'Disallow: /*?filter_*', $robots );
+		$this->assertStringContainsString( 'Sitemap: https://example.test/wp-sitemap.xml', $robots );
+	}
+
+	public function test_site_context_builder_populates_home_organization_and_search_action(): void {
+		Functions\when( 'is_cart' )->justReturn( false );
+		Functions\when( 'is_checkout' )->justReturn( false );
+		Functions\when( 'is_account_page' )->justReturn( false );
+		Functions\when( 'is_page' )->justReturn( false );
+		Functions\when( 'is_404' )->justReturn( false );
+		Functions\when( 'is_front_page' )->justReturn( true );
+		Functions\when( 'get_queried_object_id' )->justReturn( 0 );
+		Functions\when( 'get_bloginfo' )->alias( static fn( $k ) => 'name' === $k ? 'Motored' : 'Cubiertas para moto' );
+		Functions\when( 'get_locale' )->justReturn( 'es_AR' );
+		Functions\when( 'trailingslashit' )->alias( static fn( $s ) => rtrim( (string) $s, '/' ) . '/' );
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+
+		( new \Motored\Core\Modules\Seo\SiteContextBuilder() )->populate();
+		$ctx = SeoContext::get();
+
+		$this->assertSame( 'Motored | Cubiertas para moto', $ctx['title'] );
+		$this->assertSame( 'https://example.test/', $ctx['canonical'] );
+		$this->assertCount( 2, $ctx['schema'] );
+		$this->assertSame( 'WebSite', $ctx['schema'][1]['@type'] );
+		$this->assertSame( 'SearchAction', $ctx['schema'][1]['potentialAction']['@type'] );
+	}
+
+	public function test_site_context_builder_detects_catalog_filter_modifiers(): void {
+		$_GET['filter_ancho'] = '160';
+		$this->assertTrue( \Motored\Core\Modules\Seo\SiteContextBuilder::has_catalog_modifiers() );
+		unset( $_GET['filter_ancho'] );
+		$this->assertFalse( \Motored\Core\Modules\Seo\SiteContextBuilder::has_catalog_modifiers() );
+	}
+
+	public function test_merchant_feed_builds_valid_google_shopping_xml(): void {
+		$xml = \Motored\Core\Modules\Seo\MerchantFeed::build_xml(
+			array(
+				array(
+					'id'                      => '101',
+					'title'                   => 'Cubierta 160/60R17 Pirelli MT60 RS & Kit',
+					'description'             => 'Cubierta radial trasera.',
+					'link'                    => 'https://example.test/producto/pirelli-mt60/',
+					'image_link'              => 'https://example.test/img/mt60.jpg',
+					'additional_images'       => array( 'https://example.test/img/mt60-2.jpg' ),
+					'availability'            => 'in_stock',
+					'price'                   => '600000.00 ARS',
+					'sale_price'              => '540000.00 ARS',
+					'brand'                   => 'Pirelli',
+					'mpn'                     => 'PIR-1606017',
+					'google_product_category' => '913',
+					'product_type'            => 'Cubiertas > Trail',
+					'shipping_country'        => 'AR',
+					'shipping_price'          => '0.00 ARS',
+				),
+			),
+			'Motored Neumáticos',
+			'https://example.test/',
+			'Cubiertas para moto'
+		);
+
+		$this->assertStringContainsString( 'xmlns:g="http://base.google.com/ns/1.0"', $xml );
+		$this->assertStringContainsString( '<g:id>101</g:id>', $xml );
+		$this->assertStringContainsString( '&amp; Kit</g:title>', $xml );
+		$this->assertStringContainsString( '<g:price>600000.00 ARS</g:price>', $xml );
+		$this->assertStringContainsString( '<g:sale_price>540000.00 ARS</g:sale_price>', $xml );
+		$this->assertStringContainsString( '<g:google_product_category>913</g:google_product_category>', $xml );
+		$this->assertStringContainsString( '<g:brand>Pirelli</g:brand>', $xml );
+		$this->assertStringContainsString( '<g:mpn>PIR-1606017</g:mpn>', $xml );
+		$this->assertStringContainsString( '<g:country>AR</g:country>', $xml );
+	}
+
+	public function test_return_policy_and_shipping_details_nodes(): void {
+		$policy = \Motored\Core\Modules\Seo\ProductSchemaEnhancer::return_policy_node();
+		$this->assertIsArray( $policy );
+		$this->assertSame( 10, $policy['merchantReturnDays'] );
+		$this->assertSame( 'AR', $policy['applicableCountry'] );
+
+		// Blank shipping_cost omits shippingDetails by default.
+		$this->assertNull( \Motored\Core\Modules\Seo\ProductSchemaEnhancer::shipping_details_node() );
+
+		Options::update( Config::OPTION_KEY, array( 'shipping_cost' => '0' ) );
+		$ship = \Motored\Core\Modules\Seo\ProductSchemaEnhancer::shipping_details_node();
+		$this->assertIsArray( $ship );
+		$this->assertSame( '0.00', $ship['shippingRate']['value'] );
+		$this->assertSame( 'AR', $ship['shippingDestination']['addressCountry'] );
+	}
 }

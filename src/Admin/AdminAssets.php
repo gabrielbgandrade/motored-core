@@ -27,7 +27,17 @@ final class AdminAssets {
 		if ( ! self::is_motored_screen() ) {
 			return;
 		}
-		wp_enqueue_style( self::HANDLE, MOTORED_CORE_URL . 'assets/admin/motored-admin.css', array(), MOTORED_CORE_VERSION );
+		$ver = MOTORED_CORE_VERSION;
+		if ( defined( 'MOTORED_CORE_DIR' ) ) {
+			$path = MOTORED_CORE_DIR . 'assets/admin/motored-admin.css';
+			if ( is_file( $path ) ) {
+				$mtime = filemtime( $path );
+				if ( false !== $mtime ) {
+					$ver = (string) $mtime;
+				}
+			}
+		}
+		wp_enqueue_style( self::HANDLE, MOTORED_CORE_URL . 'assets/admin/motored-admin.css', array(), $ver );
 	}
 
 	/**
@@ -54,8 +64,8 @@ final class AdminAssets {
 			$comment_id = isset( $_GET['c'] ) && is_scalar( $_GET['c'] ) ? absint( wp_unslash( $_GET['c'] ) ) : 0;
 			return $comment_id > 0 && array() !== PhotoMeta::ids( $comment_id );
 		}
-		if ( is_object( $screen ) && 'product' === $screen->id ) {
-			return true; // Product edit screen: "Motorcycle tire" meta box.
+		if ( is_object( $screen ) && in_array( (string) $screen->id, array( 'product', 'page', 'post', 'motored_bike', 'motored_tire_size' ), true ) ) {
+			return true; // Post edit screens with Motored meta boxes (Tire compatibility, InstallGallery, SEO).
 		}
 		if ( ! is_object( $screen ) || OrderHooks::order_screen_id() !== $screen->id ) {
 			return false;

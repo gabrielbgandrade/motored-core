@@ -30,7 +30,7 @@ final class InstallGalleryModuleTest extends TestCase {
 		$this->assertSame( 'install_gallery', ( new InstallGalleryModule() )->id() );
 		$this->assertSame( 'yes', Config::DEFAULTS['enabled'] );
 		$this->assertSame( '8', Config::DEFAULTS['visible'] );
-		$this->assertSame( Config::PLACE_BEFORE_TABS, Config::DEFAULTS['placement'] );
+		$this->assertSame( Config::PLACE_BELOW_GALLERY, Config::DEFAULTS['placement'] );
 	}
 
 	public function test_config_clamps_visible_and_validates_placement(): void {
@@ -40,7 +40,7 @@ final class InstallGalleryModuleTest extends TestCase {
 			'placement' => 'bogus',
 		);
 		$this->assertSame( 12, Config::visible() );
-		$this->assertSame( Config::PLACE_BEFORE_TABS, Config::placement() );
+		$this->assertSame( Config::PLACE_BELOW_GALLERY, Config::placement() );
 
 		\Motored\Core\Support\Options::reset();
 		$this->options['motored_install_gallery'] = array(
@@ -55,6 +55,8 @@ final class InstallGalleryModuleTest extends TestCase {
 		$this->context( false );
 		Functions\expect( 'add_shortcode' )->once()->with( 'motored_install_gallery', \Mockery::type( 'array' ) );
 		( new InstallGalleryModule() )->register();
+		$this->assertNotFalse( has_action( 'woocommerce_before_single_product_summary' ) );
+		$this->assertNotFalse( has_action( 'woocommerce_single_product_summary' ) );
 		$this->assertNotFalse( has_action( 'woocommerce_after_single_product_summary' ) );
 		$this->assertNotFalse( has_filter( 'woocommerce_product_tabs' ) );
 		$this->assertNotFalse( has_action( 'comment_post' ) );

@@ -66,6 +66,7 @@ final class ReviewPhotosModuleTest extends TestCase {
 		( new ReviewPhotosModule() )->register();
 		$this->assertNotNull( SectionRegistry::get( 'reviews' ) );
 		$this->assertNotFalse( has_action( 'add_meta_boxes_comment' ) );
+		$this->assertNotFalse( has_action( 'add_meta_boxes_product' ) );
 		$this->assertNotFalse( has_filter( 'wp_privacy_personal_data_erasers' ) );
 		$this->assertFalse( has_action( 'comment_post' ) );
 	}

@@ -10,20 +10,35 @@ namespace Motored\Core\Modules\Seo;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Attaches to native WordPress hooks only; executes zero queries on unrelated pages.
+ * Attaches to native WordPress hooks only; executes zero extra SQL queries on normal page views.
  */
 final class HeadRenderer {
 
-	public const META_TITLE  = '_motored_seo_title';
-	public const META_DESC   = '_motored_seo_desc';
-	public const META_ROBOTS = '_motored_seo_robots';
+	public const META_TITLE     = '_motored_seo_title';
+	public const META_DESC      = '_motored_seo_desc';
+	public const META_ROBOTS    = '_motored_seo_robots';
+	public const META_CANONICAL = '_motored_seo_canonical';
 
 	/**
-	 * Post types owned by Motored landing pages that support per-post SEO meta overrides.
+	 * Post types owned by Motored landing pages (never emit Product schema on these).
 	 *
 	 * @var list<string>
 	 */
-	private const OWNED_POST_TYPES = array( 'motored_bike', 'motored_tire_size' );
+	private const LANDING_POST_TYPES = array( 'motored_bike', 'motored_tire_size' );
+
+	/**
+	 * All public post types supporting per-post Motored SEO overrides.
+	 *
+	 * @var list<string>
+	 */
+	public const MANAGED_POST_TYPES = array( 'product', 'page', 'post', 'motored_bike', 'motored_tire_size' );
+
+	/**
+	 * Public taxonomies supporting per-term SEO overrides (category, brand, bike brand).
+	 *
+	 * @var list<string>
+	 */
+	public const MANAGED_TAXONOMIES = array( 'product_cat', 'product_brand', 'motored_bike_brand' );
 
 	/**
 	 * Version constants of full SEO plugins that own title/description/canonical/OG/WebPage/Breadcrumb output.
@@ -37,7 +52,7 @@ final class HeadRenderer {
 	 *
 	 * @var list<string>
 	 */
-	private const EXTERNAL_OWNED_SCHEMA = array( 'BreadcrumbList', 'WebPage' );
+	private const EXTERNAL_OWNED_SCHEMA = array( 'BreadcrumbList', 'WebPage', 'WebSite', 'Organization', 'AutoPartsStore', 'Article', 'CollectionPage' );
 
 	/**
 	 * Whether a full SEO plugin is active. Then this module steps back to what those plugins do not produce for our
@@ -71,7 +86,6 @@ final class HeadRenderer {
 	 * @param mixed $title Existing pre-filtered title.
 	 */
 	public function filter_document_title( $title ): string {
-		// Context first: pages we do not own return before the option is read (0 queries on unrelated pages).
 		$ctx = $this->resolved_context();
 		if ( empty( $ctx ) || ! Config::enabled() || self::external_seo_plugin() ) {
 			return is_string( $title ) ? $title : '';
@@ -84,7 +98,7 @@ final class HeadRenderer {
 	}
 
 	/**
-	 * Overrides canonical URL when SeoContext provides an explicit canonical target.
+	 * Overrides canonical URL when SeoContext or per-post canonical override provides a target.
 	 *
 	 * @param mixed $canonical Existing canonical URL.
 	 * @param mixed $post      Post object.
@@ -107,7 +121,8 @@ final class HeadRenderer {
 	}
 
 	/**
-	 * Enforces robots directives: noindex on search, paged > 1 and non-indexable landing contexts.
+	 * Enforces robots directives: noindex on search, transactional pages, paged > 1 (opt-in) and non-indexable pages,
+	 * plus modern rich snippet directives (`max-image-preview:large`, `max-snippet:-1`, `max-video-preview:-1`) on indexable views.
 	 *
 	 * @param mixed $robots Robots directives.
 	 * @return array<string,mixed>
@@ -118,36 +133,43 @@ final class HeadRenderer {
 		$ctx        = $this->resolved_context();
 		$ctx_robots = strtolower( trim( (string) ( $ctx['robots'] ?? '' ) ) );
 
-		// Search and pagination > 1 must never be indexed.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public pagination query arg.
 		$paged_get = isset( $_GET['paged'] ) ? absint( wp_unslash( $_GET['paged'] ) ) : 0;
 		$paged_qv  = function_exists( 'get_query_var' ) ? absint( get_query_var( 'paged', 0 ) ) : 0;
 		$is_paged  = ( function_exists( 'is_paged' ) && is_paged() ) || $paged_get > 1 || $paged_qv > 1;
 		$is_search = function_exists( 'is_search' ) && is_search();
-		// Nothing to decide on a plain page: return before the option is read.
 		if ( ( '' === $ctx_robots && ! $is_paged && ! $is_search ) || ! Config::enabled() ) {
 			return $robots;
 		}
-		$no_index = ( Config::noindex_search() && $is_search )
+		$no_index  = ( Config::noindex_search() && $is_search )
 			|| ( Config::noindex_paged() && $is_paged )
 			|| str_contains( $ctx_robots, 'noindex' );
+		$no_follow = str_contains( $ctx_robots, 'nofollow' );
 
 		if ( $no_index ) {
 			unset( $robots['index'] );
-			$robots['noindex']  = true;
-			$robots['nofollow'] = false;
-			$robots['follow']   = true;
+			$robots['noindex'] = true;
+			if ( $no_follow ) {
+				unset( $robots['follow'] );
+				$robots['nofollow'] = true;
+			} else {
+				$robots['nofollow'] = false;
+				$robots['follow']   = true;
+			}
 		} elseif ( str_contains( $ctx_robots, 'index' ) ) {
-			unset( $robots['noindex'] );
-			$robots['index']  = true;
-			$robots['follow'] = true;
+			unset( $robots['noindex'], $robots['nofollow'] );
+			$robots['index']             = true;
+			$robots['follow']            = true;
+			$robots['max-image-preview'] = 'large';
+			$robots['max-snippet']       = '-1';
+			$robots['max-video-preview'] = '-1';
 		}
 
 		return $robots;
 	}
 
 	/**
-	 * Outputs meta description, archive canonical (when singular rel_canonical does not run), OG/Twitter and JSON-LD.
+	 * Outputs meta description, archive/home canonical (when singular rel_canonical does not run), OG/Twitter and JSON-LD.
 	 */
 	public function render_head(): void {
 		$ctx = $this->resolved_context();
@@ -181,26 +203,50 @@ final class HeadRenderer {
 	}
 
 	/**
-	 * Merges SeoContext with any per-post SEO override meta on owned landing post types.
+	 * Merges SeoContext with any per-post SEO override meta on managed public post types.
 	 *
 	 * @return array<string,mixed>
 	 */
 	private function resolved_context(): array {
 		$ctx = SeoContext::get();
-		if ( function_exists( 'is_singular' ) && is_singular( self::OWNED_POST_TYPES ) && function_exists( 'get_queried_object_id' ) ) {
+		if ( function_exists( 'is_singular' ) && is_singular( self::MANAGED_POST_TYPES ) && function_exists( 'get_queried_object_id' ) ) {
 			$pid = (int) get_queried_object_id();
 			if ( $pid > 0 && function_exists( 'get_post_meta' ) ) {
 				$meta_title = trim( (string) get_post_meta( $pid, self::META_TITLE, true ) );
 				$meta_desc  = trim( (string) get_post_meta( $pid, self::META_DESC, true ) );
 				$meta_bot   = trim( (string) get_post_meta( $pid, self::META_ROBOTS, true ) );
+				$meta_canon = trim( (string) get_post_meta( $pid, self::META_CANONICAL, true ) );
 				if ( '' !== $meta_title ) {
 					$ctx['title'] = $meta_title;
 				}
 				if ( '' !== $meta_desc ) {
 					$ctx['description'] = $meta_desc;
 				}
+				if ( '' !== $meta_canon ) {
+					$ctx['canonical'] = esc_url_raw( $meta_canon );
+				}
 				// An explicit noindex always wins. Index cannot bypass availability/indexability policy.
-				if ( 'noindex,follow' === $meta_bot || ( 'index,follow' === $meta_bot && ! str_contains( (string) ( $ctx['robots'] ?? '' ), 'noindex' ) ) ) {
+				if ( 'noindex,follow' === $meta_bot || 'noindex,nofollow' === $meta_bot ) {
+					$ctx['robots'] = $meta_bot;
+				} elseif ( 'index,follow' === $meta_bot && ! str_contains( (string) ( $ctx['robots'] ?? '' ), 'noindex' ) ) {
+					$ctx['robots'] = $meta_bot;
+				}
+			}
+		} elseif ( function_exists( 'is_tax' ) && is_tax( self::MANAGED_TAXONOMIES ) && function_exists( 'get_queried_object' ) && function_exists( 'get_term_meta' ) ) {
+			$term = get_queried_object();
+			if ( $term instanceof \WP_Term ) {
+				$meta_title = trim( (string) get_term_meta( $term->term_id, self::META_TITLE, true ) );
+				$meta_desc  = trim( (string) get_term_meta( $term->term_id, self::META_DESC, true ) );
+				$meta_bot   = trim( (string) get_term_meta( $term->term_id, self::META_ROBOTS, true ) );
+				if ( '' !== $meta_title ) {
+					$ctx['title'] = $meta_title;
+				}
+				if ( '' !== $meta_desc ) {
+					$ctx['description'] = $meta_desc;
+				}
+				if ( 'noindex,follow' === $meta_bot || 'noindex,nofollow' === $meta_bot ) {
+					$ctx['robots'] = $meta_bot;
+				} elseif ( 'index,follow' === $meta_bot && ! str_contains( (string) ( $ctx['robots'] ?? '' ), 'noindex' ) ) {
 					$ctx['robots'] = $meta_bot;
 				}
 			}
@@ -231,7 +277,7 @@ final class HeadRenderer {
 	}
 
 	/**
-	 * Outputs Open Graph and Twitter summary tags.
+	 * Outputs Open Graph (including product/article metadata) and Twitter Card tags.
 	 *
 	 * @param array<string,mixed> $ctx       Resolved context.
 	 * @param string              $canonical Canonical URL.
@@ -242,12 +288,18 @@ final class HeadRenderer {
 		if ( '' === $title && '' === $desc ) {
 			return;
 		}
-		$og_type = trim( (string) ( $ctx['og_type'] ?? 'website' ) );
-		$image   = trim( (string) ( $ctx['og_image'] ?? '' ) );
+		$og_type   = trim( (string) ( $ctx['og_type'] ?? 'website' ) );
+		$image     = trim( (string) ( $ctx['og_image'] ?? '' ) );
+		$locale    = function_exists( 'get_locale' ) ? (string) get_locale() : 'es_AR';
+		$site_name = function_exists( 'get_bloginfo' ) ? trim( (string) get_bloginfo( 'name' ) ) : '';
 		if ( '' === $image ) {
 			$image = Config::default_og_image();
 		}
 
+		echo '<meta property="og:locale" content="' . esc_attr( $locale ) . '" />' . "\n";
+		if ( '' !== $site_name ) {
+			echo '<meta property="og:site_name" content="' . esc_attr( $site_name ) . '" />' . "\n";
+		}
 		echo '<meta property="og:type" content="' . esc_attr( $og_type ) . '" />' . "\n";
 		if ( '' !== $title ) {
 			echo '<meta property="og:title" content="' . esc_attr( $title ) . '" />' . "\n";
@@ -260,8 +312,49 @@ final class HeadRenderer {
 		}
 		if ( '' !== $image ) {
 			echo '<meta property="og:image" content="' . esc_url( $image ) . '" />' . "\n";
+			$img_id = isset( $ctx['og_image_id'] ) ? (int) $ctx['og_image_id'] : 0;
+			if ( $img_id > 0 && function_exists( 'wp_get_attachment_image_src' ) ) {
+				$src = wp_get_attachment_image_src( $img_id, 'large' );
+				if ( is_array( $src ) && ! empty( $src[1] ) && ! empty( $src[2] ) ) {
+					echo '<meta property="og:image:width" content="' . (int) $src[1] . '" />' . "\n";
+					echo '<meta property="og:image:height" content="' . (int) $src[2] . '" />' . "\n";
+				}
+			}
 		}
+
+		// Product social tags (WhatsApp / Facebook / Pinterest product previews).
+		if ( ! empty( $ctx['product_meta'] ) && is_array( $ctx['product_meta'] ) ) {
+			$pm = $ctx['product_meta'];
+			if ( '' !== (string) ( $pm['price'] ?? '' ) ) {
+				echo '<meta property="product:price:amount" content="' . esc_attr( (string) $pm['price'] ) . '" />' . "\n";
+				echo '<meta property="product:price:currency" content="' . esc_attr( (string) ( $pm['currency'] ?? 'ARS' ) ) . '" />' . "\n";
+			}
+			if ( '' !== (string) ( $pm['availability'] ?? '' ) ) {
+				echo '<meta property="product:availability" content="' . esc_attr( (string) $pm['availability'] ) . '" />' . "\n";
+			}
+		}
+
+		// Article timestamps for blog posts.
+		if ( ! empty( $ctx['article_meta'] ) && is_array( $ctx['article_meta'] ) ) {
+			$am = $ctx['article_meta'];
+			if ( '' !== (string) ( $am['published'] ?? '' ) ) {
+				echo '<meta property="article:published_time" content="' . esc_attr( (string) $am['published'] ) . '" />' . "\n";
+			}
+			if ( '' !== (string) ( $am['modified'] ?? '' ) ) {
+				echo '<meta property="article:modified_time" content="' . esc_attr( (string) $am['modified'] ) . '" />' . "\n";
+			}
+		}
+
 		echo '<meta name="twitter:card" content="' . esc_attr( '' !== $image ? 'summary_large_image' : 'summary' ) . '" />' . "\n";
+		if ( '' !== $title ) {
+			echo '<meta name="twitter:title" content="' . esc_attr( $title ) . '" />' . "\n";
+		}
+		if ( '' !== $desc ) {
+			echo '<meta name="twitter:description" content="' . esc_attr( $desc ) . '" />' . "\n";
+		}
+		if ( '' !== $image ) {
+			echo '<meta name="twitter:image" content="' . esc_url( $image ) . '" />' . "\n";
+		}
 	}
 
 	/**
@@ -271,8 +364,8 @@ final class HeadRenderer {
 	 * @param string[]                $skip_types Node types to leave out (owned by an external SEO plugin).
 	 */
 	private function render_schema( array $nodes, array $skip_types = array() ): void {
-		$is_landing = ( function_exists( 'is_singular' ) && is_singular( self::OWNED_POST_TYPES ) )
-			|| ( function_exists( 'is_post_type_archive' ) && is_post_type_archive( self::OWNED_POST_TYPES ) )
+		$is_landing = ( function_exists( 'is_singular' ) && is_singular( self::LANDING_POST_TYPES ) )
+			|| ( function_exists( 'is_post_type_archive' ) && is_post_type_archive( self::LANDING_POST_TYPES ) )
 			|| ( function_exists( 'is_tax' ) && is_tax( 'motored_bike_brand' ) );
 
 		$clean = array();
@@ -280,16 +373,16 @@ final class HeadRenderer {
 			if ( ! is_array( $node ) || empty( $node['@type'] ) ) {
 				continue;
 			}
-			$type = (string) $node['@type'];
-			if ( in_array( $type, $skip_types, true ) ) {
+			$types = is_array( $node['@type'] ) ? array_map( 'strval', $node['@type'] ) : array( (string) $node['@type'] );
+			if ( array() !== array_intersect( $types, $skip_types ) ) {
 				continue;
 			}
 			// Non-negotiable rule: never emit Product markup on bike/size landing pages (use ItemList).
-			if ( $is_landing && 'Product' === $type ) {
+			if ( $is_landing && in_array( 'Product', $types, true ) ) {
 				continue;
 			}
 			// Never emit FAQPage unless visible FAQ questions are present.
-			if ( 'FAQPage' === $type && ( empty( $node['mainEntity'] ) || ! is_array( $node['mainEntity'] ) ) ) {
+			if ( in_array( 'FAQPage', $types, true ) && ( empty( $node['mainEntity'] ) || ! is_array( $node['mainEntity'] ) ) ) {
 				continue;
 			}
 			$clean[] = $node;
@@ -308,11 +401,10 @@ final class HeadRenderer {
 	}
 
 	/**
-	 * Builds the current URL stripped of non-canonical query parameters (?pos, ?v, ?paged, ?moto).
+	 * Builds the current URL stripped of non-canonical query parameters (?pos, ?v, ?paged, ?moto, ?filter_*).
 	 */
 	private function clean_current_url(): string {
-		$base = $this->clean_base_url();
-		// Paginated archives canonicalize to themselves, not to page 1 (they list different products).
+		$base  = $this->clean_base_url();
 		$paged = function_exists( 'get_query_var' ) ? absint( get_query_var( 'paged', 0 ) ) : 0;
 		if ( $paged < 2 || ( function_exists( 'is_singular' ) && is_singular() ) ) {
 			return $base;
@@ -333,7 +425,22 @@ final class HeadRenderer {
 				return $url;
 			}
 		}
+		if ( function_exists( 'is_shop' ) && is_shop() && function_exists( 'wc_get_page_permalink' ) ) {
+			$shop = (string) wc_get_page_permalink( 'shop' );
+			if ( '' !== $shop ) {
+				return $shop;
+			}
+		}
 		if ( function_exists( 'is_tax' ) && is_tax() && function_exists( 'get_queried_object' ) && function_exists( 'get_term_link' ) ) {
+			$term = get_queried_object();
+			if ( $term instanceof \WP_Term ) {
+				$link = get_term_link( $term );
+				if ( is_string( $link ) && '' !== $link ) {
+					return $link;
+				}
+			}
+		}
+		if ( ( ( function_exists( 'is_category' ) && is_category() ) || ( function_exists( 'is_tag' ) && is_tag() ) ) && function_exists( 'get_queried_object' ) && function_exists( 'get_term_link' ) ) {
 			$term = get_queried_object();
 			if ( $term instanceof \WP_Term ) {
 				$link = get_term_link( $term );
@@ -347,6 +454,15 @@ final class HeadRenderer {
 			$link = get_post_type_archive_link( $pt );
 			if ( is_string( $link ) && '' !== $link ) {
 				return $link;
+			}
+		}
+		if ( function_exists( 'is_home' ) && is_home() ) {
+			$posts_page = (int) get_option( 'page_for_posts', 0 );
+			if ( $posts_page > 0 && function_exists( 'get_permalink' ) ) {
+				$url = get_permalink( $posts_page );
+				if ( is_string( $url ) && '' !== $url ) {
+					return $url;
+				}
 			}
 		}
 		return home_url( '/' );
