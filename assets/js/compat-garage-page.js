@@ -189,7 +189,7 @@
 			box.appendChild(sizes);
 		}
 		var view = el('a', 'button alt wp-element-button motored-garage-current__primary', t.filterTires || '');
-		view.href = (pf && pf.pageUrl) ? pf.pageUrl : withMoto(bike.slug, shop);
+		view.href = withMoto(bike.slug, shop);
 		box.appendChild(view);
 		wrap.appendChild(box);
 		var others = bikes.filter(function (b) { return b.slug !== bike.slug; });
@@ -267,7 +267,7 @@
 			}
 			var actions = el('div', 'motored-garage-card__actions');
 			var view = el('a', 'button alt wp-element-button motored-garage-card__primary', t.filterTires || '');
-			view.href = (pf && pf.pageUrl) ? pf.pageUrl : withMoto(bike.slug, shop);
+			view.href = withMoto(bike.slug, shop);
 			actions.appendChild(view);
 			var secondary = el('div', 'motored-garage-card__secondary');
 			if (!isActive) {

@@ -284,7 +284,7 @@ final class GarageEndpoint {
 				'motored-compat-garage-page',
 				MOTORED_CORE_URL . 'assets/js/compat-garage-page.js',
 				array( GarageAssets::HANDLE ),
-				MOTORED_CORE_VERSION . '-garage12',
+				MOTORED_CORE_VERSION . '-garage13',
 				array(
 					'strategy'  => 'defer',
 					'in_footer' => true,

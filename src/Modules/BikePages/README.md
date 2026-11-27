@@ -20,7 +20,7 @@ Generates and maintains automatic, indexable motorcycle landing pages (`motored_
 |---|---|---|---|
 | `motored_compat_catalog_changed` | Admin/Cron/CLI/REST/AJAX | Queues deduped AS sync per affected model | `unverified` (VERIFY #127) |
 | `motored_compat_product_index_changed` | Admin/Cron/CLI/REST/AJAX | Queues batched `_motored_indexable` recompute | `unverified` (VERIFY #127) |
-| `motored_compat_bike_page_url` | Frontend/REST | Resolves motorcycle slugs to `motored_bike` permalinks. Registered in REST too (`HubLinks::register_url_filter()`): banner, garage and hydrated tab rows read profiles from REST | `unverified` (VERIFY #128) |
+| `motored_compat_bike_page_url` | Frontend/REST | Resolves motorcycle slugs to `motored_bike` permalinks. Registered in REST too (`HubLinks::register_url_filter()`): banner and hydrated tab rows read profiles from REST (the garage CTA ignores `pageUrl` and always opens the filtered catalog) | `unverified` (VERIFY #128) |
 | `init@20` → `register_block_template()` | Block themes | Plugin `single-motored_bike` template (header + post title H1 + content + footer), no blog post meta | `unverified` (VERIFY #130) |
 | `admin_init` (plugin screens) | Admin | `BikePageSync::maybe_schedule_resync()` queues one full rebuild when `SYNC_VERSION` changes (option `motored_bike_pages_sync_ver`) | — |
 | `wp`, `wp_enqueue_scripts`, `the_content` | Frontend | Populates `SeoContext`, loads `compat.css`/JS in `<head>`, renders `[motored_moto]` | `unverified` (VERIFY #128) |

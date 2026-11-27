@@ -685,3 +685,12 @@ Pending / suggestions (not changed):
 
 - `GarageEndpoint::modal_layout()` reads `current_theme_supports( 'motored-garage-modal' )`. With it the garage dialog is centered (`.motored-garage-drawer--modal`): title "Add your motorcycle" with an empty `__icon` span for the theme, a lead line, the active motorcycle (`.motored-garage-current`: choose another / remove, name, factory sizes, "View tires"), the other saved motorcycles (`.motored-garage-others`, "Use this motorcycle"), the cascade picker (`.motored-garage-pick`, shown when the garage is empty or after "Choose another", with Cancel) and an inline login hint for guests. Without the support the side drawer is unchanged (theme-agnostic). Structural CSS in `compat.css` (tokens only); `compat-garage-page.js` draws the new state and the backdrop click now checks both axes. New es_AR strings (Agregá tu moto, Encontrá las cubiertas que le van a tu moto, Elegir otra moto, Quitar moto, Tus otras motos, Iniciar sesión); `.mo` recompiled with the Python writer (old entries verified identical). Additive → `Api::CONTRACT` 1.3. The store theme declares the support and styles it like motocard.com.
 
+
+### 2026-11-27 — Decision: garage "Ver cubiertas" opens the filtered catalog
+The Mi Garage CTA (centered dialog and `/mi-garage/` cards) went to the bike landing page (`pf.pageUrl`,
+`/cubiertas-para/{slug}/`) since the BikePages phase. It now always opens `shop?moto={slug}`, as before and as
+`STUDY-COMPAT-GARAGE-FILTERS.md` S1-2 already said (garage = user-initiated in-store filter). Reasons: the shopper
+lands on the full catalog with the motorcycle chip, facets, sort and pagination instead of a fixed editorial grid;
+it matches the product-page badge, the search suggestion and the loop CTA (all `?moto=`); and the garage is
+per-visitor JS state, so crawlers never followed that link (no SEO loss — landing pages keep their links from the
+compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the garage no longer reads it.
