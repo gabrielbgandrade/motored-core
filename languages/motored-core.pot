@@ -6002,3 +6002,15 @@ msgstr ""
 #: src/Modules/CatalogFilters/FilterRenderer.php
 msgid "Quick filters"
 msgstr ""
+
+#: src/Modules/PaymentPlans/Storefront.php
+msgid "%s%% OFF"
+msgstr ""
+
+#: src/Modules/PaymentPlans/Storefront.php
+msgid "See payment methods"
+msgstr ""
+
+#: src/Modules/PaymentPlans/Storefront.php
+msgid "with transfer or account money"
+msgstr ""

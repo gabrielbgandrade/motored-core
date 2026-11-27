@@ -1,6 +1,6 @@
 # Theme contract (engine / skin)
 
-Contract version: **1.4** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
+Contract version: **1.5** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
 
 Motored is **one product in two packages**:
 
@@ -71,7 +71,8 @@ specificity), so a theme value always wins.
   The theme exposes them in UX Builder (`inc/builder/shortcodes/motored.php`).
 - **BEM classes are public API.** Block roots: `.motored-search`, `.motored-filters`, `.motored-compat-*`,
   `.motored-garage-*`, `.motored-bike-*`, `.motored-notify-*`, `.motored-plans`, `.motored-plans-dialog`,
-  `.motored-install-gallery`, `.motored-ig-*`, `.motored-suggest__*`, `.motored-trending__*`. Renaming one
+  `.motored-install-gallery`, `.motored-ig-*`, `.motored-plans--loop` / `.motored-plans-cash*` (1.5, payment block on
+  product cards: list line, transfer price, "See payment methods" button), `.motored-suggest__*`, `.motored-trending__*`. Renaming one
   is a breaking change.
 - **Data attributes:** `[data-motored-garage-open]` on any link opens the garage drawer (its `href` is the
   no-JS fallback); `[data-motored-filters]` marks the filter sidebar; `[data-motored-swap="key"]` (1.4) on any
@@ -87,6 +88,7 @@ specificity), so a theme value always wins.
 |---|---|
 | `\Motored\Core\Api::CONTRACT`, `Api::supports( '1' )` | Contract version check |
 | `\Motored\Core\Api::garage_url()` | Mi Garage URL for the current visitor |
+| `\Motored\Core\Api::tire_card( $product )` | Technical card title of a tire (1.5): `size` "160/60R17 69H TL" (kits "120/70ZR17 + 160/60ZR17"), `model` "MT60 RS", `kit`; empty array for non-tires. The product name never changes |
 | `\Motored\Core\Api::active_filter_labels()` | Values of the active catalog filters for headings (1.4), e.g. `["Michelin", "Rodado 17", "En stock"]` |
 | `do_action( 'motored_garage_trigger' )` | The theme fires it where it renders a garage link; the plugin mounts the drawer once (not on checkout) |
 | `add_theme_support( 'motored-garage-modal' )` | Theme → plugin (1.3): the garage opens as a centered dialog instead of the side drawer. Same `#motored-garage-drawer` dialog with `.motored-garage-drawer--modal`: close button first, `__header` with `h2 > .motored-garage-drawer__icon` (empty span the theme fills) and `.motored-garage-drawer__lead`; `.motored-garage-page--modal` shows `.motored-garage-current` (`__links`, `__link`, `__sep`, `__remove`, `__name`, `__primary`), `.motored-garage-others` (`__title`, `__list`, `__item`, `__name`, `__use`), `.motored-garage-pick` (the selector, `__cancel`) and `.motored-garage-guest--inline` (`__title`, `__login`) |

@@ -703,3 +703,9 @@ compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the g
 - `catalog-filters.js`: quick links apply at once by AJAX; after every swap, `[data-motored-swap]` regions are replaced from the new page; the Apply URL keeps `stock=1`; "Clear all" applies by AJAX.
 - `Api::active_filter_labels()`; `Api::CONTRACT` 1.3 → 1.4; es_AR: Eliminar todos, Filtros rápidos (.mo recompiled, old entries identical). `composer check` could not run here (no PHP CLI on this machine); ThemeContractTest rules checked by hand (no `!important`, no color literals, contract version documented).
 
+### 2026-11-27 — Contract 1.5: `Api::tire_card()` and the payment block on product cards
+
+- `Compatibility\TireCard::for_product()` (exposed as `Api::tire_card()`): full size from the compatibility index (`Storefront::resolve_full_size_label`, batch-primed in loops; R / ZR / B / imperial rules of `SizeParser::format_full_size`) + load/speed code ("69H", no kg/km/h text) + tube code from the tube attribute ("Sin cámara (TL)" -> TL) + the line attribute as `model`; kits keep "front + rear". The store theme shows it as the card title; the product name is untouched (SEO).
+- PaymentPlans: `ProductView` adds `c` (best active cash plan with a discount: total + percent); in loops `Storefront::html_for()` prints `.motored-plans--loop` with the list line, the cash price ("$540.000 10% OFF con transferencia o dinero en cuenta") and the "Ver medios de pago" button for the existing dialog. Structural CSS in `compat.css`. es_AR strings added, .mo recompiled (old entries identical).
+- Noticed, not changed: the default plan names "9 cuotas sin interés" / "12 cuotas sin interés" carry +10% / +20%; they are editable data in Motored > Planes de pago.
+

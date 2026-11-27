@@ -35,6 +35,7 @@ WC session key `motored_plan` (plan id). No tables, no cache keys.
 
 ## Main flows
 - Calculation: `total = base + base * pct` (exact integer math, half up); installment = `total / N`, leftover cents on the last one (sum is exact).
+- Product cards (loop): `.motored-plans--loop` = list line + the best active cash plan with a discount as "$total X% OFF with transfer or account money" (`.motored-plans-cash*`, view key `c`) + the "See payment methods" button opening the dialog.
 - Storefront: base = `wc_get_price_to_display()` (variable: minimum price). The server formats every text; the link carries it in `data-motored-plans`
   (JSON); the JS only fills the shared `<dialog>` and swaps the data on `found_variation` / `reset_data`. Discounts: "$total (X% OFF)"; surcharges
   never show the percentage. No price / out of stock: nothing.

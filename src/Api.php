@@ -22,7 +22,7 @@ final class Api {
 	 * Contract version. Bump the minor for additions, the major for breaking changes
 	 * (and update docs/THEME-CONTRACT.md plus the theme in the same change).
 	 */
-	public const CONTRACT = '1.4';
+	public const CONTRACT = '1.5';
 
 	/**
 	 * Whether the given contract major version is the one this plugin implements.
@@ -49,5 +49,18 @@ final class Api {
 	 */
 	public static function active_filter_labels(): array {
 		return \Motored\Core\Modules\CatalogFilters\FilterRenderer::active_labels();
+	}
+
+	/**
+	 * Short technical title of a tire for product cards (1.5): `size` "160/60R17 69H TL" (kits: "120/70ZR17 +
+	 * 160/60ZR17"), `model` "MT60 RS" (may be ''), `kit`. Empty array when the product is not an indexed tire or
+	 * compatibility is off; the product name itself never changes.
+	 *
+	 * @param \WC_Product|int $product Product or product ID.
+	 * @return array{size:string,model:string,kit:bool}|array{}
+	 */
+	public static function tire_card( $product ): array {
+		$product = is_numeric( $product ) && function_exists( 'wc_get_product' ) ? wc_get_product( (int) $product ) : $product;
+		return $product instanceof \WC_Product ? \Motored\Core\Modules\Compatibility\TireCard::for_product( $product ) : array();
 	}
 }

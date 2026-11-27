@@ -89,6 +89,28 @@ final class Storefront {
 
 		PlanDialog::request();
 
+		if ( $in_loop ) {
+			// Product cards: list line, the transfer / account money price (when a cash plan discounts) and the button.
+			$cash = '';
+			if ( isset( $view['c'] ) ) {
+				$cash = sprintf(
+					'<span class="motored-plans-cash"><strong class="motored-plans-cash__price">%1$s</strong> <span class="motored-plans-cash__off">%2$s</span> <span class="motored-plans-cash__label">%3$s</span></span>',
+					esc_html( $view['c']['p'] ),
+					/* translators: %s: discount percentage. */
+					esc_html( sprintf( __( '%s%% OFF', 'motored-core' ), $view['c']['o'] ) ),
+					esc_html__( 'with transfer or account money', 'motored-core' )
+				);
+			}
+			return sprintf(
+				'<div class="motored-plans motored-plans--loop"><span class="motored-plans-line">%1$s</span>%2$s <a href="#%3$s" class="motored-plans-link" data-motored-plans="%4$s">%5$s</a></div>',
+				esc_html( $view['l'] ),
+				$cash,
+				esc_attr( PlanDialog::DOM_ID ),
+				esc_attr( (string) wp_json_encode( $view ) ),
+				esc_html__( 'See payment methods', 'motored-core' )
+			);
+		}
+
 		return sprintf(
 			'<div class="motored-plans"%1$s><span class="motored-plans-line">%2$s</span> <a href="#%3$s" class="motored-plans-link" data-motored-plans="%4$s">%5$s</a></div>',
 			$variable && ! $in_loop ? ' data-mv="1"' : '',

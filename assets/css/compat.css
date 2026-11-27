@@ -1444,3 +1444,23 @@ button.motored-compat-badge__link {
 .motored-plans-dialog .motored-plans-dialog__close {
 	margin: 0;
 }
+
+/* Payment plans on product cards (Storefront::html_for in a loop): list line, cash price, button. Structure only. */
+.motored-plans--loop {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.25rem;
+}
+
+.motored-plans-cash {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	column-gap: 0.3rem;
+}
+
+.motored-plans--loop .motored-plans-link {
+	display: block;
+	text-align: center;
+}

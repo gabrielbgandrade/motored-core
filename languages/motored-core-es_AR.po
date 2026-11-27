@@ -5990,3 +5990,15 @@ msgstr "Eliminar todos"
 #: src/Modules/CatalogFilters/FilterRenderer.php
 msgid "Quick filters"
 msgstr "Filtros rápidos"
+
+#: src/Modules/PaymentPlans/Storefront.php
+msgid "%s%% OFF"
+msgstr "%s%% OFF"
+
+#: src/Modules/PaymentPlans/Storefront.php
+msgid "See payment methods"
+msgstr "Ver medios de pago"
+
+#: src/Modules/PaymentPlans/Storefront.php
+msgid "with transfer or account money"
+msgstr "con transferencia o dinero en cuenta"
