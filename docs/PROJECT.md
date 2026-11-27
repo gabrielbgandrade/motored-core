@@ -676,3 +676,7 @@ Pending / suggestions (not changed):
 - Replaced Spanish PHP source strings with English msgids in `GarageEndpoint.php`, `CatalogFilters/StorefrontAssets.php`, and `SeoAdmin.php` (plus English fallbacks in `assets/js/catalog-search.js`); updated `languages/motored-core.pot`, `languages/motored-core-es_AR.po`, and recompiled `languages/motored-core-es_AR.mo` (1,341 entries, binary round-trip verified).
 - Paired theme fix (`themes/flatsome/assets/css/flatsome.css`): restored `padding: 16px` on mobile (`<= 849px`) `.motored-search__suggest--mega` (was overridden to `0` by the `(0,3,0)` base rule) and included `#search-lightbox` in the mobile full-width rule.
 - Checks: `node --check assets/js/catalog-search.js` clean; `node tests/js/compat-parity.test.js` (17 parity + fmt cases pass); all `ThemeContractTest` invariants (CSS/JS/PHP/contract version + paired theme major) verified cleanly; `.mo` binary round-trip verified (1,341 entries, 0 lost). PHP / Composer / Studio CLI were not available in this shell PATH, so `composer check` (`phpcs`/`phpstan`/`phpunit`) and browser verification remain to run locally.
+
+### 2026-11-27 — Contract 1.2: `motored:filters-loading`
+
+- `assets/js/catalog-filters.js` dispatches `motored:filters-loading` (`detail.url`) when an AJAX catalog swap starts, so the theme can show its top progress bar during catalog updates (it already gets `motored:filters-updated` at the end). Additive → `Api::CONTRACT` 1.1 → 1.2; `docs/THEME-CONTRACT.md`, the module README/skill and the theme's `docs/MOTORED-CONTRACT.md` updated together.

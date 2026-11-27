@@ -18,6 +18,7 @@ Theme-agnostic motorcycle tire search, faceted sidebar filters and smart suggest
   - Server-side rendered HTML cached by tire specification (`MatchEngine::compatible_motos_for_product()`), grouped by brand in 2 columns, collapsed initially (6 brands), inline cap of 120 items with on-demand REST hydration, instant alias-aware search and client-side `Mi Garage` highlight.
 
 ## Theme contract
+- When an AJAX catalog swap starts the module dispatches `motored:filters-loading` (`detail.url`).
 - After an AJAX catalog swap the module dispatches `motored:filters-updated` (`detail.url`, `detail.root`). The theme re-attaches its own behaviors and closes its off-canvas filter panel; the module never calls theme code.
 - `catalog-filters.css` owns the structure of the search, the filters and the smart-search panels (`.motored-suggest__*`, `.motored-trending__*`); colors, radii and shadows come from the `--motored-*` tokens set by the theme.
 

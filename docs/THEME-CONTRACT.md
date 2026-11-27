@@ -1,6 +1,6 @@
 # Theme contract (engine / skin)
 
-Contract version: **1.1** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
+Contract version: **1.2** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
 
 Motored is **one product in two packages**:
 
@@ -93,6 +93,7 @@ specificity), so a theme value always wins.
 | `window.Motored.garage.active()` | plugin → theme | `{ slug, label }` of the active motorcycle, or `null` |
 | `window.Motored.garage.bikes()` | plugin → theme | `[{ slug, label }]` |
 | `document` event `motored:garage` | plugin → theme | The garage changed; read it again through the API |
+| `document` event `motored:filters-loading` | plugin → theme | An AJAX catalog swap started (`detail.url`). `motored:filters-updated` follows, or a full page load to `detail.url` if the request fails. The theme may show a progress indicator (1.2) |
 | `document` event `motored:filters-updated` | plugin → theme | The catalog was replaced by AJAX. `detail.url`, `detail.root` (new grid). The theme re-attaches its behaviors on `root` and closes its off-canvas filter panel |
 
 The garage script loads on every page that fires `motored_garage_trigger`, except checkout (performance

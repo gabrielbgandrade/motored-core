@@ -50,6 +50,9 @@
 		var controller = typeof window.AbortController === 'function' ? new AbortController() : null;
 		inflight = controller;
 		setLoading(true);
+		// Public contract event (docs/THEME-CONTRACT.md): an AJAX catalog swap started; `motored:filters-updated`
+		// follows (or a full page load to `detail.url` when the request fails). The theme shows its progress UI.
+		document.dispatchEvent(new CustomEvent('motored:filters-loading', { detail: { url: targetUrl } }));
 
 		window.fetch(targetUrl, {
 			credentials: 'same-origin',
