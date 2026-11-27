@@ -22,7 +22,7 @@ final class Api {
 	 * Contract version. Bump the minor for additions, the major for breaking changes
 	 * (and update docs/THEME-CONTRACT.md plus the theme in the same change).
 	 */
-	public const CONTRACT = '1.3';
+	public const CONTRACT = '1.4';
 
 	/**
 	 * Whether the given contract major version is the one this plugin implements.
@@ -38,5 +38,16 @@ final class Api {
 	 */
 	public static function garage_url(): string {
 		return GarageAssets::garage_url();
+	}
+
+	/**
+	 * Plain values of the catalog filters active in this request, in the order of the sidebar chips
+	 * (e.g. "Michelin", "Rodado 17", "En stock"), for catalog headings. Empty when no filter is active or the
+	 * catalog filters are off.
+	 *
+	 * @return list<string>
+	 */
+	public static function active_filter_labels(): array {
+		return \Motored\Core\Modules\CatalogFilters\FilterRenderer::active_labels();
 	}
 }

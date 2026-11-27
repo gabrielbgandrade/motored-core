@@ -694,3 +694,12 @@ lands on the full catalog with the motorcycle chip, facets, sort and pagination 
 it matches the product-page badge, the search suggestion and the loop CTA (all `?moto=`); and the garage is
 per-visitor JS state, so crawlers never followed that link (no SEO loss — landing pages keep their links from the
 compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the garage no longer reads it.
+
+### 2026-11-27 — Contract 1.4: catalog quick bar, `?stock=1`, `data-motored-swap`, `Api::active_filter_labels()`
+
+- Catalog redesign (store theme, motocard.com): the theme shows "Tenemos N artículos con estas características:" with the active filter values, an "En stock" box and quick filters left of the sort, and a motocard-style sidebar.
+- `FilterState` gains `?stock=1` (in_stock); `QueryFilter` keeps `_stock_status != outofstock` (missing = in stock, same source as the facet snapshot so grid and counts agree; demo data had an out-of-stock product without the `outofstock` visibility term); facet counts use `only_in_stock` when it is on; chip "In stock".
+- `FilterRenderer::context()` memoizes the facet computation per request for the sidebar, the new `render_quick()` (`[motored_filtros layout="quick"]`, `.motored-quick*`) and `active_labels()`; chips carry a plain `value`. Sidebar head: count badge + "Clear all" link (the foot keeps only the Apply button).
+- `catalog-filters.js`: quick links apply at once by AJAX; after every swap, `[data-motored-swap]` regions are replaced from the new page; the Apply URL keeps `stock=1`; "Clear all" applies by AJAX.
+- `Api::active_filter_labels()`; `Api::CONTRACT` 1.3 → 1.4; es_AR: Eliminar todos, Filtros rápidos (.mo recompiled, old entries identical). `composer check` could not run here (no PHP CLI on this machine); ThemeContractTest rules checked by hand (no `!important`, no color literals, contract version documented).
+

@@ -71,6 +71,7 @@ final class FilterState {
 	 * @param array<string,string>       $extra      Unrelated scalar query params to preserve.
 	 * @param array<string,string>       $operators  Native WooCommerce attribute operators.
 	 * @param string                     $kit_size   Canonical size of the "kits with this size" view (?kit_medida=).
+	 * @param bool                       $in_stock   Whether ?stock=1 (only products in stock) is set.
 	 */
 	public function __construct(
 		array $attributes = array(),
@@ -80,7 +81,8 @@ final class FilterState {
 		bool $on_sale = false,
 		array $extra = array(),
 		private array $operators = array(),
-		private string $kit_size = ''
+		private string $kit_size = '',
+		private bool $in_stock = false
 	) {
 		$this->attributes = $attributes;
 		$this->brands     = array_values( $brands );
@@ -101,7 +103,7 @@ final class FilterState {
 			$query = $_GET;
 		}
 
-		$known_keys = array( 'product_brand', 'oferta', 'moto', 'pos', 'paged', 'product-page', 'kit_medida' );
+		$known_keys = array( 'product_brand', 'oferta', 'stock', 'moto', 'pos', 'paged', 'product-page', 'kit_medida' );
 		$attrs      = array();
 		$operators  = array();
 
@@ -146,6 +148,9 @@ final class FilterState {
 		$on_sale = isset( $query['oferta'] ) && is_scalar( $query['oferta'] )
 			&& in_array( strtolower( trim( (string) wp_unslash( (string) $query['oferta'] ) ) ), array( '1', 'true', 'yes' ), true );
 
+		$in_stock = isset( $query['stock'] ) && is_scalar( $query['stock'] )
+			&& in_array( strtolower( trim( (string) wp_unslash( (string) $query['stock'] ) ) ), array( '1', 'true', 'yes' ), true );
+
 		$extra = array();
 		foreach ( $query as $k => $v ) {
 			$key = sanitize_key( (string) $k );
@@ -158,7 +163,7 @@ final class FilterState {
 			}
 		}
 
-		return new self( $attrs, $brands, $moto, $pos, $on_sale, $extra, $operators, $kit_size );
+		return new self( $attrs, $brands, $moto, $pos, $on_sale, $extra, $operators, $kit_size, $in_stock );
 	}
 
 	/**
@@ -251,6 +256,13 @@ final class FilterState {
 	}
 
 	/**
+	 * Whether ?stock=1 (only products in stock) is active.
+	 */
+	public function in_stock(): bool {
+		return $this->in_stock;
+	}
+
+	/**
 	 * Preserved unrelated query parameters.
 	 *
 	 * @return array<string,string>
@@ -266,6 +278,7 @@ final class FilterState {
 		return ! empty( $this->attributes )
 			|| ! empty( $this->brands )
 			|| $this->on_sale
+			|| $this->in_stock
 			|| '' !== $this->kit_size
 			|| '' !== $this->moto;
 	}
@@ -277,18 +290,22 @@ final class FilterState {
 		return ! empty( $this->attributes )
 			|| ! empty( $this->brands )
 			|| $this->on_sale
+			|| $this->in_stock
 			|| '' !== $this->kit_size;
 	}
 
 	/**
 	 * Checks if a specific facet value is currently active.
 	 *
-	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', 'kit_medida', 'moto' or 'pos').
-	 * @param string $slug  Term slug (ignored for 'oferta' / 'moto').
+	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', 'stock', 'kit_medida', 'moto' or 'pos').
+	 * @param string $slug  Term slug (ignored for 'oferta' / 'stock' / 'moto').
 	 */
 	public function is_active( string $facet, string $slug = '' ): bool {
 		if ( 'oferta' === $facet ) {
 			return $this->on_sale;
+		}
+		if ( 'stock' === $facet ) {
+			return $this->in_stock;
 		}
 		if ( 'moto' === $facet ) {
 			return '' !== $this->moto;
@@ -308,7 +325,7 @@ final class FilterState {
 	/**
 	 * Returns a new FilterState with a single facet option toggled (OR within group).
 	 *
-	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', 'kit_medida', 'moto' or 'pos').
+	 * @param string $facet Facet key (attribute slug, 'product_brand', 'oferta', 'stock', 'kit_medida', 'moto' or 'pos').
 	 * @param string $slug  Term slug.
 	 */
 	public function with_toggled( string $facet, string $slug = '' ): self {
@@ -317,10 +334,13 @@ final class FilterState {
 		$moto    = $this->moto;
 		$pos     = $this->pos;
 		$on_sale = $this->on_sale;
+		$stock   = $this->in_stock;
 		$kit     = $this->kit_size;
 
 		if ( 'oferta' === $facet ) {
 			$on_sale = ! $on_sale;
+		} elseif ( 'stock' === $facet ) {
+			$stock = ! $stock;
 		} elseif ( 'kit_medida' === $facet ) {
 			$clean = (string) SizeParser::canonical( $slug );
 			$kit   = $clean === $kit ? '' : $clean;
@@ -343,7 +363,7 @@ final class FilterState {
 			}
 		}
 
-		return new self( $attrs, $brands, $moto, $pos, $on_sale, $this->extra, $this->operators, $kit );
+		return new self( $attrs, $brands, $moto, $pos, $on_sale, $this->extra, $this->operators, $kit, $stock );
 	}
 
 	/**
@@ -362,7 +382,7 @@ final class FilterState {
 			unset( $attrs[ TireSpecs::ATTR_POSITION ] );
 			$pos = TireSpecs::POS_KIT;
 		}
-		return new self( $attrs, $this->brands, $this->moto, $pos, $this->on_sale, $this->extra, $this->operators, (string) SizeParser::canonical( $canonical ) );
+		return new self( $attrs, $this->brands, $this->moto, $pos, $this->on_sale, $this->extra, $this->operators, (string) SizeParser::canonical( $canonical ), $this->in_stock );
 	}
 
 	/**
@@ -400,6 +420,10 @@ final class FilterState {
 
 		if ( $this->on_sale ) {
 			$args['oferta'] = '1';
+		}
+
+		if ( $this->in_stock ) {
+			$args['stock'] = '1';
 		}
 
 		if ( '' !== $this->kit_size ) {
@@ -449,7 +473,7 @@ final class FilterState {
 	 * @param string $url Raw URL.
 	 */
 	public static function strip_query_and_pagination( string $url ): string {
-		$keys = array( 'paged', 'product-page', 'moto', 'pos', 'oferta', 'kit_medida' );
+		$keys = array( 'paged', 'product-page', 'moto', 'pos', 'oferta', 'stock', 'kit_medida' );
 		foreach ( Config::ATTRIBUTE_SLUGS as $slug ) {
 			$keys[] = 'filter_' . $slug;
 			$keys[] = 'query_type_' . $slug;

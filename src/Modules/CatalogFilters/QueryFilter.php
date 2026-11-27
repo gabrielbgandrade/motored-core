@@ -1,6 +1,6 @@
 <?php
 /**
- * Storefront query filter (?oferta=1) and robots noindex directive for filtered catalog URLs.
+ * Storefront query filter (?oferta=1, ?stock=1) and robots noindex directive for filtered catalog URLs.
  *
  * @package Motored\Core
  */
@@ -43,7 +43,7 @@ final class QueryFilter {
 		$state      = FilterState::from_query();
 		$raw_search = method_exists( $query, 'is_search' ) && $query->is_search() ? trim( (string) $query->get( 's' ) ) : '';
 		$has_search = strlen( $raw_search ) >= 2;
-		if ( ! $has_search && ! $state->on_sale() && '' === $state->kit_size() ) {
+		if ( ! $has_search && ! $state->on_sale() && ! $state->in_stock() && '' === $state->kit_size() ) {
 			return;
 		}
 		if ( ! Config::enabled() ) {
@@ -63,6 +63,24 @@ final class QueryFilter {
 
 		if ( $state->on_sale() ) {
 			self::intersect_post_in( $query, array_keys( FacetEngine::on_sale_id_map() ) );
+		}
+		if ( $state->in_stock() ) {
+			// ?stock=1: same source as the facet snapshot (`_stock_status`, a missing value counts as in stock), so the
+			// grid and the sidebar counts always agree.
+			$meta_query   = (array) $query->get( 'meta_query' );
+			$meta_query[] = array(
+				'relation' => 'OR',
+				array(
+					'key'     => '_stock_status',
+					'value'   => 'outofstock',
+					'compare' => '!=',
+				),
+				array(
+					'key'     => '_stock_status',
+					'compare' => 'NOT EXISTS',
+				),
+			);
+			$query->set( 'meta_query', $meta_query );
 		}
 		if ( '' !== $state->kit_size() ) {
 			self::intersect_post_in( $query, array_keys( ProductIndexRepository::kit_ids_with_size( $state->kit_size() ) ) );

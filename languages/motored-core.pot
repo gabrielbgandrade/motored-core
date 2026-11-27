@@ -5994,3 +5994,11 @@ msgstr ""
 #: src/Modules/MiGarage/GarageAssets.php
 msgid "Your other motorcycles"
 msgstr ""
+
+#: src/Modules/CatalogFilters/FilterRenderer.php
+msgid "Clear all"
+msgstr ""
+
+#: src/Modules/CatalogFilters/FilterRenderer.php
+msgid "Quick filters"
+msgstr ""

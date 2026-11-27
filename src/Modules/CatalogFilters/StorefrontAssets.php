@@ -54,7 +54,7 @@ final class StorefrontAssets {
 				self::HANDLE_CSS,
 				MOTORED_CORE_URL . 'assets/css/catalog-filters.css',
 				array( SharedAssets::HANDLE_COMPAT_CSS ),
-				MOTORED_CORE_VERSION . '-filters8'
+				MOTORED_CORE_VERSION . '-filters9'
 			);
 		}
 	}
@@ -131,7 +131,7 @@ final class StorefrontAssets {
 			self::HANDLE_FILTERS,
 			MOTORED_CORE_URL . 'assets/js/catalog-filters.js',
 			array(),
-			MOTORED_CORE_VERSION . '-position2',
+			MOTORED_CORE_VERSION . '-quick1',
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,

@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Renders active filter chips, 11 collapsible disjunctive facet sections with real anchor links
- * (works 100% without JS), mobile Apply button and Clear filters link.
+ * (works 100% without JS), mobile Apply button and a "Clear all" link; plus the quick bar (layout="quick").
  */
 final class FilterRenderer {
 
@@ -30,30 +30,40 @@ final class FilterRenderer {
 	}
 
 	/**
-	 * Shortcode callback for [motored_filtros].
+	 * Shortcode callback for [motored_filtros] (layout="sidebar" default, or layout="quick" for the bar above the grid).
 	 *
 	 * @param mixed $atts Shortcode attributes.
 	 */
 	public function shortcode( $atts = array() ): string {
-		$atts  = shortcode_atts(
+		$atts = shortcode_atts(
 			array(
-				'title' => __( 'Filter results', 'motored-core' ),
+				'title'  => __( 'Filter results', 'motored-core' ),
+				'layout' => 'sidebar',
 			),
 			is_array( $atts ) ? $atts : array(),
 			self::SHORTCODE
 		);
+		if ( 'quick' === $atts['layout'] ) {
+			return self::render_quick();
+		}
 		$title = is_string( $atts['title'] ) ? $atts['title'] : '';
 		return self::render( $title );
 	}
 
 	/**
-	 * Renders the complete faceted filter panel HTML.
+	 * Request-scoped facet context shared by the sidebar, the quick bar and Api::active_filter_labels().
 	 *
-	 * @param string $title Optional panel heading.
+	 * @return array<string,mixed>|null Null when the module is off or facets are unavailable.
 	 */
-	public static function render( string $title = '' ): string {
+	private static function context(): ?array {
+		static $cache = array();
+		$key = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) ) : '';
+		if ( array_key_exists( $key, $cache ) ) {
+			return $cache[ $key ];
+		}
 		if ( ! Config::enabled() ) {
-			return '';
+			$cache[ $key ] = null;
+			return null;
 		}
 
 		$state    = FilterState::from_query();
@@ -62,16 +72,18 @@ final class FilterRenderer {
 			$snapshot = FacetEngine::snapshot( function_exists( 'is_search' ) && is_search() );
 		} catch ( \RuntimeException $exception ) {
 			\Motored\Core\Support\Logger::warning( 'Catalog facets are temporarily unavailable.' );
-			return '';
+			$cache[ $key ] = null;
+			return null;
 		}
-		StorefrontAssets::enqueue_filters_js();
 
 		$moto_ids       = null;
 		$moto_lbl       = '';
 		$moto_positions = array();
+		$kit_matches    = null;
 		if ( '' !== $state->moto() && \Motored\Core\Modules\Compatibility\Config::enabled() ) {
-			$matches  = MatchEngine::matching_ids_by_position( $state->moto() );
-			$moto_ids = array_fill_keys( $matches['all'], true );
+			$matches     = MatchEngine::matching_ids_by_position( $state->moto() );
+			$kit_matches = $matches['kit'];
+			$moto_ids    = array_fill_keys( $matches['all'], true );
 			if ( empty( $state->attribute_terms( TireSpecs::ATTR_POSITION ) ) ) {
 				foreach ( array( TireSpecs::POS_FRONT, TireSpecs::POS_REAR, TireSpecs::POS_KIT ) as $position ) {
 					$moto_positions[ $position ] = array_fill_keys( $matches[ $position ], true );
@@ -91,8 +103,8 @@ final class FilterRenderer {
 			$snapshot,
 			$state,
 			array(
-				// Counts must match the grid, which only hides out-of-stock items when WooCommerce does.
-				'only_in_stock'  => Config::grid_hides_out_of_stock(),
+				// Counts must match the grid: out-of-stock items leave it when WooCommerce hides them or with ?stock=1.
+				'only_in_stock'  => Config::grid_hides_out_of_stock() || $state->in_stock(),
 				'moto_ids'       => $moto_ids,
 				'moto_positions' => $moto_positions,
 				'kit_ids'        => $kit_ids,
@@ -102,20 +114,68 @@ final class FilterRenderer {
 			)
 		);
 
-		$labels = self::facet_titles();
-		$chips  = self::build_active_chips( $state, $base_url, $snapshot['labels'] ?? array(), $moto_lbl );
-		$kits   = self::kits_hint( $state, $base_url, $snapshot['labels'] ?? array(), isset( $matches ) ? $matches['kit'] : null );
 		global $wp_query;
 		$total = $wp_query instanceof \WP_Query && 'product_query' === $wp_query->get( 'wc_query' )
 			? (int) $wp_query->found_posts
 			: $computed['total'];
 
+		$cache[ $key ] = array(
+			'state'          => $state,
+			'base_url'       => $base_url,
+			'computed'       => $computed,
+			'moto_positions' => $moto_positions,
+			'chips'          => self::build_active_chips( $state, $base_url, $snapshot['labels'] ?? array(), $moto_lbl ),
+			'kits'           => self::kits_hint( $state, $base_url, $snapshot['labels'] ?? array(), $kit_matches ),
+			'total'          => $total,
+		);
+		return $cache[ $key ];
+	}
+
+	/**
+	 * Plain values of the active filters, in chip order (e.g. "Michelin", "Rim diameter 17", "In stock").
+	 *
+	 * @return list<string>
+	 */
+	public static function active_labels(): array {
+		$ctx = self::context();
+		return null === $ctx ? array() : array_values( array_map( 'strval', array_column( $ctx['chips'], 'value' ) ) );
+	}
+
+	/**
+	 * Renders the complete faceted filter panel HTML.
+	 *
+	 * @param string $title Optional panel heading.
+	 */
+	public static function render( string $title = '' ): string {
+		$ctx = self::context();
+		if ( null === $ctx ) {
+			return '';
+		}
+		StorefrontAssets::enqueue_filters_js();
+
+		$state          = $ctx['state'];
+		$base_url       = $ctx['base_url'];
+		$computed       = $ctx['computed'];
+		$moto_positions = $ctx['moto_positions'];
+		$chips          = $ctx['chips'];
+		$kits           = $ctx['kits'];
+		$total          = $ctx['total'];
+		$labels         = self::facet_titles();
+
 		ob_start();
 		?>
-		<aside class="motored-filters" data-motored-filters data-base-url="<?php echo esc_url( FilterState::strip_query_and_pagination( $base_url ) ); ?>" data-extra="<?php echo esc_attr( (string) wp_json_encode( $state->extra() ) ); ?>" data-moto="<?php echo esc_attr( $state->moto() ); ?>" data-pos="<?php echo esc_attr( $state->pos() ); ?>" data-kit="<?php echo esc_attr( $state->kit_size() ); ?>" data-operators="<?php echo esc_attr( (string) wp_json_encode( $state->operators() ) ); ?>">
+		<aside class="motored-filters" data-motored-filters data-base-url="<?php echo esc_url( FilterState::strip_query_and_pagination( $base_url ) ); ?>" data-extra="<?php echo esc_attr( (string) wp_json_encode( $state->extra() ) ); ?>" data-moto="<?php echo esc_attr( $state->moto() ); ?>" data-pos="<?php echo esc_attr( $state->pos() ); ?>" data-kit="<?php echo esc_attr( $state->kit_size() ); ?>" data-stock="<?php echo $state->in_stock() ? '1' : ''; ?>" data-operators="<?php echo esc_attr( (string) wp_json_encode( $state->operators() ) ); ?>">
 			<div class="motored-filters__head">
 				<?php if ( '' !== $title ) : ?>
-					<h3 class="motored-filters__title"><?php echo esc_html( $title ); ?></h3>
+					<h3 class="motored-filters__title">
+						<?php echo esc_html( $title ); ?>
+						<?php if ( ! empty( $chips ) ) : ?>
+							<span class="motored-filters__badge"><?php echo esc_html( (string) count( $chips ) ); ?></span>
+						<?php endif; ?>
+					</h3>
+				<?php endif; ?>
+				<?php if ( $state->has_any_filter() ) : ?>
+					<a class="motored-filters__clear-all" href="<?php echo esc_url( $state->clear_url( $base_url ) ); ?>"><?php esc_html_e( 'Clear all', 'motored-core' ); ?></a>
 				<?php endif; ?>
 				<span class="motored-filters__count">
 					<?php
@@ -188,15 +248,108 @@ final class FilterRenderer {
 				<button type="button" class="button motored-filters__apply" data-role="apply" hidden>
 					<?php esc_html_e( 'Apply filters', 'motored-core' ); ?>
 				</button>
-				<?php if ( $state->has_any_filter() ) : ?>
-					<a class="button motored-filters__clear" href="<?php echo esc_url( $state->clear_url( $base_url ) ); ?>">
-						<?php esc_html_e( 'Clear filters', 'motored-core' ); ?>
-					</a>
-				<?php endif; ?>
 			</div>
 		</aside>
 		<?php
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Quick filter bar above the grid: an "In stock" toggle (when the catalog shows out-of-stock items) and the
+	 * most common values of the current results (brand, rim, width, sale). Links toggle one filter and apply at
+	 * once (AJAX with JS, plain links without it). Marked `data-motored-swap` so it follows every catalog swap.
+	 */
+	public static function render_quick(): string {
+		$ctx = self::context();
+		if ( null === $ctx ) {
+			return '';
+		}
+		StorefrontAssets::enqueue_filters_js();
+
+		$state    = $ctx['state'];
+		$base_url = $ctx['base_url'];
+		$items    = self::quick_items( $ctx['computed']['facets'] ?? array() );
+		$stock    = ! Config::grid_hides_out_of_stock();
+		if ( ! $stock && empty( $items ) ) {
+			return '';
+		}
+
+		ob_start();
+		?>
+		<div class="motored-quick" data-motored-quick data-motored-swap="motored-quick">
+			<?php if ( $stock ) : ?>
+				<a class="motored-quick__stock motored-opt<?php echo $state->in_stock() ? ' is-active' : ''; ?>" href="<?php echo esc_url( $state->toggle_url( $base_url, 'stock' ) ); ?>" aria-pressed="<?php echo $state->in_stock() ? 'true' : 'false'; ?>" rel="nofollow">
+					<span class="motored-opt__box" aria-hidden="true"></span>
+					<span class="motored-opt__label"><?php esc_html_e( 'In stock', 'motored-core' ); ?></span>
+				</a>
+			<?php endif; ?>
+			<?php if ( ! empty( $items ) ) : ?>
+				<div class="motored-quick__popular">
+					<span class="motored-quick__title"><?php esc_html_e( 'Quick filters', 'motored-core' ); ?></span>
+					<ul class="motored-quick__list">
+						<?php foreach ( $items as $item ) : ?>
+							<li>
+								<a class="motored-opt<?php echo $item['active'] ? ' is-active' : ''; ?>" href="<?php echo esc_url( $state->toggle_url( $base_url, $item['facet'], $item['slug'] ) ); ?>" aria-pressed="<?php echo $item['active'] ? 'true' : 'false'; ?>" rel="nofollow">
+									<span class="motored-opt__box" aria-hidden="true"></span>
+									<span class="motored-opt__label"><?php echo esc_html( $item['label'] ); ?></span>
+								</a>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+			<?php endif; ?>
+		</div>
+		<?php
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Picks the quick filters: per facet the active values plus the values with most products
+	 * (brand 2, rim 2, width 1, sale 1).
+	 *
+	 * @param array<string,list<array<string,mixed>>> $facets Computed facets.
+	 * @return list<array{facet:string,slug:string,label:string,active:bool}>
+	 */
+	private static function quick_items( array $facets ): array {
+		$plan   = array(
+			'product_brand'       => 2,
+			TireSpecs::ATTR_RIM   => 2,
+			TireSpecs::ATTR_WIDTH => 1,
+			'oferta'              => 1,
+		);
+		$titles = self::facet_titles();
+		$picked = array();
+		foreach ( $plan as $facet => $limit ) {
+			$items = $facets[ $facet ] ?? array();
+			usort(
+				$items,
+				static function ( $a, $b ) {
+					$by_active = (int) ! empty( $b['active'] ) <=> (int) ! empty( $a['active'] );
+					return 0 !== $by_active ? $by_active : ( (int) $b['count'] <=> (int) $a['count'] );
+				}
+			);
+			$taken = 0;
+			foreach ( $items as $item ) {
+				$active = ! empty( $item['active'] );
+				if ( ! $active && ( $taken >= $limit || empty( $item['count'] ) ) ) {
+					continue;
+				}
+				$value = self::facet_value_label( $facet, (string) $item['slug'], (string) $item['label'] );
+				if ( TireSpecs::ATTR_RIM === $facet || TireSpecs::ATTR_WIDTH === $facet ) {
+					$value = ( $titles[ $facet ] ?? '' ) . ' ' . $value;
+				} elseif ( 'oferta' === $facet ) {
+					$value = $titles['oferta'] ?? $value;
+				}
+				$picked[] = array(
+					'facet'  => $facet,
+					'slug'   => (string) $item['slug'],
+					'label'  => trim( $value ),
+					'active' => $active,
+				);
+				++$taken;
+			}
+		}
+		return $picked;
 	}
 
 	/**
@@ -206,7 +359,7 @@ final class FilterRenderer {
 	 * @param string                             $base_url   Base archive URL.
 	 * @param array<string,array<string,string>> $label_map Snapshot labels map.
 	 * @param string                             $moto_label Human-readable active motorcycle label.
-	 * @return list<array{label:string,url:string}>
+	 * @return list<array{label:string,value:string,url:string}>
 	 */
 	public static function build_active_chips( FilterState $state, string $base_url, array $label_map, string $moto_label = '' ): array {
 		$chips  = array();
@@ -215,11 +368,13 @@ final class FilterRenderer {
 		if ( '' !== $state->moto() ) {
 			$chips[] = array(
 				'label' => __( 'Motorcycle', 'motored-core' ) . ': ' . ( '' !== $moto_label ? $moto_label : $state->moto() ),
+				'value' => '' !== $moto_label ? $moto_label : $state->moto(),
 				'url'   => $state->toggle_url( $base_url, 'moto' ),
 			);
 			if ( '' !== $state->pos() ) {
 				$chips[] = array(
 					'label' => $titles[ TireSpecs::ATTR_POSITION ] . ': ' . TireSpecs::position_label( $state->pos() ),
+					'value' => TireSpecs::position_label( $state->pos() ),
 					'url'   => $state->toggle_url( $base_url, 'pos', $state->pos() ),
 				);
 			}
@@ -229,6 +384,7 @@ final class FilterRenderer {
 			$b_name  = $label_map['product_brand'][ $b_slug ] ?? $b_slug;
 			$chips[] = array(
 				'label' => ( $titles['product_brand'] ?? __( 'Brand', 'motored-core' ) ) . ': ' . $b_name,
+				'value' => $b_name,
 				'url'   => $state->toggle_url( $base_url, 'product_brand', $b_slug ),
 			);
 		}
@@ -239,6 +395,7 @@ final class FilterRenderer {
 				$t_name  = self::facet_value_label( $attr_slug, $slug, $label_map[ $attr_slug ][ $slug ] ?? $slug );
 				$chips[] = array(
 					'label' => $prefix . ': ' . $t_name,
+					'value' => in_array( $attr_slug, Config::UNIT_ONLY_ATTRIBUTES, true ) ? $prefix . ' ' . $t_name : $t_name,
 					'url'   => $state->toggle_url( $base_url, $attr_slug, $slug ),
 				);
 			}
@@ -247,7 +404,16 @@ final class FilterRenderer {
 		if ( $state->on_sale() ) {
 			$chips[] = array(
 				'label' => __( 'On sale', 'motored-core' ),
+				'value' => __( 'On sale', 'motored-core' ),
 				'url'   => $state->toggle_url( $base_url, 'oferta' ),
+			);
+		}
+
+		if ( $state->in_stock() ) {
+			$chips[] = array(
+				'label' => __( 'In stock', 'motored-core' ),
+				'value' => __( 'In stock', 'motored-core' ),
+				'url'   => $state->toggle_url( $base_url, 'stock' ),
 			);
 		}
 
@@ -255,6 +421,8 @@ final class FilterRenderer {
 			$chips[] = array(
 				/* translators: %s: tire size, e.g. 130/70-17. */
 				'label' => sprintf( __( 'Kits with %s', 'motored-core' ), $state->kit_size() ),
+				/* translators: %s: tire size, e.g. 130/70-17. */
+				'value' => sprintf( __( 'Kits with %s', 'motored-core' ), $state->kit_size() ),
 				'url'   => $state->toggle_url( $base_url, 'kit_medida', $state->kit_size() ),
 			);
 		}

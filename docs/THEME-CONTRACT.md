@@ -1,6 +1,6 @@
 # Theme contract (engine / skin)
 
-Contract version: **1.3** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
+Contract version: **1.4** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
 
 Motored is **one product in two packages**:
 
@@ -64,7 +64,8 @@ specificity), so a theme value always wins.
 
 ## 2. Markup (plugin → theme)
 
-- **Shortcodes:** `[motored_buscador]` (`layout="smart|split|…"`), `[motored_filtros]`,
+- **Shortcodes:** `[motored_buscador]` (`layout="smart|split|…"`), `[motored_filtros]` (`layout="quick"` (1.4): the
+  bar above the grid with the "In stock" toggle and the quick filters, `.motored-quick*`),
   `[motored_compat_selector]`, `[motored_compat_list]`, `[motored_mi_garage]`, `[motored_moto]`,
   `[motored_medida]`, `[motored_bike_hub]`, `[motored_payment_plans]`, `[motored_install_gallery]`.
   The theme exposes them in UX Builder (`inc/builder/shortcodes/motored.php`).
@@ -73,7 +74,11 @@ specificity), so a theme value always wins.
   `.motored-install-gallery`, `.motored-ig-*`, `.motored-suggest__*`, `.motored-trending__*`. Renaming one
   is a breaking change.
 - **Data attributes:** `[data-motored-garage-open]` on any link opens the garage drawer (its `href` is the
-  no-JS fallback); `[data-motored-filters]` marks the filter sidebar.
+  no-JS fallback); `[data-motored-filters]` marks the filter sidebar; `[data-motored-swap="key"]` (1.4) on any
+  element outside the grid that depends on the active filters (catalog title, sort form, the quick bar): after an
+  AJAX filter change the plugin replaces it with the element of the same key in the new page.
+- **Catalog URLs:** native WooCommerce filters plus `?oferta=1`, `?stock=1` (1.4, only products in stock),
+  `?moto=`, `&pos=`, `?kit_medida=`.
 - **E-mails** use `wc_get_template_html()`, so the theme can override them in `woocommerce/emails/motored-*.php`.
 
 ## 3. PHP (plugin → theme)
@@ -82,6 +87,7 @@ specificity), so a theme value always wins.
 |---|---|
 | `\Motored\Core\Api::CONTRACT`, `Api::supports( '1' )` | Contract version check |
 | `\Motored\Core\Api::garage_url()` | Mi Garage URL for the current visitor |
+| `\Motored\Core\Api::active_filter_labels()` | Values of the active catalog filters for headings (1.4), e.g. `["Michelin", "Rodado 17", "En stock"]` |
 | `do_action( 'motored_garage_trigger' )` | The theme fires it where it renders a garage link; the plugin mounts the drawer once (not on checkout) |
 | `add_theme_support( 'motored-garage-modal' )` | Theme → plugin (1.3): the garage opens as a centered dialog instead of the side drawer. Same `#motored-garage-drawer` dialog with `.motored-garage-drawer--modal`: close button first, `__header` with `h2 > .motored-garage-drawer__icon` (empty span the theme fills) and `.motored-garage-drawer__lead`; `.motored-garage-page--modal` shows `.motored-garage-current` (`__links`, `__link`, `__sep`, `__remove`, `__name`, `__primary`), `.motored-garage-others` (`__title`, `__list`, `__item`, `__name`, `__use`), `.motored-garage-pick` (the selector, `__cancel`) and `.motored-garage-guest--inline` (`__title`, `__login`) |
 | `MOTORED_CORE_VERSION` | Plugin is active |

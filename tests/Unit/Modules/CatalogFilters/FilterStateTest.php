@@ -116,4 +116,22 @@ final class FilterStateTest extends TestCase {
 		$this->assertSame( '', $back->with_toggled( 'kit_medida', '130/70-17' )->kit_size() );
 		$this->assertSame( '', FilterState::from_query( array( 'kit_medida' => 'nonsense' ) )->kit_size() );
 	}
+
+	public function test_in_stock_parses_toggles_and_round_trips(): void {
+		$state = FilterState::from_query(
+			array(
+				'stock'   => '1',
+				'orderby' => 'price',
+			)
+		);
+
+		$this->assertTrue( $state->in_stock() );
+		$this->assertTrue( $state->is_active( 'stock' ) );
+		$this->assertTrue( $state->has_catalog_filter() );
+		$this->assertSame( array( 'orderby' => 'price' ), $state->extra() );
+		$this->assertSame( array( 'orderby' => 'price', 'stock' => '1' ), $state->to_query_args() );
+		$this->assertFalse( $state->with_toggled( 'stock' )->in_stock() );
+		$this->assertFalse( $state->cleared()->in_stock() );
+		$this->assertFalse( FilterState::from_query( array( 'stock' => 'no' ) )->in_stock() );
+	}
 }

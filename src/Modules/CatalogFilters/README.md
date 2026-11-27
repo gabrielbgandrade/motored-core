@@ -13,11 +13,17 @@ Theme-agnostic motorcycle tire search, faceted sidebar filters and smart suggest
   - Native WooCommerce URLs (`?filter_{slug}=a,b&query_type_{slug}=or`, `?product_brand=a,b`, `?oferta=1`) combined with `?moto=` and `&pos=`.
   - With a motorcycle selected, the compatibility bar and sidebar share one `pos=front|rear|kit` selection. Sidebar position counts use compatible product IDs and respect the other catalog filters. Legacy single-axis links normalize to `pos`; legacy multi-position or combined-axle links keep their taxonomy results until a position is selected in the compatibility bar.
   - Kits by size: when the filters name exactly one size (one width, one rim, at most one profile) and front + rear kits include it, the panel links to `?kit_medida=130/70-17` ("There are also N front + rear kits with 130/70-17"). That view drops the unit-only facets (width, profile, rim, load, speed), keeps brand/sale/motorcycle, intersects `post__in` with `ProductIndexRepository::kit_ids_with_size()` and restricts facet counts the same way (`kit_ids` context). Kits never enter the dimension facets themselves.
-  - Active filter chips with `×`, result counter, native collapsible accordions, real anchor links (works without JS); with JS, ticks are batched and applied with a sticky `"Apply filters (N)"` button on every width (no reload per click).
+  - Head: title, count badge of active filters, "Clear all" link; active filter chips with `×`, result counter, native collapsible accordions, real anchor links (works without JS); with JS, ticks are batched and applied with a sticky `"Apply filters (N)"` button on every width (no reload per click).
 - **Upgraded Compatibility Product Tab & `[motored_compat_list]`:**
   - Server-side rendered HTML cached by tire specification (`MatchEngine::compatible_motos_for_product()`), grouped by brand in 2 columns, collapsed initially (6 brands), inline cap of 120 items with on-demand REST hydration, instant alias-aware search and client-side `Mi Garage` highlight.
 
+- **Quick bar `[motored_filtros layout="quick"]`:** "In stock" toggle (`?stock=1`, only when WooCommerce shows
+  out-of-stock items; grid and counts read `_stock_status` like the snapshot) and up to 6 quick filters from the
+  current counts (brand 2, rim 2, width 1, sale 1, active ones always kept). Each link applies at once (AJAX).
+  `Api::active_filter_labels()` exposes the chip values for catalog headings.
+
 ## Theme contract
+- Every `[data-motored-swap="key"]` region outside the grid (theme title, sort form, quick bar) is replaced from the new page after an AJAX swap.
 - When an AJAX catalog swap starts the module dispatches `motored:filters-loading` (`detail.url`).
 - After an AJAX catalog swap the module dispatches `motored:filters-updated` (`detail.url`, `detail.root`). The theme re-attaches its own behaviors and closes its off-canvas filter panel; the module never calls theme code.
 - `catalog-filters.css` owns the structure of the search, the filters and the smart-search panels (`.motored-suggest__*`, `.motored-trending__*`); colors, radii and shadows come from the `--motored-*` tokens set by the theme.

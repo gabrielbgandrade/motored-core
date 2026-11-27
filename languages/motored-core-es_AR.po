@@ -5982,3 +5982,11 @@ msgstr "Quitar moto"
 #: src/Modules/MiGarage/GarageAssets.php
 msgid "Your other motorcycles"
 msgstr "Tus otras motos"
+
+#: src/Modules/CatalogFilters/FilterRenderer.php
+msgid "Clear all"
+msgstr "Eliminar todos"
+
+#: src/Modules/CatalogFilters/FilterRenderer.php
+msgid "Quick filters"
+msgstr "Filtros rápidos"

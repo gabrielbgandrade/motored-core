@@ -1,5 +1,5 @@
 /**
- * Faceted sidebar [motored_filtros]: options are real links (work without JS).
+ * Faceted sidebar [motored_filtros] and quick bar [motored_filtros layout="quick"]: options are real links (work without JS).
  * On desktop (>= 850px), clicking any filter, chip or clear link applies immediately via AJAX
  * (swapping the catalog grid, counts, chips and URL without a full page reload).
  * On mobile (< 850px), the shopper can tick several options and apply them at once via AJAX.
@@ -112,6 +112,16 @@
 					}
 				});
 
+				// Public contract (docs/THEME-CONTRACT.md): every [data-motored-swap="key"] region (theme catalog title,
+				// sort form, our quick bar) is replaced by the element with the same key in the new page.
+				document.querySelectorAll('[data-motored-swap]').forEach(function (region) {
+					var key = region.getAttribute('data-motored-swap') || '';
+					var next = key ? nextDoc.querySelector('[data-motored-swap="' + key.replace(/["\\]/g, '') + '"]') : null;
+					if (next) {
+						region.replaceWith(document.importNode(next, true));
+					}
+				});
+
 				if (nextDoc.title) {
 					document.title = nextDoc.title;
 				}
@@ -196,6 +206,9 @@
 			if (kit) {
 				params.push('kit_medida=' + encodeURIComponent(kit));
 			}
+			if (box.dataset.stock) {
+				params.push('stock=1');
+			}
 			box.querySelectorAll('.motored-opt.is-active').forEach(function (a) {
 				var f = a.dataset.facet;
 				var s = a.dataset.slug;
@@ -266,8 +279,8 @@
 			});
 		});
 
-		// Instant AJAX on active filter chips & "Clear filters" links.
-		box.querySelectorAll('.motored-chip, .motored-filters__clear').forEach(function (link) {
+		// Instant AJAX on active filter chips & "Clear all" links.
+		box.querySelectorAll('.motored-chip, .motored-filters__clear, .motored-filters__clear-all').forEach(function (link) {
 			link.addEventListener('click', function (e) {
 				if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
 					return;
@@ -283,6 +296,20 @@
 	}
 
 	initAll();
+
+	// Quick bar ([motored_filtros layout="quick"]): each link toggles one filter and applies at once.
+	document.addEventListener('click', function (e) {
+		var link = e.target.closest && e.target.closest('[data-motored-quick] a[href]');
+		if (!link || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+			return;
+		}
+		if (!document.querySelector(GRID_SEL)) {
+			return;
+		}
+		e.preventDefault();
+		track('filter_apply', { changes: 1, mode: 'quick' });
+		applyAjax(link.href, true);
+	});
 
 	window.addEventListener('popstate', function () {
 		if (document.querySelector(GRID_SEL) && document.querySelector('[data-motored-filters]')) {
