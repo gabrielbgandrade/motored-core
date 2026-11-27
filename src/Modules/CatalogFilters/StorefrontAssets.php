@@ -54,7 +54,7 @@ final class StorefrontAssets {
 				self::HANDLE_CSS,
 				MOTORED_CORE_URL . 'assets/css/catalog-filters.css',
 				array( SharedAssets::HANDLE_COMPAT_CSS ),
-				MOTORED_CORE_VERSION . '-filters7'
+				MOTORED_CORE_VERSION . '-filters8'
 			);
 		}
 	}
@@ -103,13 +103,13 @@ final class StorefrontAssets {
 				'loadSelectErr'      => __( 'Could not load options. Please try again.', 'motored-core' ),
 				/* translators: %d: number of suggestions. */
 				'suggestCount'       => __( '%d suggestions available. Use the up and down arrows to browse.', 'motored-core' ),
-				'trendingSizes'      => __( 'Medidas más buscadas', 'motored-core' ),
-				'trendingBrands'     => __( 'Marcas destacadas', 'motored-core' ),
-				'trendingProducts'   => __( 'Más vendidos', 'motored-core' ),
-				'suggestHeading'     => __( 'Sugerencias', 'motored-core' ),
+				'trendingSizes'      => __( 'Most searched sizes', 'motored-core' ),
+				'trendingBrands'     => __( 'Featured brands', 'motored-core' ),
+				'trendingProducts'   => __( 'Best sellers', 'motored-core' ),
+				'suggestHeading'     => __( 'Suggestions', 'motored-core' ),
 				/* translators: %s: search query. */
-				'productsFor'        => __( 'Productos para "%s"', 'motored-core' ),
-				'viewAllResults'     => __( 'Ver todos los resultados', 'motored-core' ),
+				'productsFor'        => __( 'Products for "%s"', 'motored-core' ),
+				'viewAllResults'     => __( 'View all results', 'motored-core' ),
 			),
 		);
 		wp_add_inline_script(

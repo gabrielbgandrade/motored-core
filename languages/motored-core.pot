@@ -5933,3 +5933,40 @@ msgstr ""
 #: src/Modules/Seo/SeoAdmin.php:363
 msgid "Open Google Merchant Feed (XML)"
 msgstr ""
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php:106
+msgid "Most searched sizes"
+msgstr ""
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php:107
+msgid "Featured brands"
+msgstr ""
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php:108
+msgid "Best sellers"
+msgstr ""
+
+#. translators: %s: search query.
+#: src/Modules/CatalogFilters/StorefrontAssets.php:111
+msgid "Products for \"%s\""
+msgstr ""
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php:112
+msgid "View all results"
+msgstr ""
+
+#: src/Modules/MiGarage/GarageEndpoint.php:285
+msgid "Save your motorcycles in your account"
+msgstr ""
+
+#: src/Modules/MiGarage/GarageEndpoint.php:286
+msgid "Log in or create your account"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:103
+msgid "Motored Neumáticos | Motorcycle tires in Argentina"
+msgstr ""
+
+#: src/Modules/Seo/SeoAdmin.php:113
+msgid "Find the exact tire for your motorcycle. Real stock, installments and nationwide shipping."
+msgstr ""

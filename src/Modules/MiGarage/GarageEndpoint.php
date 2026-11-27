@@ -282,10 +282,8 @@ final class GarageEndpoint {
 			echo '<div class="motored-garage-drawer__body">';
 			if ( ! is_user_logged_in() && '' !== $account_url ) {
 				echo '<div class="motored-garage-guest">';
-				echo '<p class="motored-garage-guest__title">' . esc_html__( 'Guardá tus motos en tu cuenta', 'motored-core' ) . '</p>';
-				echo '<p class="motored-garage-guest__cta"><a href="' . esc_url( $account_url ) . '">' . esc_html__( 'Iniciá sesión o creá tu cuenta', 'motored-core' ) . '</a> </p>';
-				echo '<ul class="motored-garage-guest__perks">';
-				echo '</ul>';
+				echo '<p class="motored-garage-guest__title">' . esc_html__( 'Save your motorcycles in your account', 'motored-core' ) . '</p>';
+				echo '<p class="motored-garage-guest__cta"><a href="' . esc_url( $account_url ) . '">' . esc_html__( 'Log in or create your account', 'motored-core' ) . '</a></p>';
 				echo '</div>';
 			}
 		} else {

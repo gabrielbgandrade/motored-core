@@ -1,6 +1,6 @@
 # Theme contract (engine / skin)
 
-Contract version: **1.0** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
+Contract version: **1.1** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
 
 Motored is **one product in two packages**:
 
@@ -69,8 +69,9 @@ specificity), so a theme value always wins.
   `[motored_medida]`, `[motored_bike_hub]`, `[motored_payment_plans]`, `[motored_install_gallery]`.
   The theme exposes them in UX Builder (`inc/builder/shortcodes/motored.php`).
 - **BEM classes are public API.** Block roots: `.motored-search`, `.motored-filters`, `.motored-compat-*`,
-  `.motored-garage-*`, `.motored-bike-*`, `.motored-notify-*`, `.motored-install-gallery`, `.motored-ig-*`,
-  `.motored-suggest__*`, `.motored-trending__*`. Renaming one is a breaking change.
+  `.motored-garage-*`, `.motored-bike-*`, `.motored-notify-*`, `.motored-plans`, `.motored-plans-dialog`,
+  `.motored-install-gallery`, `.motored-ig-*`, `.motored-suggest__*`, `.motored-trending__*`. Renaming one
+  is a breaking change.
 - **Data attributes:** `[data-motored-garage-open]` on any link opens the garage drawer (its `href` is the
   no-JS fallback); `[data-motored-filters]` marks the filter sidebar.
 - **E-mails** use `wc_get_template_html()`, so the theme can override them in `woocommerce/emails/motored-*.php`.

@@ -22,7 +22,8 @@
 .motored-bike-hub,
 .motored-bike-card,
 .motored-notify-form,
-.motored-notify-dialog {
+.motored-notify-dialog,
+.motored-plans-dialog {
 	--motored-accent: var(--motored-accent-color, currentColor);
 	--motored-on-accent: var(--motored-on-accent-color, #fff);
 	--motored-border: var(--motored-line-color, color-mix(in srgb, currentColor 20%, transparent));
@@ -53,7 +54,8 @@
 .motored-garage-cta *,
 .motored-garage-page *,
 .motored-bike-page *,
-.motored-bike-hub * {
+.motored-bike-hub *,
+.motored-plans-dialog * {
 	box-sizing: border-box;
 }
 
@@ -66,7 +68,8 @@
 .motored-compat-bar :focus-visible,
 .motored-bike-page :focus-visible,
 .motored-garage-cta :focus-visible,
-.motored-garage-page :focus-visible {
+.motored-garage-page :focus-visible,
+.motored-plans-dialog :focus-visible {
 	outline: 2px solid var(--motored-focus);
 	outline-offset: 2px;
 }
@@ -303,22 +306,30 @@
 	margin-top: 0.45rem;
 }
 
-.motored-compat-badge__link {
+.motored-compat-badge__link,
+button.motored-compat-badge__link {
 	background: transparent;
 	border: 0;
 	padding: 0;
 	margin: 0;
+	min-height: 0;
 	font: inherit;
 	font-size: 0.85em;
 	font-weight: 600;
 	color: inherit;
 	text-decoration: underline;
 	text-underline-offset: 2px;
+	text-transform: none;
+	letter-spacing: 0;
 	cursor: pointer;
 }
 
 .motored-compat-badge .motored-compat-badge__btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	margin: 0;
+	padding-block: 0.5em;
 	flex: 0 0 auto;
 	line-height: 1.2;
 }
@@ -352,6 +363,10 @@
 }
 
 .motored-compat-banner__chip {
+	display: inline-flex;
+	align-items: center;
+	margin: 0;
+	min-height: 0;
 	background: transparent;
 	border: 1px solid var(--motored-border);
 	border-radius: var(--motored-pill);
@@ -359,6 +374,9 @@
 	font: inherit;
 	font-size: 0.88em;
 	font-weight: 600;
+	line-height: 1.3;
+	text-transform: none;
+	letter-spacing: 0;
 	color: inherit;
 	cursor: pointer;
 }
@@ -689,13 +707,6 @@
 	margin: 0.35rem 0 0;
 	font-size: 0.9em;
 	opacity: 0.85;
-}
-
-.motored-garage-card__actions {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	margin-top: 0.85rem;
 }
 
 .motored-garage-empty {
@@ -1079,7 +1090,8 @@
 
 .motored-notify-dialog__close {
 	display: block;
-	margin-left: auto;
+	margin: 0 0 0.5rem auto;
+	padding: 0 0.75rem;
 	min-height: 44px;
 	cursor: pointer;
 }
@@ -1207,4 +1219,57 @@
 .motored-notify-form__msg.is-error {
 	color: var(--motored-no);
 	font-weight: 600;
+}
+
+/* Payment plans modal dialog [motored_payment_plans] */
+.motored-plans-dialog {
+	width: min(32rem, calc(100vw - 2rem));
+	max-width: 100%;
+	max-height: calc(100dvh - 2rem);
+	overflow-y: auto;
+	padding: 1.5rem;
+	border: 1px solid var(--motored-border);
+	border-radius: var(--motored-radius);
+	background: var(--motored-raised);
+	color: var(--motored-ink);
+	box-shadow: 0 12px 32px var(--motored-shadow);
+}
+
+.motored-plans-dialog::backdrop {
+	background: var(--motored-backdrop-color, rgb(0 0 0 / 55%));
+}
+
+.motored-plans-dialog__title {
+	margin: 0 0 1rem;
+	font-size: 1.25rem;
+	line-height: 1.3;
+}
+
+.motored-plans-dialog__table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 0 0 1.25rem;
+}
+
+.motored-plans-dialog__table th,
+.motored-plans-dialog__table td {
+	padding: 0.6rem 0.5rem;
+	border-bottom: 1px solid var(--motored-border);
+	text-align: left;
+	vertical-align: top;
+}
+
+.motored-plans-dialog__table td {
+	text-align: right;
+	white-space: nowrap;
+}
+
+.motored-plans-dialog__actions {
+	display: flex;
+	justify-content: flex-end;
+	margin: 0;
+}
+
+.motored-plans-dialog .motored-plans-dialog__close {
+	margin: 0;
 }

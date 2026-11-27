@@ -351,7 +351,7 @@
 					side.className = 'motored-suggest__side';
 					var hS = document.createElement('h4');
 					hS.className = 'motored-trending__heading';
-					hS.textContent = T.suggestHeading || 'Sugerencias';
+					hS.textContent = T.suggestHeading || 'Suggestions';
 					side.appendChild(hS);
 
 					var ul = document.createElement('ul');
@@ -385,13 +385,13 @@
 				head.className = 'motored-suggest__header';
 				var hP = document.createElement('h4');
 				hP.className = 'motored-trending__heading';
-				hP.textContent = String(T.productsFor || 'Productos para "%s"').replace('%s', q);
+				hP.textContent = String(T.productsFor || 'Products for "%s"').replace('%s', q);
 				head.appendChild(hP);
 				if (searchUrl) {
 					var allLink = document.createElement('a');
 					allLink.className = 'motored-suggest__all';
 					allLink.href = searchUrl;
-					allLink.textContent = (T.viewAllResults || 'Ver todos los resultados') + ' ›';
+					allLink.textContent = (T.viewAllResults || 'View all results') + ' ›';
 					allLink.addEventListener('mousedown', function (e) {
 						e.preventDefault();
 						location.href = searchUrl;
@@ -522,7 +522,7 @@
 				if (sizes.length) {
 					var hS = document.createElement('h4');
 					hS.className = 'motored-trending__heading';
-					hS.textContent = T.trendingSizes || 'Medidas más buscadas';
+					hS.textContent = T.trendingSizes || 'Most searched sizes';
 					side.appendChild(hS);
 					var ulS = document.createElement('ul');
 					ulS.className = 'motored-trending__list';
@@ -540,7 +540,7 @@
 				if (brands.length) {
 					var hB = document.createElement('h4');
 					hB.className = 'motored-trending__heading';
-					hB.textContent = T.trendingBrands || 'Marcas destacadas';
+					hB.textContent = T.trendingBrands || 'Featured brands';
 					side.appendChild(hB);
 					var ulB = document.createElement('ul');
 					ulB.className = 'motored-trending__list motored-trending__list--inline';
@@ -563,7 +563,7 @@
 				main.className = 'motored-trending__main';
 				var hP = document.createElement('h4');
 				hP.className = 'motored-trending__heading';
-				hP.textContent = T.trendingProducts || 'Más vendidos';
+				hP.textContent = T.trendingProducts || 'Best sellers';
 				main.appendChild(hP);
 				var cards = document.createElement('div');
 				cards.className = 'motored-trending__products';

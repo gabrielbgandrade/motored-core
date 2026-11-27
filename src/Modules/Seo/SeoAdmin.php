@@ -100,7 +100,7 @@ final class SeoAdmin {
 				'id'          => 'motored_seo[home_title]',
 				'type'        => 'text',
 				'class'       => 'motored-input-wide',
-				'placeholder' => __( 'Motored Neumáticos | Cubiertas para moto en Argentina', 'motored-core' ),
+				'placeholder' => __( 'Motored Neumáticos | Motorcycle tires in Argentina', 'motored-core' ),
 				'default'     => '',
 				'autoload'    => false,
 			),
@@ -110,7 +110,7 @@ final class SeoAdmin {
 				'id'          => 'motored_seo[home_description]',
 				'type'        => 'textarea',
 				'class'       => 'motored-input-wide motored-textarea',
-				'placeholder' => __( 'Encontrá la cubierta exacta para tu moto. Stock real, cuotas y envíos a todo el país.', 'motored-core' ),
+				'placeholder' => __( 'Find the exact tire for your motorcycle. Real stock, installments and nationwide shipping.', 'motored-core' ),
 				'default'     => '',
 				'autoload'    => false,
 			),
@@ -180,7 +180,7 @@ final class SeoAdmin {
 				'id'          => 'motored_seo[org_name]',
 				'type'        => 'text',
 				'class'       => 'motored-input-wide',
-				'placeholder' => __( 'Motored Neumáticos', 'motored-core' ),
+				'placeholder' => 'Motored Neumáticos',
 				'default'     => '',
 				'autoload'    => false,
 			),
@@ -665,8 +665,8 @@ final class SeoAdmin {
 			return;
 		}
 		$ver = MOTORED_CORE_VERSION;
-		if ( defined( 'MOTORED_CORE_DIR' ) ) {
-			$path = MOTORED_CORE_DIR . 'assets/admin/motored-seo.js';
+		if ( defined( 'MOTORED_CORE_PATH' ) ) {
+			$path = MOTORED_CORE_PATH . 'assets/admin/motored-seo.js';
 			if ( is_file( $path ) ) {
 				$mtime = filemtime( $path );
 				if ( false !== $mtime ) {

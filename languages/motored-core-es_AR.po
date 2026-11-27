@@ -5921,3 +5921,40 @@ msgstr "Tiempo de envío (máx. días hábiles)"
 #: src/Modules/Seo/SeoAdmin.php:363
 msgid "Open Google Merchant Feed (XML)"
 msgstr "Abrir Feed Google Merchant (XML)"
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php:106
+msgid "Most searched sizes"
+msgstr "Medidas más buscadas"
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php:107
+msgid "Featured brands"
+msgstr "Marcas destacadas"
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php:108
+msgid "Best sellers"
+msgstr "Más vendidos"
+
+#. translators: %s: search query.
+#: src/Modules/CatalogFilters/StorefrontAssets.php:111
+msgid "Products for \"%s\""
+msgstr "Productos para \"%s\""
+
+#: src/Modules/CatalogFilters/StorefrontAssets.php:112
+msgid "View all results"
+msgstr "Ver todos los resultados"
+
+#: src/Modules/MiGarage/GarageEndpoint.php:285
+msgid "Save your motorcycles in your account"
+msgstr "Guardá tus motos en tu cuenta"
+
+#: src/Modules/MiGarage/GarageEndpoint.php:286
+msgid "Log in or create your account"
+msgstr "Iniciá sesión o creá tu cuenta"
+
+#: src/Modules/Seo/SeoAdmin.php:103
+msgid "Motored Neumáticos | Motorcycle tires in Argentina"
+msgstr "Motored Neumáticos | Cubiertas para moto en Argentina"
+
+#: src/Modules/Seo/SeoAdmin.php:113
+msgid "Find the exact tire for your motorcycle. Real stock, installments and nationwide shipping."
+msgstr "Encontrá la cubierta exacta para tu moto. Stock real, cuotas y envíos a todo el país."

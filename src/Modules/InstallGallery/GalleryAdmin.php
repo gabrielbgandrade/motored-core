@@ -325,8 +325,8 @@ final class GalleryAdmin {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only post id check for media modal attachment context.
 		wp_enqueue_media( $post_id > 0 ? array( 'post' => $post_id ) : array() );
 		$script_ver = MOTORED_CORE_VERSION;
-		if ( defined( 'MOTORED_CORE_DIR' ) ) {
-			$script_path = MOTORED_CORE_DIR . 'assets/admin/motored-install-gallery.js';
+		if ( defined( 'MOTORED_CORE_PATH' ) ) {
+			$script_path = MOTORED_CORE_PATH . 'assets/admin/motored-install-gallery.js';
 			if ( is_file( $script_path ) ) {
 				$mtime = filemtime( $script_path );
 				if ( false !== $mtime ) {

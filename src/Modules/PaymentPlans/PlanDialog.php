@@ -7,6 +7,8 @@
 
 namespace Motored\Core\Modules\PaymentPlans;
 
+use Motored\Core\Support\StorefrontAssets;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -25,13 +27,14 @@ final class PlanDialog {
 	private static bool $requested = false;
 
 	/**
-	 * Enqueues the deferred script and schedules the footer markup (once per request).
+	 * Enqueues the shared storefront CSS + deferred script and schedules the footer markup (once per request).
 	 */
 	public static function request(): void {
 		if ( self::$requested ) {
 			return;
 		}
 		self::$requested = true;
+		StorefrontAssets::enqueue_compat_css();
 		wp_enqueue_script(
 			self::HANDLE,
 			MOTORED_CORE_URL . 'assets/js/payment-plans.js',
@@ -50,7 +53,11 @@ final class PlanDialog {
 	 */
 	public static function print_dialog(): void {
 		printf(
-			'<dialog id="%1$s" aria-labelledby="%1$s-title" style="max-width:32rem;width:92%%"><h2 id="%1$s-title" style="margin-top:0">%2$s</h2><table style="width:100%%"><tbody></tbody></table><form method="dialog"><button type="submit">%3$s</button></form></dialog>',
+			'<dialog id="%1$s" class="motored-plans-dialog" aria-labelledby="%1$s-title">'
+			. '<h2 id="%1$s-title" class="motored-plans-dialog__title">%2$s</h2>'
+			. '<table class="motored-plans-dialog__table"><tbody></tbody></table>'
+			. '<form method="dialog" class="motored-plans-dialog__actions"><button type="submit" class="button wp-element-button motored-plans-dialog__close">%3$s</button></form>'
+			. '</dialog>',
 			esc_attr( self::DOM_ID ),
 			esc_html__( 'Payment methods', 'motored-core' ),
 			esc_html__( 'Close', 'motored-core' )

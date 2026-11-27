@@ -36,6 +36,9 @@ final class StorefrontTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( '_n' )->alias( static fn( $s, $p, $n ) => 1 === $n ? $s : $p );
 		$this->enqueued = 0;
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+		Functions\when( 'sanitize_hex_color' )->justReturn( '' );
 		Functions\when( 'wp_enqueue_script' )->alias(
 			function () {
 				++$this->enqueued;
@@ -132,6 +135,14 @@ final class StorefrontTest extends TestCase {
 		PlanDialog::request();
 		PlanDialog::request();
 		$this->assertSame( 1, $this->enqueued );
+	}
+
+	public function test_dialog_markup_uses_contract_classes_without_inline_styles(): void {
+		ob_start();
+		PlanDialog::print_dialog();
+		$html = (string) ob_get_clean();
+		$this->assertStringContainsString( 'class="motored-plans-dialog"', $html );
+		$this->assertStringNotContainsString( 'style=', $html );
 	}
 
 	public function test_gateway_warnings(): void {

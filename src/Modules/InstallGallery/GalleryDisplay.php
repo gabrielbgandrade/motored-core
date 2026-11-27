@@ -604,8 +604,8 @@ final class GalleryDisplay {
 	 * @param string $relative Path relative to plugin root.
 	 */
 	private static function asset_version( string $relative ): string {
-		if ( defined( 'MOTORED_CORE_DIR' ) ) {
-			$path = MOTORED_CORE_DIR . $relative;
+		if ( defined( 'MOTORED_CORE_PATH' ) ) {
+			$path = MOTORED_CORE_PATH . $relative;
 			if ( is_file( $path ) ) {
 				$mtime = filemtime( $path );
 				if ( false !== $mtime ) {

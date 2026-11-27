@@ -28,8 +28,8 @@ final class AdminAssets {
 			return;
 		}
 		$ver = MOTORED_CORE_VERSION;
-		if ( defined( 'MOTORED_CORE_DIR' ) ) {
-			$path = MOTORED_CORE_DIR . 'assets/admin/motored-admin.css';
+		if ( defined( 'MOTORED_CORE_PATH' ) ) {
+			$path = MOTORED_CORE_PATH . 'assets/admin/motored-admin.css';
 			if ( is_file( $path ) ) {
 				$mtime = filemtime( $path );
 				if ( false !== $mtime ) {
