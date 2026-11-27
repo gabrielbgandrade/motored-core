@@ -644,6 +644,176 @@ button.motored-compat-badge__link {
 	text-decoration: underline;
 }
 
+/* Centered garage dialog (theme support "motored-garage-modal"): same dialog, no side drawer.
+   Structure only; the theme gives it its look through the tokens and the public classes. */
+.motored-garage-drawer.motored-garage-drawer--modal {
+	inset: 0;
+	margin: auto;
+	width: min(calc(100% - 2rem), 28rem);
+	height: fit-content;
+	max-height: calc(100% - 2rem);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	box-shadow: 0 0 24px var(--motored-shadow);
+}
+
+.motored-garage-drawer.motored-garage-drawer--modal[open] {
+	display: block;
+	animation: motored-garage-pop 160ms ease-out;
+}
+
+.motored-garage-drawer--modal .motored-garage-drawer__close {
+	position: absolute;
+	top: 0;
+	right: 0;
+	z-index: 1;
+	border-radius: 0;
+	background: var(--motored-accent);
+	color: var(--motored-on-accent);
+}
+
+.motored-garage-drawer--modal .motored-garage-drawer__close:hover {
+	background: var(--motored-accent);
+	color: var(--motored-highlight);
+}
+
+.motored-garage-drawer--modal .motored-garage-drawer__header {
+	display: block;
+	padding: 2rem 2rem 0.5rem;
+	background: transparent;
+	color: inherit;
+	text-align: center;
+}
+
+.motored-garage-drawer--modal .motored-garage-drawer__header h2 {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	text-transform: none;
+	letter-spacing: 0;
+}
+
+.motored-garage-drawer__lead {
+	margin: 0.5rem 0 0;
+	color: var(--motored-muted);
+}
+
+.motored-garage-page--modal {
+	padding: 0.5rem 2.5rem 2.5rem;
+}
+
+.motored-garage-page--modal .motored-garage-pick[hidden],
+.motored-garage-page--modal .motored-garage-list[hidden] {
+	display: none;
+}
+
+.motored-garage-page--modal .motored-compat-selector__grid {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.motored-garage-pick__cancel {
+	display: block;
+	margin: 0.75rem auto 0;
+}
+
+.motored-garage-current {
+	text-align: center;
+}
+
+.motored-garage-current__links {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	margin: 0.75rem 0 0;
+}
+
+.motored-garage-page--modal button.motored-garage-current__link {
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--motored-link);
+	font: inherit;
+	cursor: pointer;
+}
+
+.motored-garage-current__name {
+	margin: 0.6rem 0 0;
+	color: var(--motored-ink);
+}
+
+.motored-garage-current .motored-garage-current__primary {
+	display: block;
+	width: 100%;
+	margin: 1.25rem 0 0;
+	text-align: center;
+}
+
+.motored-garage-others {
+	margin-top: 1.25rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--motored-border);
+}
+
+.motored-garage-others__title {
+	margin: 0 0 0.5rem;
+	color: var(--motored-muted);
+}
+
+.motored-garage-others__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.motored-garage-others__item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.4rem 0;
+}
+
+.motored-garage-guest--inline {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin: 1.5rem 0 0;
+	border: 0;
+	border-radius: 0;
+	background: var(--motored-soft);
+}
+
+.motored-garage-guest--inline .motored-garage-guest__title {
+	margin: 0;
+}
+
+.motored-garage-guest--inline .motored-garage-guest__login {
+	flex: none;
+	margin: 0;
+}
+
+.motored-garage-page--modal .motored-compat-disclaimer {
+	margin-top: 1rem;
+	text-align: center;
+}
+
+@keyframes motored-garage-pop {
+	from { opacity: 0; transform: translateY(12px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.motored-garage-drawer.motored-garage-drawer--modal[open] {
+		animation: none;
+	}
+}
+
 @keyframes motored-garage-enter {
 	from { transform: translateX(100%); }
 	to { transform: translateX(0); }

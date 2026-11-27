@@ -5958,3 +5958,27 @@ msgstr "Motored Neumáticos | Cubiertas para moto en Argentina"
 #: src/Modules/Seo/SeoAdmin.php:113
 msgid "Find the exact tire for your motorcycle. Real stock, installments and nationwide shipping."
 msgstr "Encontrá la cubierta exacta para tu moto. Stock real, cuotas y envíos a todo el país."
+
+#: src/Modules/MiGarage/GarageEndpoint.php
+msgid "Add your motorcycle"
+msgstr "Agregá tu moto"
+
+#: src/Modules/MiGarage/GarageEndpoint.php
+msgid "Find the tires that fit your motorcycle"
+msgstr "Encontrá las cubiertas que le van a tu moto"
+
+#: src/Modules/MiGarage/GarageEndpoint.php
+msgid "Log in"
+msgstr "Iniciar sesión"
+
+#: src/Modules/MiGarage/GarageAssets.php
+msgid "Choose another motorcycle"
+msgstr "Elegir otra moto"
+
+#: src/Modules/MiGarage/GarageAssets.php
+msgid "Remove motorcycle"
+msgstr "Quitar moto"
+
+#: src/Modules/MiGarage/GarageAssets.php
+msgid "Your other motorcycles"
+msgstr "Tus otras motos"

@@ -237,19 +237,36 @@ final class GarageEndpoint {
 	}
 
 	/**
-	 * Outputs the shared garage inside one native modal.
+	 * Whether the active theme asked for the centered garage dialog instead of the side drawer
+	 * (`add_theme_support( 'motored-garage-modal' )`, docs/THEME-CONTRACT.md). Any other theme keeps the drawer.
+	 */
+	public static function modal_layout(): bool {
+		return current_theme_supports( 'motored-garage-modal' );
+	}
+
+	/**
+	 * Outputs the shared garage inside one native modal (side drawer, or centered dialog when the theme asks).
 	 */
 	public function render_drawer(): void {
 		if ( $this->drawer_rendered ) {
 			return;
 		}
 		$this->drawer_rendered = true;
-		echo '<dialog id="motored-garage-drawer" class="motored-garage-drawer" aria-labelledby="motored-garage-drawer-title">';
-		echo '<div class="motored-garage-drawer__header">';
-		echo '<h2 id="motored-garage-drawer-title">' . esc_html__( 'My Garage', 'motored-core' ) . '</h2>';
-		echo '<button type="button" class="motored-garage-drawer__close" aria-label="' . esc_attr__( 'Close', 'motored-core' ) . '"><span aria-hidden="true">&times;</span></button>';
-		echo '</div>';
-		$this->render_garage( true );
+		$modal                 = self::modal_layout();
+		echo '<dialog id="motored-garage-drawer" class="motored-garage-drawer' . ( $modal ? ' motored-garage-drawer--modal' : '' ) . '" aria-labelledby="motored-garage-drawer-title">';
+		if ( $modal ) {
+			echo '<button type="button" class="motored-garage-drawer__close" aria-label="' . esc_attr__( 'Close', 'motored-core' ) . '"><span aria-hidden="true">&times;</span></button>';
+			echo '<div class="motored-garage-drawer__header">';
+			echo '<h2 id="motored-garage-drawer-title"><span class="motored-garage-drawer__icon" aria-hidden="true"></span>' . esc_html__( 'Add your motorcycle', 'motored-core' ) . '</h2>';
+			echo '<p class="motored-garage-drawer__lead">' . esc_html__( 'Find the tires that fit your motorcycle', 'motored-core' ) . '</p>';
+			echo '</div>';
+		} else {
+			echo '<div class="motored-garage-drawer__header">';
+			echo '<h2 id="motored-garage-drawer-title">' . esc_html__( 'My Garage', 'motored-core' ) . '</h2>';
+			echo '<button type="button" class="motored-garage-drawer__close" aria-label="' . esc_attr__( 'Close', 'motored-core' ) . '"><span aria-hidden="true">&times;</span></button>';
+			echo '</div>';
+		}
+		$this->render_garage( true, $modal );
 		echo '</dialog>';
 	}
 
@@ -257,8 +274,9 @@ final class GarageEndpoint {
 	 * Renders the list, picker and account hint for either garage surface.
 	 *
 	 * @param bool $drawer Whether this is the modal surface.
+	 * @param bool $modal  Whether the modal surface is the centered dialog (theme support) instead of the drawer.
 	 */
-	private function render_garage( bool $drawer ): void {
+	private function render_garage( bool $drawer, bool $modal = false ): void {
 		StorefrontAssets::enqueue_compat_css();
 		GarageAssets::enqueue();
 		if ( ! wp_script_is( 'motored-compat-garage-page', 'enqueued' ) ) {
@@ -266,7 +284,7 @@ final class GarageEndpoint {
 				'motored-compat-garage-page',
 				MOTORED_CORE_URL . 'assets/js/compat-garage-page.js',
 				array( GarageAssets::HANDLE ),
-				MOTORED_CORE_VERSION . '-garage11',
+				MOTORED_CORE_VERSION . '-garage12',
 				array(
 					'strategy'  => 'defer',
 					'in_footer' => true,
@@ -276,7 +294,26 @@ final class GarageEndpoint {
 		}
 		$shop_url    = Config::shop_url();
 		$account_url = function_exists( 'wc_get_page_permalink' ) ? (string) wc_get_page_permalink( 'myaccount' ) : '';
-		echo '<div class="motored-garage-page' . ( $drawer ? ' motored-garage-page--drawer' : '' ) . '" data-shop-url="' . esc_url( $shop_url ) . '"' . ( $drawer ? '' : ' data-garage-full-page' ) . '>';
+		echo '<div class="motored-garage-page' . ( $drawer ? ' motored-garage-page--drawer' : '' ) . ( $modal ? ' motored-garage-page--modal' : '' ) . '" data-shop-url="' . esc_url( $shop_url ) . '"' . ( $drawer ? '' : ' data-garage-full-page' ) . '>';
+
+		if ( $modal ) {
+			// Centered dialog: the active motorcycle (drawn by compat-garage-page.js) or the picker, then the account hint.
+			echo '<p class="motored-garage-notice" role="status" aria-live="polite" hidden></p>';
+			echo '<div class="motored-garage-list" aria-live="polite"></div>';
+			echo '<div class="motored-garage-pick" data-role="garage-pick">';
+			echo do_shortcode( '[' . Storefront::SELECTOR_SHORTCODE . ' mode="garage" lazy="1"]' );
+			echo '<button type="button" class="motored-garage-pick__cancel" data-role="garage-pick-cancel" hidden>' . esc_html__( 'Cancel', 'motored-core' ) . '</button>';
+			echo '</div>';
+			if ( ! is_user_logged_in() && '' !== $account_url ) {
+				echo '<div class="motored-garage-guest motored-garage-guest--inline">';
+				echo '<p class="motored-garage-guest__title">' . esc_html__( 'Save your motorcycles in your account', 'motored-core' ) . '</p>';
+				echo '<a class="button motored-garage-guest__login" href="' . esc_url( $account_url ) . '">' . esc_html__( 'Log in', 'motored-core' ) . '</a>';
+				echo '</div>';
+			}
+			echo '<p class="motored-compat-disclaimer"><small>' . esc_html( Config::disclaimer() ) . '</small></p>';
+			echo '</div>';
+			return;
+		}
 
 		if ( $drawer ) {
 			echo '<div class="motored-garage-drawer__body">';

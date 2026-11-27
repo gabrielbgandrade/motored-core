@@ -680,3 +680,8 @@ Pending / suggestions (not changed):
 ### 2026-11-27 — Contract 1.2: `motored:filters-loading`
 
 - `assets/js/catalog-filters.js` dispatches `motored:filters-loading` (`detail.url`) when an AJAX catalog swap starts, so the theme can show its top progress bar during catalog updates (it already gets `motored:filters-updated` at the end). Additive → `Api::CONTRACT` 1.1 → 1.2; `docs/THEME-CONTRACT.md`, the module README/skill and the theme's `docs/MOTORED-CONTRACT.md` updated together.
+
+### 2026-11-27 — Contract 1.3: centered garage dialog (`motored-garage-modal`)
+
+- `GarageEndpoint::modal_layout()` reads `current_theme_supports( 'motored-garage-modal' )`. With it the garage dialog is centered (`.motored-garage-drawer--modal`): title "Add your motorcycle" with an empty `__icon` span for the theme, a lead line, the active motorcycle (`.motored-garage-current`: choose another / remove, name, factory sizes, "View tires"), the other saved motorcycles (`.motored-garage-others`, "Use this motorcycle"), the cascade picker (`.motored-garage-pick`, shown when the garage is empty or after "Choose another", with Cancel) and an inline login hint for guests. Without the support the side drawer is unchanged (theme-agnostic). Structural CSS in `compat.css` (tokens only); `compat-garage-page.js` draws the new state and the backdrop click now checks both axes. New es_AR strings (Agregá tu moto, Encontrá las cubiertas que le van a tu moto, Elegir otra moto, Quitar moto, Tus otras motos, Iniciar sesión); `.mo` recompiled with the Python writer (old entries verified identical). Additive → `Api::CONTRACT` 1.3. The store theme declares the support and styles it like motocard.com.
+

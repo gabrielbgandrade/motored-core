@@ -180,6 +180,9 @@ final class GarageAssets {
 		return array(
 			'activeBadge'     => __( 'Active motorcycle', 'motored-core' ),
 			'useBike'         => __( 'Use this motorcycle', 'motored-core' ),
+			'changeBike'      => __( 'Choose another motorcycle', 'motored-core' ),
+			'removeBike'      => __( 'Remove motorcycle', 'motored-core' ),
+			'otherBikes'      => __( 'Your other motorcycles', 'motored-core' ),
 			'filterTires'     => __( 'View tires', 'motored-core' ),
 			'remove'          => __( 'Remove', 'motored-core' ),
 			'emptyGarage'     => __( 'You have not saved any motorcycles yet.', 'motored-core' ),

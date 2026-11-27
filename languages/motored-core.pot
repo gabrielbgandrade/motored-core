@@ -5970,3 +5970,27 @@ msgstr ""
 #: src/Modules/Seo/SeoAdmin.php:113
 msgid "Find the exact tire for your motorcycle. Real stock, installments and nationwide shipping."
 msgstr ""
+
+#: src/Modules/MiGarage/GarageEndpoint.php
+msgid "Add your motorcycle"
+msgstr ""
+
+#: src/Modules/MiGarage/GarageEndpoint.php
+msgid "Find the tires that fit your motorcycle"
+msgstr ""
+
+#: src/Modules/MiGarage/GarageEndpoint.php
+msgid "Log in"
+msgstr ""
+
+#: src/Modules/MiGarage/GarageAssets.php
+msgid "Choose another motorcycle"
+msgstr ""
+
+#: src/Modules/MiGarage/GarageAssets.php
+msgid "Remove motorcycle"
+msgstr ""
+
+#: src/Modules/MiGarage/GarageAssets.php
+msgid "Your other motorcycles"
+msgstr ""
