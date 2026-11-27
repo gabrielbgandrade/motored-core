@@ -28,12 +28,12 @@ final class StorefrontAssets {
 			self::HANDLE_COMPAT_CSS,
 			MOTORED_CORE_URL . 'assets/css/compat.css',
 			array(),
-			MOTORED_CORE_VERSION . '-compat9'
+			MOTORED_CORE_VERSION . '-compat10'
 		);
 		$accent = (string) sanitize_hex_color( (string) apply_filters( 'motored_storefront_accent', '' ) );
 		if ( '' !== $accent ) {
-			// Components read --motored-accent from --motored-accent-color, so a :root value is not shadowed.
-			wp_add_inline_style( self::HANDLE_COMPAT_CSS, ':root{--motored-accent-color:' . $accent . ';}' );
+			// Zero specificity (:where): a theme that sets the token on :root always wins, whatever the load order.
+			wp_add_inline_style( self::HANDLE_COMPAT_CSS, ':where(:root){--motored-accent-color:' . $accent . ';}' );
 		}
 	}
 

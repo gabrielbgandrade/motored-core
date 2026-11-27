@@ -1,4 +1,5 @@
-/* Home search [motored_buscador] and faceted sidebar [motored_filtros]. Tokens live in compat.css (dependency). */
+/* Home search [motored_buscador] and faceted sidebar [motored_filtros]. Tokens live in compat.css (dependency).
+ * Engine/skin contract (docs/THEME-CONTRACT.md): structure here, visual values only through tokens. */
 .motored-search {
 	container-type: inline-size;
 	background: var(--motored-bg);
@@ -20,7 +21,7 @@
 	margin: 0;
 	background: transparent;
 	border: 1px solid var(--motored-border);
-	border-radius: 999px;
+	border-radius: var(--motored-pill);
 	color: inherit;
 	cursor: pointer;
 	font: inherit;
@@ -45,7 +46,7 @@
 	padding: 1rem;
 	border: 1px solid var(--motored-border);
 	border-radius: var(--motored-radius);
-	background: rgba(0, 0, 0, 0.015);
+	background: var(--motored-soft);
 }
 
 @container (min-width: 780px) {
@@ -246,10 +247,11 @@
 	margin: 0.25rem 0 0;
 	padding: 0.25rem 0;
 	list-style: none;
-	background: var(--motored-bg);
+	background: var(--motored-raised);
+	color: var(--motored-ink);
 	border: 1px solid var(--motored-border);
 	border-radius: var(--motored-radius);
-	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+	box-shadow: 0 6px 20px var(--motored-shadow);
 }
 
 .motored-search__option {
@@ -262,7 +264,7 @@
 
 .motored-search__option:hover,
 .motored-search__option.is-active {
-	background: rgba(0, 0, 0, 0.06);
+	background: var(--motored-soft);
 }
 
 .motored-search__suggest-meta {
@@ -311,7 +313,7 @@
 	padding: 0.5rem 0.75rem;
 	border: 1px solid var(--motored-border);
 	border-radius: var(--motored-radius);
-	background: rgba(0, 0, 0, 0.02);
+	background: var(--motored-soft);
 	font-size: 0.9em;
 }
 
@@ -326,7 +328,7 @@
 	gap: 0.35rem;
 	padding: 0.25rem 0.6rem;
 	border: 1px solid var(--motored-accent);
-	border-radius: 999px;
+	border-radius: var(--motored-pill);
 	font-size: 0.85em;
 	font-weight: 600;
 	color: inherit;
@@ -395,7 +397,7 @@
 	height: 1rem;
 	flex: 0 0 1rem;
 	border: 1px solid var(--motored-border);
-	border-radius: 3px;
+	border-radius: min(3px, var(--motored-radius));
 	display: inline-block;
 	position: relative;
 }
@@ -412,7 +414,7 @@
 	top: 1px;
 	width: 5px;
 	height: 9px;
-	border: solid #fff;
+	border: solid var(--motored-on-accent);
 	border-width: 0 2px 2px 0;
 	transform: rotate(45deg);
 }
@@ -460,4 +462,236 @@
 	opacity: 0.55;
 	pointer-events: none;
 	transition: opacity 0.15s ease;
+}
+
+/* Smart search panels: grouped suggestions and the trending panel shown on focus (rendered by catalog-search.js).
+ * Structure only; the look comes from the tokens. Themes position them per context (header, lightbox). */
+.motored-search__suggest--mega,
+.motored-search__trending {
+	left: auto;
+	right: 0;
+	width: min(1040px, 92vw);
+}
+
+.motored-search__trending {
+	position: absolute;
+	top: calc(100% + 4px);
+	z-index: 30;
+	padding: 24px 28px;
+	background: var(--motored-raised);
+	color: var(--motored-ink);
+	border: 1px solid var(--motored-border);
+	border-radius: var(--motored-radius);
+	box-shadow: 0 6px 20px var(--motored-shadow);
+	text-align: left;
+}
+
+.motored-search__trending[hidden] {
+	display: none;
+}
+
+.motored-suggest__shell {
+	display: block;
+	width: 100%;
+	margin: 0;
+	padding: 24px 28px;
+	list-style: none;
+}
+
+.motored-suggest__grid {
+	display: grid;
+	grid-template-columns: minmax(290px, 330px) 1fr;
+	gap: 32px;
+	align-items: start;
+}
+
+.motored-suggest__grid--solo {
+	grid-template-columns: 1fr;
+}
+
+.motored-trending__grid {
+	display: grid;
+	grid-template-columns: 240px 1fr;
+	gap: 32px;
+	align-items: start;
+}
+
+.motored-suggest__side,
+.motored-suggest__main,
+.motored-trending__side,
+.motored-trending__main {
+	min-width: 0;
+}
+
+.motored-search .motored-suggest__list,
+.motored-search .motored-trending__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.motored-search .motored-suggest__list > li,
+.motored-search .motored-trending__list > li {
+	margin: 0;
+}
+
+.motored-suggest__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+
+.motored-suggest__all {
+	font-size: 0.8125rem;
+	font-weight: 700;
+	color: var(--motored-link);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.motored-suggest__all:hover {
+	text-decoration: underline;
+}
+
+.motored-search .motored-trending__heading {
+	margin: 0 0 12px;
+	font-size: 0.95rem;
+	font-weight: 800;
+	line-height: 1.2;
+	color: var(--motored-ink);
+}
+
+.motored-search .motored-suggest__header .motored-trending__heading {
+	margin: 0;
+}
+
+.motored-search .motored-trending__side .motored-trending__heading + .motored-trending__list {
+	margin-bottom: 20px;
+}
+
+.motored-search .motored-trending__list {
+	display: grid;
+	gap: 4px;
+}
+
+.motored-trending__list a {
+	display: block;
+	margin: 0 -8px;
+	padding: 5px 8px;
+	font-size: 0.875rem;
+	font-weight: 600;
+	line-height: 1.35;
+	color: inherit;
+	text-decoration: none;
+}
+
+.motored-trending__list a:hover {
+	background: var(--motored-soft);
+}
+
+.motored-search .motored-trending__list--inline {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.motored-trending__list--inline a {
+	display: inline-block;
+	margin: 0;
+	padding: 5px 10px;
+	border-radius: var(--motored-pill);
+	background: var(--motored-soft);
+	font-size: 0.8125rem;
+}
+
+.motored-trending__list--inline a:hover {
+	background: var(--motored-accent);
+	color: var(--motored-highlight);
+}
+
+.motored-trending__products {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 16px;
+}
+
+.motored-trending__card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	height: 100%;
+	padding: 10px;
+	border-radius: var(--motored-radius);
+	color: inherit;
+	text-decoration: none;
+	transition: background-color 0.15s ease;
+}
+
+.motored-trending__card:hover {
+	background: var(--motored-soft);
+}
+
+.motored-trending__card img {
+	width: 100%;
+	aspect-ratio: 1;
+	object-fit: contain;
+	background: var(--motored-raised);
+	border-radius: var(--motored-radius);
+}
+
+.motored-trending__title {
+	display: -webkit-box;
+	overflow: hidden;
+	font-size: 0.875rem;
+	line-height: 1.35;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.motored-trending__price {
+	margin-top: auto;
+	font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+	.motored-suggest__grid {
+		grid-template-columns: minmax(250px, 280px) 1fr;
+		gap: 24px;
+	}
+	.motored-trending__products {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 849px) {
+	.motored-search__suggest--mega,
+	.motored-search__trending {
+		left: 0;
+		right: 0;
+		width: 100%;
+		padding: 16px;
+	}
+	.motored-suggest__shell {
+		padding: 0;
+	}
+	.motored-suggest__grid,
+	.motored-trending__grid {
+		grid-template-columns: 1fr;
+		gap: 20px;
+	}
+	.motored-trending__products {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 12px;
+	}
+	.motored-trending__card {
+		padding: 8px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.motored-trending__card {
+		transition: none;
+	}
 }

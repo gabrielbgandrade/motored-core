@@ -14,6 +14,8 @@ src/Plugin.php. Rules, conventions and commands are in `AGENTS.md` — do not re
 3. `docs/VERIFY.md` — what is NOT verified yet (never assume it works).
 4. `docs/PROJECT.md` — decisions, roadmap, review log.
 5. The module's own `README.md` and skill when touching a module.
+6. `docs/THEME-CONTRACT.md` and the theme side `../../themes/flatsome/docs/MOTORED-CONTRACT.md` whenever the task
+   touches the storefront. Motored = this plugin (engine) + the store theme (skin), worked on as one product.
 
 ## Map
 - `motored-core.php` -> autoloader -> `Plugin::boot()` on `plugins_loaded@20`.

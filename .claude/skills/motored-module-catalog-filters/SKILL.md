@@ -21,6 +21,8 @@ description: Context and invariants for the CatalogFilters module (home search, 
 
 ## Non-Negotiable Invariants
 1. **Theme-agnostic:** zero theme-specific code, hooks, selectors or detection (Flatsome, Storefront, block themes alike).
+   After an AJAX catalog swap dispatch `motored:filters-updated` (`detail.url`, `detail.root`); the theme re-attaches
+   its behaviors and closes its off-canvas panel (`docs/THEME-CONTRACT.md`).
 2. **Numeric slugs stay strings:** never cast term slugs to `int` (WordPress treats ints as term IDs).
 3. **ERP-safe:** `in_stock` in `motored_compat_product_index` and `SnapshotInvalidator` only react to `woocommerce_product_set_stock_status`, tracked taxonomy changes, or publish/trash transitions — never price or quantity edits.
 4. **Cache safety:** `Support\Cache` only when `Cache::is_persistent()` is true; never write transients to `wp_options` on public requests.

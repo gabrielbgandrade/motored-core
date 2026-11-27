@@ -7,7 +7,17 @@ translation (voseo). Details live in `docs/`; this file is the short version.
 Base WordPress/WooCommerce plugin for **Motored Neumáticos** (Argentina). Future modules (WAHA/WhatsApp,
 Notifications, Recovery) plug into it. The core registers the feature modules listed in `src/Plugin.php`. Keep external
 calls out of customer requests. Must NOT depend on the theme (any classic or block theme; classic and Blocks cart/checkout).
+Motored is ONE product in two packages: this plugin is the **engine**, `themes/flatsome` ("Motored") is the **skin**;
+they meet only at `docs/THEME-CONTRACT.md`. A change to that surface updates both packages and the doc together.
 Infra: own VPS, Redis object cache, WAHA, Mercado Pago Checkout Pro. `Requires PHP 8.1`; stay 8.3-compatible.
+
+## Paired package: the store theme (always check it)
+The skin lives in `../../themes/flatsome` (Flatsome build "Motored"; its rules: `../../themes/flatsome/AGENTS.md`,
+its side of the contract: `../../themes/flatsome/docs/MOTORED-CONTRACT.md`). Before finishing ANY task here, ask:
+does it change markup, a BEM class, a storefront style, a token, a shortcode, `Api`, `window.Motored` or a
+`motored:*` event? If yes, update the theme in the same task (its tokens/CSS/JS/templates and its contract file),
+bump `Api::CONTRACT` when the surface changes, and verify the storefront with both active. A visual request
+("make X look like Y") is usually a theme change, not a plugin one.
 
 ## Decisions (see docs/PROJECT.md)
 No consent checkbox this phase (opt-out link lives in modules); WhatsApp text only; backend and
@@ -28,7 +38,11 @@ frontend always `es_AR`; abandoned-cart AND pending/failed-order recovery are ON
 7. **No schema checks, scheduling or migrations on frontend requests** (activation + `admin_init` only).
 8. **Never invent APIs:** verify in `vendor/php-stubs/*`; otherwise isolate in `src/Integration/` and
    add a row to `docs/VERIFY.md`.
-9. **Theme-agnostic:** no theme-specific code, selector, CSS class or hook (Flatsome, Storefront, block themes
+9. **Engine, not skin (`docs/THEME-CONTRACT.md`):** the plugin owns data, rules, markup and behavior; the theme
+   owns the look. Storefront CSS is structural and reads visual values only through `--motored-*` tokens (literals
+   only as `var()` fallbacks, no `!important`); themes talk to us only through the contract (`Motored\Core\Api`,
+   shortcodes, BEM classes, `window.Motored`, `motored:*` events). `ThemeContractTest` fails otherwise.
+   **Theme-agnostic:** no theme-specific code, selector, CSS class or hook (Flatsome, Storefront, block themes
    alike); only WordPress and WooCommerce core. No `get_header`/`get_footer`; own pages are standalone.
 10. **Admin UI:** every new admin table, box or field uses the classes of `assets/admin/motored-admin.css` through
    `Admin\Ui` (`.motored-table`, `.motored-box`, `.motored-field`). Ad hoc per-module CSS, inline `style=` and the
@@ -46,6 +60,7 @@ Namespace `Motored\Core\`, PSR-4, one class per file; `motored`/`MOTORED` prefix
 ## Where to read
 - `docs/ARCHITECTURE.md` layers, lifecycle, contexts, cache, queues
 - `docs/PROJECT.md` decisions, roadmap, review log
+- `docs/THEME-CONTRACT.md` the only plugin ↔ theme surface (tokens, markup, `Api`, JS, events)
 - `docs/VERIFY.md` unverified assumptions · `docs/TESTING.md` · `docs/STAGING-CHECKLIST.md`
 - `.claude/skills/`: `motored-core-overview`, `motored-add-module`, `motored-review`
 

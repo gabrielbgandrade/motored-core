@@ -37,14 +37,6 @@
 		});
 	}
 
-	function closeMobileFilterDrawer() {
-		// Flatsome off-canvas filter sidebar (Magnific Popup) or generic close button.
-		var mfpClose = document.querySelector('.mfp-wrap .mfp-close');
-		if (mfpClose && document.querySelector('.mfp-wrap [data-motored-filters]')) {
-			mfpClose.click();
-		}
-	}
-
 	function applyAjax(targetUrl, pushHistory) {
 		var currentGrid = document.querySelector(GRID_SEL);
 		if (!currentGrid || typeof window.fetch !== 'function' || typeof window.DOMParser !== 'function') {
@@ -128,7 +120,6 @@
 
 				initAll();
 				setLoading(false);
-				closeMobileFilterDrawer();
 
 				// Smoothly bring the top of the catalog into view if the user scrolled far down.
 				var rect = currentGrid.getBoundingClientRect();
@@ -136,13 +127,11 @@
 					currentGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
 				}
 
-				// Re-attach theme behaviors (e.g., Flatsome quick-view / sliders / WooCommerce) on new DOM nodes.
-				if (window.Flatsome && typeof window.Flatsome.attach === 'function') {
-					window.Flatsome.attach(currentGrid);
-				}
 				// Re-hydrate Mi Garage CTA ("Tu moto: ..."), product card compatibility badges and bike switcher bar.
 				document.dispatchEvent(new Event('motored:garage'));
-				document.dispatchEvent(new CustomEvent('motored:filters-updated', { detail: { url: targetUrl } }));
+				// Public contract event (docs/THEME-CONTRACT.md): the theme re-attaches its own behaviors on `root`
+				// and closes its off-canvas filter panel. The plugin never calls theme code.
+				document.dispatchEvent(new CustomEvent('motored:filters-updated', { detail: { url: targetUrl, root: currentGrid } }));
 			})
 			.catch(function (err) {
 				if (err && err.name === 'AbortError') {

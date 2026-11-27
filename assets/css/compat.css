@@ -1,7 +1,12 @@
 /*
  * Motored storefront design tokens + Compatibility / Mi Garage components.
- * Theme-agnostic: only our own classes, every value inherits the theme font/colors.
- * Accent: set --motored-accent-color on :root (plugin setting or a child theme) — components never shadow it.
+ *
+ * Engine/skin contract (docs/THEME-CONTRACT.md): this file owns structure and behavior-related styling only.
+ * Every visual value comes from a PUBLIC input token (--motored-*-color / --motored-*-size) that the theme
+ * sets on :root, with a neutral fallback here so the components work under any theme.
+ * The short names below (--motored-accent, --motored-radius...) are PRIVATE: declared on each component
+ * root, read by our rules only. Themes never set them.
+ * Rules: no !important, no theme names or theme tokens, color literals only as var() fallbacks.
  */
 .motored-search,
 .motored-filters,
@@ -12,6 +17,7 @@
 .motored-compat-bar,
 .motored-garage-cta,
 .motored-garage-page,
+.motored-garage-drawer,
 .motored-bike-page,
 .motored-bike-hub,
 .motored-bike-card,
@@ -19,12 +25,20 @@
 .motored-notify-dialog {
 	--motored-accent: var(--motored-accent-color, currentColor);
 	--motored-on-accent: var(--motored-on-accent-color, #fff);
-	--motored-border: color-mix(in srgb, currentColor 20%, transparent);
+	--motored-border: var(--motored-line-color, color-mix(in srgb, currentColor 20%, transparent));
 	--motored-bg: var(--motored-surface-color, transparent);
-	--motored-radius: 8px;
-	--motored-ok: #1b7f4b;
-	--motored-no: #b43c2f;
-	--motored-focus: var(--motored-accent-color, #1a5fb4);
+	--motored-raised: var(--motored-raised-color, Canvas);
+	--motored-ink: var(--motored-ink-color, CanvasText);
+	--motored-muted: var(--motored-muted-color, color-mix(in srgb, currentColor 72%, transparent));
+	--motored-soft: var(--motored-soft-color, color-mix(in srgb, currentColor 4%, transparent));
+	--motored-link: var(--motored-link-color, currentColor);
+	--motored-highlight: var(--motored-highlight-color, var(--motored-on-accent));
+	--motored-radius: var(--motored-radius-size, 8px);
+	--motored-pill: var(--motored-pill-radius-size, 999px);
+	--motored-shadow: var(--motored-shadow-color, rgb(0 0 0 / 14%));
+	--motored-ok: var(--motored-ok-color, #1b7f4b);
+	--motored-no: var(--motored-danger-color, #b43c2f);
+	--motored-focus: var(--motored-focus-color, var(--motored-accent-color, #1a5fb4));
 	font-family: inherit;
 	color: inherit;
 	box-sizing: border-box;
@@ -112,7 +126,7 @@
 	margin-bottom: 0.75rem;
 	border: 1px solid var(--motored-border);
 	border-radius: var(--motored-radius);
-	background: rgba(0, 0, 0, 0.03);
+	background: var(--motored-soft);
 	font-weight: 600;
 }
 
@@ -207,7 +221,7 @@
 	padding: 0.65rem 0.85rem;
 	border: 1px solid var(--motored-border);
 	border-radius: var(--motored-radius);
-	background: rgba(0, 0, 0, 0.02);
+	background: var(--motored-soft);
 	display: flex;
 	align-items: flex-start;
 	gap: 0.65rem;
@@ -251,13 +265,13 @@
 }
 
 .motored-compat-badge--ok {
-	border-color: rgba(27, 127, 75, 0.32);
-	background: rgba(27, 127, 75, 0.05);
+	border-color: color-mix(in srgb, var(--motored-ok) 32%, transparent);
+	background: color-mix(in srgb, var(--motored-ok) 5%, transparent);
 }
 
 .motored-compat-badge--no {
-	border-color: rgba(180, 60, 47, 0.32);
-	background: rgba(180, 60, 47, 0.05);
+	border-color: color-mix(in srgb, var(--motored-no) 32%, transparent);
+	background: color-mix(in srgb, var(--motored-no) 5%, transparent);
 }
 
 .motored-compat-badge__title {
@@ -303,8 +317,8 @@
 	cursor: pointer;
 }
 
-.motored-compat-badge__btn {
-	margin: 0 !important;
+.motored-compat-badge .motored-compat-badge__btn {
+	margin: 0;
 	flex: 0 0 auto;
 	line-height: 1.2;
 }
@@ -340,7 +354,7 @@
 .motored-compat-banner__chip {
 	background: transparent;
 	border: 1px solid var(--motored-border);
-	border-radius: 999px;
+	border-radius: var(--motored-pill);
 	padding: 0.3rem 0.75rem;
 	font: inherit;
 	font-size: 0.88em;
@@ -372,9 +386,9 @@
 	height: 100%;
 	max-height: 100%;
 	box-sizing: border-box;
-	background: white;
-	color: #202020;
-	box-shadow: -12px 0 36px rgb(0 0 0 / 28%);
+	background: var(--motored-raised);
+	color: var(--motored-ink);
+	box-shadow: -12px 0 36px var(--motored-shadow);
 }
 
 .motored-garage-drawer[open] {
@@ -388,7 +402,7 @@
 }
 
 .motored-garage-drawer::backdrop {
-	background: rgb(0 0 0 / 60%);
+	background: var(--motored-backdrop-color, rgb(0 0 0 / 60%));
 }
 
 .motored-garage-drawer-open {
@@ -401,13 +415,13 @@
 	align-items: center;
 	gap: 1rem;
 	padding: 0.85rem 1.25rem;
-	background: #000;
-	color: #fff;
+	background: var(--motored-accent);
+	color: var(--motored-on-accent);
 	flex: none;
 }
 
 .motored-garage-drawer__header h2 {
-	color: #fff;
+	color: inherit;
 	font-size: 1.15rem;
 	font-weight: 800;
 	text-transform: uppercase;
@@ -427,19 +441,19 @@
 	border: 0;
 	border-radius: 50%;
 	background: transparent;
-	color: #fff;
+	color: inherit;
 	font-size: 1.7rem;
 	line-height: 1;
 	cursor: pointer;
 }
 
 .motored-garage-drawer .motored-garage-drawer__close:hover {
-	background: rgb(255 255 255 / 14%);
-	color: #fbff2e;
+	background: color-mix(in srgb, var(--motored-on-accent) 14%, transparent);
+	color: var(--motored-highlight);
 }
 
 .motored-garage-drawer__close:focus-visible {
-	outline: 2px solid #fbff2e;
+	outline: 2px solid var(--motored-highlight);
 	outline-offset: 2px;
 }
 
@@ -458,8 +472,9 @@
 }
 
 .motored-garage-guest {
-	background: #fff;
-	border: 1px solid #e5e7ea;
+	background: var(--motored-raised);
+	border: 1px solid var(--motored-border);
+	border-radius: var(--motored-radius);
 	padding: 1rem 1.1rem;
 	margin-bottom: 1rem;
 }
@@ -468,18 +483,18 @@
 	margin: 0 0 0.35rem;
 	font-size: 1rem;
 	font-weight: 800;
-	color: #000;
+	color: var(--motored-ink);
 	line-height: 1.25;
 }
 
 .motored-garage-guest__cta {
 	margin: 0 0 0.55rem;
 	font-size: 0.88rem;
-	color: #333;
+	color: var(--motored-muted);
 }
 
 .motored-garage-guest__cta a {
-	color: #e30f0f;
+	color: var(--motored-link);
 	font-weight: 700;
 	text-decoration: underline;
 	text-underline-offset: 2px;
@@ -489,16 +504,16 @@
 	margin: 0;
 	padding-left: 1.1rem;
 	font-size: 0.84rem;
-	color: #555;
+	color: var(--motored-muted);
 	display: grid;
 	gap: 0.25rem;
 }
 
 .motored-garage-drawer__footer {
 	flex: none;
-	background: #fff;
-	border-top: 1px solid #e5e7ea;
-	box-shadow: 0 -4px 16px rgb(0 0 0 / 6%);
+	background: var(--motored-raised);
+	border-top: 1px solid var(--motored-border);
+	box-shadow: 0 -4px 16px color-mix(in srgb, var(--motored-shadow) 45%, transparent);
 }
 
 .motored-garage-drawer__footer .motored-garage-add {
@@ -518,7 +533,7 @@
 	cursor: pointer;
 	font-weight: 800;
 	font-size: 0.95rem;
-	color: #000;
+	color: var(--motored-ink);
 	list-style: none;
 }
 
@@ -529,8 +544,8 @@
 .motored-garage-add__chev {
 	width: 9px;
 	height: 9px;
-	border-right: 2px solid #333;
-	border-bottom: 2px solid #333;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
 	transform: rotate(45deg);
 	transition: transform 150ms ease;
 	margin-top: -3px;
@@ -558,21 +573,11 @@
 	margin-top: 0.85rem;
 }
 
-.motored-garage-card__primary {
+/* Primary CTA: a native WooCommerce `.button.alt`, so its colors are the theme's button colors. */
+.motored-garage-card .motored-garage-card__primary {
 	width: 100%;
-	margin: 0 !important;
+	margin: 0;
 	text-align: center;
-	background: #e30f0f !important;
-	border-color: #e30f0f !important;
-	color: #fff !important;
-	font-weight: 700;
-	text-transform: uppercase;
-	letter-spacing: 0.03em;
-}
-
-.motored-garage-card__primary:hover {
-	background: #b80b0b !important;
-	border-color: #b80b0b !important;
 }
 
 .motored-garage-card__secondary {
@@ -582,16 +587,17 @@
 	gap: 0.75rem;
 }
 
-.motored-garage-card__link {
-	background: transparent !important;
-	border: 0 !important;
-	padding: 0.15rem 0 !important;
-	margin: 0 !important;
-	min-height: 0 !important;
+/* Text buttons: the element + class selector beats generic theme `button` rules without !important. */
+.motored-garage-card button.motored-garage-card__link {
+	background: transparent;
+	border: 0;
+	padding: 0.15rem 0;
+	margin: 0;
+	min-height: 0;
 	font: inherit;
 	font-size: 0.85rem;
 	font-weight: 700;
-	color: #333;
+	color: var(--motored-muted);
 	text-decoration: underline;
 	text-underline-offset: 2px;
 	cursor: pointer;
@@ -599,17 +605,16 @@
 	letter-spacing: 0;
 }
 
-.motored-garage-card__link:hover {
-	color: #000;
+.motored-garage-card button.motored-garage-card__link:hover {
+	color: var(--motored-ink);
 }
 
-.motored-garage-card__remove {
-	color: #888;
-	margin-left: auto !important;
+.motored-garage-card button.motored-garage-card__remove {
+	margin-left: auto;
 }
 
-.motored-garage-card__remove:hover {
-	color: #e30f0f;
+.motored-garage-card button.motored-garage-card__remove:hover {
+	color: var(--motored-no);
 }
 
 .motored-garage-page__login {
@@ -672,9 +677,9 @@
 .motored-garage-badge {
 	display: inline-block;
 	padding: 0.15rem 0.55rem;
-	border-radius: 999px;
-	border: 1px solid rgba(27, 127, 75, 0.35);
-	background: rgba(27, 127, 75, 0.08);
+	border-radius: var(--motored-pill);
+	border: 1px solid color-mix(in srgb, var(--motored-ok) 35%, transparent);
+	background: color-mix(in srgb, var(--motored-ok) 8%, transparent);
 	color: var(--motored-ok);
 	font-size: 0.78em;
 	font-weight: 700;
@@ -698,7 +703,7 @@
 	margin-bottom: 1.25rem;
 	border: 1px dashed var(--motored-border);
 	border-radius: var(--motored-radius);
-	background: rgba(0, 0, 0, 0.02);
+	background: var(--motored-soft);
 }
 
 .motored-garage-empty__title {
@@ -770,7 +775,7 @@
 	align-items: center;
 	padding: 0.3rem 0.8rem;
 	border: 1px solid var(--motored-border);
-	border-radius: 999px;
+	border-radius: var(--motored-pill);
 	font-size: 0.9em;
 	font-weight: 600;
 	line-height: 1.4;
@@ -845,14 +850,14 @@
 
 /* Compatibility tab extras */
 .motored-compat-list__mine.is-ok {
-	border-color: rgba(27, 127, 75, 0.35);
-	background: rgba(27, 127, 75, 0.06);
+	border-color: color-mix(in srgb, var(--motored-ok) 35%, transparent);
+	background: color-mix(in srgb, var(--motored-ok) 6%, transparent);
 	color: var(--motored-ok);
 }
 
 .motored-compat-list__mine.is-no {
-	border-color: rgba(180, 60, 47, 0.35);
-	background: rgba(180, 60, 47, 0.06);
+	border-color: color-mix(in srgb, var(--motored-no) 35%, transparent);
+	background: color-mix(in srgb, var(--motored-no) 6%, transparent);
 	color: var(--motored-no);
 }
 
@@ -921,7 +926,7 @@
 	padding: 0.55rem 0.8rem;
 	border: 1px solid var(--motored-border);
 	border-radius: var(--motored-radius);
-	background: rgba(0, 0, 0, 0.03);
+	background: var(--motored-soft);
 	font-weight: 600;
 }
 
@@ -957,7 +962,7 @@
 
 .motored-bike-hero__chip {
 	padding: 0.2rem 0.55rem;
-	border-radius: 999px;
+	border-radius: var(--motored-pill);
 	font-weight: 700;
 	border: 1px solid var(--motored-ok);
 	color: var(--motored-ok);
@@ -1064,12 +1069,12 @@
 	padding: 1.5rem;
 	border: 1px solid var(--motored-border);
 	border-radius: var(--motored-radius);
-	background: var(--wp--preset--color--base, Canvas);
-	color: var(--wp--preset--color--contrast, CanvasText);
+	background: var(--motored-raised-color, var(--wp--preset--color--base, Canvas));
+	color: var(--motored-ink-color, var(--wp--preset--color--contrast, CanvasText));
 }
 
 .motored-notify-dialog::backdrop {
-	background: rgb(0 0 0 / 55%);
+	background: var(--motored-backdrop-color, rgb(0 0 0 / 55%));
 }
 
 .motored-notify-dialog__close {

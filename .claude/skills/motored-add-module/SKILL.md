@@ -18,6 +18,10 @@ Rule: a module ships its own `README.md` AND `.claude/skills/motored-module-<id>
 6. Settings (admin only): `SectionRegistry::add( '<id>', label_callable, settings_callable )`; field ids
    `motored_<id>[key]` with `'autoload' => false`. Every new admin UI (table, box, field, meta box) uses the
    classes of `assets/admin/motored-admin.css` via `Admin\Ui`; ad hoc per-module CSS and inline styles are forbidden.
+6b. Storefront UI: structural CSS only, visual values through `--motored-*` tokens (add new tokens to
+   `docs/THEME-CONTRACT.md`, bump `Api::CONTRACT` minor), public BEM classes, `motored:*` events instead of theme
+   calls (`ThemeContractTest`). Then give it the Motored look in the theme (`../../themes/flatsome`: tokens in
+   `flatsome.css`, placement, UX Builder element in `inc/builder/shortcodes/motored.php`) in the same task.
 7. Tables: add `'YYYYMMDDNN' => \\Closure::fromCallable( array( <Name>Migration::class, 'up' ) )` to `Plugin::migrations()`
    (idempotent `dbDelta`, `Db::table()`); add drops to `uninstall.php`.
 8. Unverified/third-party APIs: wrap in `src/Integration/`, add rows to `docs/VERIFY.md`.

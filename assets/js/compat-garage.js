@@ -762,6 +762,34 @@
 
 	/* ---------- public API ---------- */
 
+	/**
+	 * Public, versioned API for themes (docs/THEME-CONTRACT.md). Read-only on purpose; the globals below
+	 * (motoredGarage*) are private to motored-core scripts and may change without notice.
+	 */
+	window.Motored = window.Motored || {};
+	window.Motored.garage = {
+		version: 1,
+		/** Active motorcycle as { slug, label } or null. */
+		active: function () {
+			var s = read();
+			if (!s || !s.active) {
+				return null;
+			}
+			var bike = (s.bikes || []).find(function (b) { return b && b.slug === s.active; });
+			if (!bike) {
+				var pf = activeProfile();
+				return pf && pf.slug ? { slug: pf.slug, label: pf.label || pf.slug } : null;
+			}
+			return { slug: bike.slug, label: bike.label || bike.slug };
+		},
+		/** Saved motorcycles as [{ slug, label }]. */
+		bikes: function () {
+			return (read().bikes || []).filter(Boolean).map(function (b) {
+				return { slug: b.slug, label: b.label || b.slug };
+			});
+		}
+	};
+
 	window.motoredGarageActive = activeProfile;
 	window.motoredGarageApi = { rd: read, wr: write, api: api, ev: ev, normalize: normalize, fmt: fmt };
 	window.motoredGarageSetActive = setActive;

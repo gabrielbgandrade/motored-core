@@ -10,6 +10,7 @@ offer saving a motorcycle through the existing browser integration.
   Bikes whose version was deleted/unpublished are left out of the response (not persisted, they may come back) and their labels are returned in `unavailable`; the garage page shows "%s ya no está en nuestro catálogo…".
 - Analytics: when `analytics_events` is on, `compat-garage.js` depends on the shared `motored-ui` helper so `motoredUi.track()` exists.
 - Header integration: fire `motored_garage_trigger` when rendering a link marked `data-motored-garage-open`, with the public garage URL as its `href`. Mi Garage mounts one native dialog before footer assets print, except on checkout. The drawer and full page share cards, mutations and notices. The drawer loads the cascade on expansion and refreshes the account garage on open.
+- Theme API (`docs/THEME-CONTRACT.md`): `Motored\Core\Api::garage_url()` for the link, `window.Motored.garage.active()` / `.bikes()` plus the `motored:garage` event for the header label. `window.motoredGarage*` and the storage keys are private.
 - Data: `_motored_garage` user meta. The existing Compatibility settings remain
   the configuration source for enablement and capacity.
 - Browser storage: guest selections and account session caches use distinct keys.

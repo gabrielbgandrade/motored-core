@@ -12,6 +12,13 @@
    WAHA, Action Scheduler). Modules talk to adapters, never to raw third-party hooks.
 6. **Modules** (`src/Modules/`): functional units. See `Plugin::MODULES` for the current registry.
 
+### Engine and skin
+Motored is one product in two packages: this plugin (engine) and the store theme (skin). The plugin renders
+semantic markup with public BEM classes, behavior JS and **structural** CSS whose visual values come from
+`--motored-*` input tokens; the theme sets those tokens on `:root` and owns the look and placement. The two
+meet only at the surface in `docs/THEME-CONTRACT.md` (`Motored\Core\Api`, shortcodes, BEM classes,
+`window.Motored`, `motored:*` events, `motored_garage_trigger`). `ThemeContractTest` guards the plugin side.
+
 Public components own the spacing of their controls. Set the margins of buttons and fields through Motored component selectors, and use the wrapper's `gap` or padding for layout. This keeps spacing stable across themes while preserving native controls and WooCommerce button styles elsewhere. Avoid global resets for `button`, `input`, and `.button`.
 
 ## Lifecycle

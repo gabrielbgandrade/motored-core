@@ -46,7 +46,7 @@ final class GarageAssets {
 			self::HANDLE,
 			MOTORED_CORE_URL . 'assets/js/compat-garage.js',
 			$deps,
-			MOTORED_CORE_VERSION . '-garage10',
+			MOTORED_CORE_VERSION . '-garage11',
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,
@@ -61,21 +61,30 @@ final class GarageAssets {
 	}
 
 	/**
+	 * Mi Garage URL for the current visitor: the account endpoint for logged-in shoppers, the published
+	 * public page for guests (option `motored_mi_garage_page_id`), else the account endpoint ('' without WC).
+	 */
+	public static function garage_url(): string {
+		$url = function_exists( 'wc_get_endpoint_url' ) && function_exists( 'wc_get_page_permalink' )
+			? (string) wc_get_endpoint_url( GarageEndpoint::ENDPOINT, '', (string) wc_get_page_permalink( 'myaccount' ) )
+			: '';
+		if ( ! is_user_logged_in() ) {
+			$public_page = (int) get_option( 'motored_mi_garage_page_id', 0 );
+			if ( $public_page > 0 && 'publish' === get_post_status( $public_page ) ) {
+				$url = (string) get_permalink( $public_page );
+			}
+		}
+		return $url;
+	}
+
+	/**
 	 * Client-side script configuration (REST URLs, login state, localized UI strings).
 	 *
 	 * @return array<string,mixed>
 	 */
 	public static function client_config(): array {
 		$logged_in  = is_user_logged_in();
-		$garage_url = function_exists( 'wc_get_endpoint_url' ) && function_exists( 'wc_get_page_permalink' )
-			? (string) wc_get_endpoint_url( GarageEndpoint::ENDPOINT, '', (string) wc_get_page_permalink( 'myaccount' ) )
-			: '';
-		if ( ! $logged_in ) {
-			$public_page = (int) get_option( 'motored_mi_garage_page_id', 0 );
-			if ( $public_page > 0 && 'publish' === get_post_status( $public_page ) ) {
-				$garage_url = (string) get_permalink( $public_page );
-			}
-		}
+		$garage_url = self::garage_url();
 		return array(
 			'restBase'      => untrailingslashit( rest_url( CompatibilityRest::NAMESPACE ) ),
 			'nonce'         => $logged_in ? wp_create_nonce( 'wp_rest' ) : '',
