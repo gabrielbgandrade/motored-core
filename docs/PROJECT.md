@@ -713,3 +713,7 @@ compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the g
 
 - `compat-garage.js` `drawLoopBadge()`: when the loop product (`.product`) has a `[data-motored-fit-slot]`, the badge is drawn there as `.motored-compat-badge--icon` (bike icon + `__tip` tooltip, `aria-label` with the same text: "Compatible con tu X · Trasera" / "No coincide con tu X"); otherwise the text badge stays. Tap toggles `.is-open` (touch has no hover); tap elsewhere or Escape closes. Structural CSS in `compat.css` (tokens only). The store theme puts the slot right of the technical card title and shows its own Mi moto icon coloured by the state.
 
+### 2026-11-27 — Payment plans: installment amount stressed on product cards
+
+- `ProductView::build()` also returns `n` (list plan name) and `a` (amount of each installment) when the list plan has 2+ installments; `Storefront` prints the loop line as "6 cuotas sin interés de <strong class="motored-plans-line__amount">$X</strong>" (new string `%1$s of %2$s`, es_AR "%1$s de %2$s"). The theme styles `.motored-plans-line__amount`.
+

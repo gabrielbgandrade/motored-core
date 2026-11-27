@@ -19,7 +19,7 @@ final class ProductView {
 	 *
 	 * @param Plans            $plans         Configured plans.
 	 * @param float|int|string $display_price Price in currency units.
-	 * @return array{l:string,r:list<array{0:string,1:string,2:string}>,c?:array{p:string,o:string}}|null Null when there is nothing to show.
+	 * @return array{l:string,r:list<array{0:string,1:string,2:string}>,n?:string,a?:string,c?:array{p:string,o:string}}|null Null when there is nothing to show.
 	 */
 	public static function build( Plans $plans, $display_price ): ?array {
 		$base = PlanCalculator::to_cents( $display_price );
@@ -39,10 +39,16 @@ final class ProductView {
 			}
 		}
 
-		$view = array(
-			'l' => Presenter::line( PlanCalculator::quote( $list, $base ) ),
+		$list_quote = PlanCalculator::quote( $list, $base );
+		$view       = array(
+			'l' => Presenter::line( $list_quote ),
 			'r' => $rows,
 		);
+		// Parts of the list line for markup that stresses the amount ("6 cuotas sin interés de <strong>$X</strong>").
+		if ( $list_quote->installments >= 2 ) {
+			$view['n'] = $list_quote->plan->name;
+			$view['a'] = Presenter::money( $list_quote->installment );
+		}
 		if ( null !== $cash ) {
 			$view['c'] = array(
 				'p' => Presenter::money( $cash->total ),

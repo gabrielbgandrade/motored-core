@@ -76,3 +76,8 @@ gateway warnings, contexts. Manual: `docs/STAGING-CHECKLIST.md` (Payment plans),
 ## Changelog
 - 0.2.0 — 2026-11-18 — part B: Checkout Pro preference limit (fail closed), version guard, reconciliation, Status row.
 - 0.1.0 — 2026-11-18 — part A: plans, calculator, storefront, classic checkout selector and fee, admin warnings.
+
+## Loop line markup
+On product cards the list line is `<span class="motored-plans-line">{plan name} de <strong class="motored-plans-line__amount">{amount}</strong></span>`
+(view keys `n` and `a` from `ProductView`); single-payment list plans keep the plain line (`l`).
+

@@ -101,9 +101,18 @@ final class Storefront {
 					esc_html__( 'with transfer or account money', 'motored-core' )
 				);
 			}
+			$line = esc_html( $view['l'] );
+			if ( isset( $view['n'], $view['a'] ) ) {
+				$line = sprintf(
+					/* translators: 1: plan name (e.g. "6 interest-free installments"), 2: amount of each installment */
+					esc_html__( '%1$s of %2$s', 'motored-core' ),
+					esc_html( $view['n'] ),
+					'<strong class="motored-plans-line__amount">' . esc_html( $view['a'] ) . '</strong>'
+				);
+			}
 			return sprintf(
 				'<div class="motored-plans motored-plans--loop"><span class="motored-plans-line">%1$s</span>%2$s <a href="#%3$s" class="motored-plans-link" data-motored-plans="%4$s">%5$s</a></div>',
-				esc_html( $view['l'] ),
+				$line,
 				$cash,
 				esc_attr( PlanDialog::DOM_ID ),
 				esc_attr( (string) wp_json_encode( $view ) ),
