@@ -28,7 +28,7 @@ final class StorefrontAssets {
 			self::HANDLE_COMPAT_CSS,
 			MOTORED_CORE_URL . 'assets/css/compat.css',
 			array(),
-			MOTORED_CORE_VERSION . '-compat15'
+			MOTORED_CORE_VERSION . '-compat16'
 		);
 		$accent = (string) sanitize_hex_color( (string) apply_filters( 'motored_storefront_accent', '' ) );
 		if ( '' !== $accent ) {

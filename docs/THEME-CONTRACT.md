@@ -1,6 +1,6 @@
 # Theme contract (engine / skin)
 
-Contract version: **1.5** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
+Contract version: **1.6** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
 
 Motored is **one product in two packages**:
 
@@ -78,6 +78,10 @@ specificity), so a theme value always wins.
   no-JS fallback); `[data-motored-filters]` marks the filter sidebar; `[data-motored-swap="key"]` (1.4) on any
   element outside the grid that depends on the active filters (catalog title, sort form, the quick bar): after an
   AJAX filter change the plugin replaces it with the element of the same key in the new page.
+- **Compatibility slot (1.6):** an element with `[data-motored-fit-slot]` inside a loop product (`.product`) gets
+  the compact badge instead of the text line: `.motored-compat-badge--icon` (with `--ok` / `--no`) holding the
+  plugin bike icon (`__icon`) and a tooltip (`__tip`) shown on hover, keyboard focus or tap (`.is-open`; tap
+  elsewhere or Escape closes it). The text is also the badge's `aria-label`. Without a slot nothing changes.
 - **Catalog URLs:** native WooCommerce filters plus `?oferta=1`, `?stock=1` (1.4, only products in stock),
   `?moto=`, `&pos=`, `?kit_medida=`.
 - **E-mails** use `wc_get_template_html()`, so the theme can override them in `woocommerce/emails/motored-*.php`.

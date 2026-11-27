@@ -709,3 +709,7 @@ compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the g
 - PaymentPlans: `ProductView` adds `c` (best active cash plan with a discount: total + percent); in loops `Storefront::html_for()` prints `.motored-plans--loop` with the list line, the cash price ("$540.000 10% OFF con transferencia o dinero en cuenta") and the "Ver medios de pago" button for the existing dialog. Structural CSS in `compat.css`. es_AR strings added, .mo recompiled (old entries identical).
 - Noticed, not changed: the default plan names "9 cuotas sin interés" / "12 cuotas sin interés" carry +10% / +20%; they are editable data in Motored > Planes de pago.
 
+### 2026-11-27 — Contract 1.6: compact compatibility icon on product cards
+
+- `compat-garage.js` `drawLoopBadge()`: when the loop product (`.product`) has a `[data-motored-fit-slot]`, the badge is drawn there as `.motored-compat-badge--icon` (bike icon + `__tip` tooltip, `aria-label` with the same text: "Compatible con tu X · Trasera" / "No coincide con tu X"); otherwise the text badge stays. Tap toggles `.is-open` (touch has no hover); tap elsewhere or Escape closes. Structural CSS in `compat.css` (tokens only). The store theme puts the slot right of the technical card title and shows its own Mi moto icon coloured by the state.
+

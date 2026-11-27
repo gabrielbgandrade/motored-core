@@ -22,7 +22,7 @@ final class Api {
 	 * Contract version. Bump the minor for additions, the major for breaking changes
 	 * (and update docs/THEME-CONTRACT.md plus the theme in the same change).
 	 */
-	public const CONTRACT = '1.5';
+	public const CONTRACT = '1.6';
 
 	/**
 	 * Whether the given contract major version is the one this plugin implements.

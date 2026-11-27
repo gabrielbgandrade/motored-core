@@ -1464,3 +1464,56 @@ button.motored-compat-badge__link {
 	display: block;
 	text-align: center;
 }
+
+/* Compact loop badge ([data-motored-fit-slot], contract 1.6): the bike icon with a tooltip on hover, focus or tap. */
+.motored-compat-badge--loop.motored-compat-badge--icon {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: help;
+}
+
+.motored-compat-badge--icon .motored-compat-badge__icon svg {
+	display: block;
+	width: 1.5rem;
+	height: 1.5rem;
+}
+
+.motored-compat-badge__tip {
+	position: absolute;
+	right: 0;
+	bottom: calc(100% + 0.4rem);
+	z-index: 20;
+	width: max-content;
+	max-width: 14rem;
+	padding: 0.4rem 0.55rem;
+	background: var(--motored-ink);
+	color: var(--motored-raised);
+	font-size: 0.75rem;
+	font-weight: 500;
+	line-height: 1.35;
+	text-align: left;
+	white-space: normal;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.motored-compat-badge--icon:hover .motored-compat-badge__tip,
+.motored-compat-badge--icon:focus-visible .motored-compat-badge__tip,
+.motored-compat-badge--icon.is-open .motored-compat-badge__tip {
+	opacity: 1;
+	visibility: visible;
+}
+
+.motored-compat-badge--icon:focus-visible {
+	outline: 2px solid var(--motored-focus);
+	outline-offset: 2px;
+}
+

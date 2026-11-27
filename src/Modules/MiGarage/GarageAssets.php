@@ -46,7 +46,7 @@ final class GarageAssets {
 			self::HANDLE,
 			MOTORED_CORE_URL . 'assets/js/compat-garage.js',
 			$deps,
-			MOTORED_CORE_VERSION . '-garage11',
+			MOTORED_CORE_VERSION . '-garage12',
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,

@@ -410,14 +410,38 @@
 		if (!holder) {
 			return;
 		}
-		var old = holder.querySelector('.' + BADGE + '--loop');
-		if (old) {
-			old.remove();
-		}
+		// Public contract (docs/THEME-CONTRACT.md 1.6): a [data-motored-fit-slot] inside the loop product (.product)
+		// gets the compact icon + tooltip instead of the text badge.
+		var card = marker.closest ? marker.closest('.product') : null;
+		var slot = card ? card.querySelector('[data-motored-fit-slot]') : null;
+		[holder, slot].forEach(function (box) {
+			var old = box ? box.querySelector('.' + BADGE + '--loop') : null;
+			if (old) {
+				old.remove();
+			}
+		});
 		if (!pf) {
 			return;
 		}
 		var r = ev(fit, pf);
+		if (slot) {
+			if (!r.ok && !c.showIncomp) {
+				return;
+			}
+			var text = r.ok
+				? fmt(t.compatLoop || t.compatWith, pf.label) + ' · ' + positionText(r)
+				: fmt(t.incompatWith, pf.label);
+			var icon = el('span', BADGE + ' ' + BADGE + (r.ok ? '--ok ' : '--no ') + BADGE + '--loop ' + BADGE + '--icon');
+			icon.tabIndex = 0;
+			icon.setAttribute('role', 'img');
+			icon.setAttribute('aria-label', text);
+			icon.appendChild(bikeIcon());
+			var tip = el('span', BADGE + '__tip', text);
+			tip.setAttribute('aria-hidden', 'true');
+			icon.appendChild(tip);
+			slot.appendChild(icon);
+			return;
+		}
 		var badge;
 		if (r.ok) {
 			badge = el('p', BADGE + ' ' + BADGE + '--ok ' + BADGE + '--loop', '✓ ' + fmt(t.compatLoop || t.compatWith, pf.label) + ' · ' + positionText(r));
@@ -739,6 +763,27 @@
 		drawNotifyMounts();
 		drawBikePageChips(s);
 	}
+
+	// Compact loop icons: tap toggles the tooltip (touch has no hover); tap elsewhere or Escape closes it.
+	D.addEventListener('click', function (e) {
+		var icon = e.target && e.target.closest ? e.target.closest('.' + BADGE + '--icon') : null;
+		D.querySelectorAll('.' + BADGE + '--icon.is-open').forEach(function (open) {
+			if (open !== icon) {
+				open.classList.remove('is-open');
+			}
+		});
+		if (icon) {
+			e.preventDefault();
+			icon.classList.toggle('is-open');
+		}
+	});
+	D.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape') {
+			D.querySelectorAll('.' + BADGE + '--icon.is-open').forEach(function (open) {
+				open.classList.remove('is-open');
+			});
+		}
+	});
 
 	D.addEventListener('click', function (e) {
 		var trigger = e.target && e.target.closest ? e.target.closest('[data-motored-notify-trigger]') : null;
