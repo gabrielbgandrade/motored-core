@@ -737,3 +737,7 @@ compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the g
 - Assets only when a banner prints: `product-banner.css` (structural) and, with a countdown, `product-banner.js` (< 1 KB, defer). Admin picker `assets/admin/motored-product-banner.js` (native `wp.media`) on the product screen and the Banners section only. Shared admin classes `.motored-box__picker`, `__picker-preview`, `__preview`.
 - New `ProductPageHooks::register_summary_top()` (priority 3 of `woocommerce_single_product_summary`).
 
+### 2026-11-28 — Contract 1.11: the active bike's sizes on the product page
+
+- `compat-garage.js` `sizeLinks()`: the product page badge (fits and does not fit) lists the factory sizes of the active Mi Garage bike, each linking to the catalog filtered by bike + axis with its count (`pf.oem`, `pf.counts` of the cached profile). Replaces the plain "Tu moto usa: …" text of the no-fit state (`oemText()` removed). Structural CSS in `compat.css` (`-compat19`), script `-garage13`.
+

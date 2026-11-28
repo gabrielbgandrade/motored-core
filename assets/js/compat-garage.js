@@ -334,18 +334,25 @@
 		);
 	}
 
-	function oemText(pf) {
-		if (!pf || !pf.oem) {
-			return '';
+	// Contract 1.11: the active bike's factory sizes as links to the catalog filtered by bike + axis
+	// ("Tu moto usa: Delantera 120/70ZR17 (3) · Trasera 160/60ZR17 (2)").
+	function sizeLinks(pf) {
+		if (!pf || !pf.oem || (!pf.oem.f && !pf.oem.r)) {
+			return null;
 		}
-		var parts = [];
-		if (pf.oem.f) {
-			parts.push(t.front + ' ' + pf.oem.f);
-		}
-		if (pf.oem.r) {
-			parts.push(t.rear + ' ' + pf.oem.r);
-		}
-		return parts.join(' · ');
+		var box = el('p', BADGE + '__sizes');
+		box.appendChild(el('span', BADGE + '__sizes-label', t.yourBikeUses || ''));
+		[['front', t.front, pf.oem.f], ['rear', t.rear, pf.oem.r]].forEach(function (axis) {
+			if (!axis[2]) {
+				return;
+			}
+			var n = pf.counts && typeof pf.counts[axis[0]] === 'number' ? pf.counts[axis[0]] : null;
+			var a = el('a', BADGE + '__size', axis[1] + ' ' + axis[2] + (n !== null ? ' (' + n + ')' : ''));
+			a.href = urlWithMoto(pf.slug, axis[0], shopUrl());
+			a.setAttribute('data-pos', axis[0]);
+			box.appendChild(a);
+		});
+		return box;
 	}
 
 	function shopUrl() {
@@ -529,15 +536,19 @@
 			var okTpl = r.ps[0] === 'kit' && t.compatWithKit ? t.compatWithKit : t.compatWith;
 			body.appendChild(el('p', BADGE + '__title', '✓ ' + fmt(okTpl, pf.label)));
 			body.appendChild(el('p', BADGE + '__meta', detailText(r, fit)));
+			var okSizes = sizeLinks(pf);
+			if (okSizes) {
+				body.appendChild(okSizes);
+			}
 			var all = el('a', BADGE + '__link', allLabel);
 			all.href = catalogUrl;
 			actions.appendChild(all);
 		} else {
 			// With an active bike the product page always tells the truth.
 			body.appendChild(el('p', BADGE + '__title', fmt(t.incompatWith, pf.label)));
-			var oem = oemText(pf);
-			if (oem) {
-				body.appendChild(el('p', BADGE + '__meta', (t.yourBikeUses ? t.yourBikeUses + ' ' : '') + oem));
+			var noSizes = sizeLinks(pf);
+			if (noSizes) {
+				body.appendChild(noSizes);
 			}
 			var see = el('a', 'button alt wp-element-button ' + BADGE + '__btn', allLabel);
 			see.href = catalogUrl;

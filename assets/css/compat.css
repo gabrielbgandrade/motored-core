@@ -1530,3 +1530,18 @@ button.motored-compat-badge__link {
 .motored-plans-cash[hidden] {
 	display: none;
 }
+
+/* Factory sizes of the active bike inside the product banner (contract 1.11): label + one link per axis. */
+.motored-compat-badge__sizes {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.25rem 0.75rem;
+	margin: 0.35rem 0 0;
+}
+
+.motored-compat-badge__size {
+	color: var(--motored-link);
+	font-weight: 600;
+}
+
