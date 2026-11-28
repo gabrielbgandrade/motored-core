@@ -722,3 +722,7 @@ compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the g
 - `Api::active_bike_bar()` returns `Storefront::active_bike_bar_html()` (bar with `?moto=`, CTA mount otherwise). It is printed once per request, so a theme that prints it above the catalog moves it there; other themes keep it above the grid (`woocommerce_before_shop_loop`).
 - The bar opens with `.motored-compat-bar__actions`: "Elegir otra moto" (`__change`, `[data-motored-garage-open]`, link to Mi Garage) / "Quitar moto" (`__clear`), then the title and the count. "Clear filter" stays only for the "motorcycle not found" notice.
 
+### 2026-11-28 — Contract 1.8: product page payment block like the cards
+
+- `Storefront::html_for()` builds the stressed installment line (`.motored-plans-line__amount`) and the transfer / account money price (`.motored-plans-cash`) for the product page too; `payment-plans.js` updates the cash price of the chosen variation (hidden when it has no discount) and restores both on reset (`-plans2`). `compat.css` hides `.motored-plans-cash[hidden]` (`-compat18`).
+

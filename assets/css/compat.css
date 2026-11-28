@@ -1526,3 +1526,7 @@ button.motored-compat-badge__link {
 	outline-offset: 2px;
 }
 
+/* Transfer price of a variable product hidden by payment-plans.js when the chosen variation has none (1.8). */
+.motored-plans-cash[hidden] {
+	display: none;
+}

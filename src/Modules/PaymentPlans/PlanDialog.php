@@ -39,7 +39,7 @@ final class PlanDialog {
 			self::HANDLE,
 			MOTORED_CORE_URL . 'assets/js/payment-plans.js',
 			array(),
-			MOTORED_CORE_VERSION,
+			MOTORED_CORE_VERSION . '-plans2',
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,

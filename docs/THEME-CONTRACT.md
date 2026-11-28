@@ -1,6 +1,6 @@
 # Theme contract (engine / skin)
 
-Contract version: **1.7** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
+Contract version: **1.8** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
 
 Motored is **one product in two packages**:
 
@@ -72,7 +72,8 @@ specificity), so a theme value always wins.
 - **BEM classes are public API.** Block roots: `.motored-search`, `.motored-filters`, `.motored-compat-*`,
   `.motored-garage-*`, `.motored-bike-*`, `.motored-notify-*`, `.motored-plans`, `.motored-plans-dialog`,
   `.motored-install-gallery`, `.motored-ig-*`, `.motored-plans--loop` / `.motored-plans-cash*` (1.5, payment block on
-  product cards: list line, transfer price, "See payment methods" button), `.motored-suggest__*`, `.motored-trending__*`. Renaming one
+  product cards: list line, transfer price, "See payment methods" button; 1.8: the product page `.motored-plans`
+  also prints `.motored-plans-line__amount` and `.motored-plans-cash` after the line, kept in sync on variations), `.motored-suggest__*`, `.motored-trending__*`. Renaming one
   is a breaking change.
 - **Data attributes:** `[data-motored-garage-open]` on any link opens the garage drawer (its `href` is the
   no-JS fallback); `[data-motored-filters]` marks the filter sidebar; `[data-motored-swap="key"]` (1.4) on any

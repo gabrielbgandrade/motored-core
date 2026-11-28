@@ -47,13 +47,25 @@
 		a = w.querySelector('.motored-plans-link');
 		l = w.querySelector('.motored-plans-line');
 		if (!a || !l) { return; }
-		if (!w.o) { w.o = { l: l.textContent, a: a.getAttribute(A) }; }
+		var c = w.querySelector('.motored-plans-cash'), p, o;
+		if (!w.o) { w.o = { l: l.innerHTML, a: a.getAttribute(A), c: c ? c.innerHTML : '' }; }
 		if (v) {
 			l.textContent = v.l;
 			a.setAttribute(A, JSON.stringify(v));
+			// Transfer price of the chosen variation (contract 1.8): update it, or hide it when none discounts.
+			if (c) {
+				p = c.querySelector('.motored-plans-cash__price');
+				o = c.querySelector('.motored-plans-cash__off');
+				if (v.c && p) {
+					p.textContent = v.c.p;
+					if (o) { o.textContent = o.textContent.replace(/^[\d.,]+/, v.c.o); }
+				}
+				c.hidden = !v.c;
+			}
 		} else if (reset) {
-			l.textContent = w.o.l;
+			l.innerHTML = w.o.l;
 			a.setAttribute(A, w.o.a);
+			if (c) { c.innerHTML = w.o.c; c.hidden = false; }
 		}
 		w.hidden = !v && !reset;
 	}
