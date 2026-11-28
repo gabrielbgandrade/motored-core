@@ -52,7 +52,7 @@ final class Plans {
 			),
 			array(
 				'id'     => 'c9',
-				'name'   => '9 cuotas sin interés',
+				'name'   => '9 cuotas fijas',
 				'pct'    => 10.0,
 				'max'    => 9,
 				'type'   => Plan::TYPE_CARD,
@@ -60,7 +60,7 @@ final class Plans {
 			),
 			array(
 				'id'     => 'c12',
-				'name'   => '12 cuotas sin interés',
+				'name'   => '12 cuotas fijas',
 				'pct'    => 20.0,
 				'max'    => 12,
 				'type'   => Plan::TYPE_CARD,

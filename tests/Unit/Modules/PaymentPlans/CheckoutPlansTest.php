@@ -226,7 +226,8 @@ final class CheckoutPlansTest extends TestCase {
 		$html          = $checkout->selector_html();
 		$this->assertSame( 5, substr_count( $html, 'type="radio"' ) );
 		$this->assertMatchesRegularExpression( '/value="c9" checked/', $html );
-		$this->assertStringContainsString( '(10% OFF)', $html, 'cash plan shows its percentage' );
+		$this->assertStringContainsString( '<span class="motored-plan-option__badge">10% OFF</span>', $html, 'cash plan shows its percentage' );
+		$this->assertMatchesRegularExpression( '/motored-plan-option is-selected"><label[^>]*><input[^>]*value="c9" checked/', $html );
 		$this->assertStringNotContainsString( '10%', substr( $html, (int) strpos( $html, 'c9' ) ), 'surcharges never show a percentage' );
 		$this->assertStringNotContainsString( '20%', $html );
 	}

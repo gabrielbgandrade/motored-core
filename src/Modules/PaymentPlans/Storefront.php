@@ -7,6 +7,8 @@
 
 namespace Motored\Core\Modules\PaymentPlans;
 
+use Motored\Core\Integration\WooCommerce\CheckoutState;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -87,31 +89,57 @@ final class Storefront {
 			return '';
 		}
 
+		return $this->markup( $view, $in_loop ? 'loop' : 'single', $variable );
+	}
+
+	/**
+	 * Cart page (contract 1.12): the same block as the product page for the cart amount (product lines after
+	 * coupons + taxes, no shipping: the base the checkout plans use), above "Proceed to checkout".
+	 */
+	public function render_cart(): void {
+		if ( ! Config::enabled() || ! function_exists( 'WC' ) || ! WC()->cart instanceof \WC_Cart ) {
+			return;
+		}
+		$base = CheckoutState::cart_base_cents( WC()->cart );
+		$view = $base > 0 ? ProductView::build( Config::plans(), $base / 100 ) : null;
+		if ( null !== $view ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in markup().
+			echo $this->markup( $view, 'cart', false );
+		}
+	}
+
+	/**
+	 * Block markup for a view: the stressed list line, the transfer / account money price when a cash plan discounts
+	 * (contract 1.5 on cards, 1.8 on the product page, 1.12 in the cart) and the link to the shared dialog.
+	 *
+	 * @param array<string,mixed> $view     ProductView::build() result.
+	 * @param string              $variant  'loop', 'single' or 'cart'.
+	 * @param bool                $variable Variable product on its page (payment-plans.js swaps the data).
+	 */
+	private function markup( array $view, string $variant, bool $variable ): string {
 		PlanDialog::request();
 
-		// List line with the installment amount stressed, and the transfer / account money price when a cash plan
-		// discounts (contract 1.5 on cards, 1.8 on the product page).
 		$cash = '';
-		if ( isset( $view['c'] ) ) {
+		if ( isset( $view['c'] ) && is_array( $view['c'] ) ) {
 			$cash = sprintf(
 				'<span class="motored-plans-cash"><strong class="motored-plans-cash__price">%1$s</strong> <span class="motored-plans-cash__off">%2$s</span> <span class="motored-plans-cash__label">%3$s</span></span>',
-				esc_html( $view['c']['p'] ),
+				esc_html( (string) $view['c']['p'] ),
 				/* translators: %s: discount percentage. */
-				esc_html( sprintf( __( '%s%% OFF', 'motored-core' ), $view['c']['o'] ) ),
+				esc_html( sprintf( __( '%s%% OFF', 'motored-core' ), (string) $view['c']['o'] ) ),
 				esc_html__( 'with transfer or account money', 'motored-core' )
 			);
 		}
-		$line = esc_html( $view['l'] );
+		$line = esc_html( (string) $view['l'] );
 		if ( isset( $view['n'], $view['a'] ) ) {
 			$line = sprintf(
 				/* translators: 1: plan name (e.g. "6 interest-free installments"), 2: amount of each installment */
 				esc_html__( '%1$s of %2$s', 'motored-core' ),
-				esc_html( $view['n'] ),
-				'<strong class="motored-plans-line__amount">' . esc_html( $view['a'] ) . '</strong>'
+				esc_html( (string) $view['n'] ),
+				'<strong class="motored-plans-line__amount">' . esc_html( (string) $view['a'] ) . '</strong>'
 			);
 		}
 
-		if ( $in_loop ) {
+		if ( 'loop' === $variant ) {
 			return sprintf(
 				'<div class="motored-plans motored-plans--loop"><span class="motored-plans-line">%1$s</span>%2$s <a href="#%3$s" class="motored-plans-link" data-motored-plans="%4$s">%5$s</a></div>',
 				$line,
@@ -123,13 +151,14 @@ final class Storefront {
 		}
 
 		return sprintf(
-			'<div class="motored-plans"%1$s><span class="motored-plans-line">%2$s</span>%6$s <a href="#%3$s" class="motored-plans-link" data-motored-plans="%4$s">%5$s</a></div>',
-			$variable && ! $in_loop ? ' data-mv="1"' : '',
+			'<div class="motored-plans%7$s"%1$s><span class="motored-plans-line">%2$s</span>%6$s <a href="#%3$s" class="motored-plans-link" data-motored-plans="%4$s">%5$s</a></div>',
+			$variable ? ' data-mv="1"' : '',
 			$line,
 			esc_attr( PlanDialog::DOM_ID ),
 			esc_attr( (string) wp_json_encode( $view ) ),
 			esc_html__( 'See all payment methods', 'motored-core' ),
-			$cash
+			$cash,
+			'cart' === $variant ? ' motored-plans--cart' : ''
 		);
 	}
 

@@ -42,6 +42,15 @@ final class PlanHooks {
 	}
 
 	/**
+	 * Classic cart: the plans block above "Proceed to checkout" (priority 5; the button is 20).
+	 *
+	 * @param callable $callback Prints the block.
+	 */
+	public static function register_cart( callable $callback ): void {
+		add_action( 'woocommerce_proceed_to_checkout', $callback, 5 );
+	}
+
+	/**
 	 * Classic checkout: plan selector before the payment methods.
 	 *
 	 * @param callable $callback Prints the selector.

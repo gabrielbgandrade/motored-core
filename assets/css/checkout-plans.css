@@ -1,0 +1,63 @@
+/* Checkout plan cards (PaymentPlans, docs/THEME-CONTRACT.md 1.12). Structural only; visual values through tokens. */
+.motored-plan-selector__title {
+	margin: 0 0 0.5rem;
+	font-weight: 700;
+}
+
+.motored-plan-selector__list {
+	margin: 0 0 1rem;
+	padding: 0;
+	list-style: none;
+}
+
+.motored-plan-option {
+	margin: 0 0 0.5rem;
+	padding: 0;
+	list-style: none;
+}
+
+.motored-plan-option__label {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.25rem 0.75rem;
+	margin: 0;
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--motored-line-color, color-mix(in srgb, currentColor 20%, transparent));
+	border-radius: var(--motored-radius-size, 8px);
+	cursor: pointer;
+}
+
+.motored-plan-option__label:has(:checked) {
+	border-color: currentColor;
+}
+
+.motored-plan-option__input {
+	margin: 0;
+}
+
+.motored-plan-option__text,
+.motored-plan-option__price {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+}
+
+.motored-plan-option__price {
+	align-items: flex-end;
+	text-align: right;
+}
+
+.motored-plan-option__name,
+.motored-plan-option__main {
+	font-weight: 700;
+}
+
+.motored-plan-option__main {
+	white-space: nowrap;
+}
+
+.motored-plan-option__detail,
+.motored-plan-option__badge {
+	font-size: 0.85em;
+}

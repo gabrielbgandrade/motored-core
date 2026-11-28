@@ -70,13 +70,13 @@ final class StorefrontTest extends TestCase {
 		$this->assertStringContainsString( '(5% OFF)', $c3[1] );
 		$this->assertStringContainsString( '19.000,00', $c3[2] );
 
-		foreach ( array( '9 cuotas sin interés', '12 cuotas sin interés' ) as $name ) {
+		foreach ( array( '9 cuotas fijas', '12 cuotas fijas' ) as $name ) {
 			$flat = implode( ' ', $rows[ $name ] );
 			$this->assertStringNotContainsString( '%', $flat );
 			$this->assertStringNotContainsString( 'OFF', $flat );
 		}
-		$this->assertStringContainsString( '7.333,33', $this->money( $rows['9 cuotas sin interés'][1] ) );
-		$this->assertStringContainsString( '66.000,00', $rows['9 cuotas sin interés'][2] );
+		$this->assertStringContainsString( '7.333,33', $this->money( $rows['9 cuotas fijas'][1] ) );
+		$this->assertStringContainsString( '66.000,00', $rows['9 cuotas fijas'][2] );
 	}
 
 	public function test_no_view_without_price_or_plans(): void {

@@ -62,11 +62,13 @@ final class PaymentPlansModule implements Module {
 		PlanHooks::register_loop( array( $store, 'render_loop' ) );
 		PlanHooks::register_variation( array( $store, 'filter_variation' ) );
 		add_shortcode( Storefront::SHORTCODE, array( $store, 'shortcode' ) );
+		PlanHooks::register_cart( array( $store, 'render_cart' ) );
 
 		PreferenceFilter::register();
 
 		$checkout = new CheckoutPlans();
 		PlanHooks::register_selector( array( $checkout, 'render_selector' ) );
+		add_action( 'wp_enqueue_scripts', array( $checkout, 'enqueue_styles' ) );
 		PlanHooks::register_fragments( array( $checkout, 'add_fragment' ) );
 		PlanHooks::register_update_order_review( array( $checkout, 'on_update_order_review' ) );
 		PlanHooks::register_posted_data( array( $checkout, 'on_posted_data' ) );

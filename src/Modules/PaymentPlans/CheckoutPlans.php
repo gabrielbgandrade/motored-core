@@ -120,6 +120,15 @@ final class CheckoutPlans {
 	}
 
 	/**
+	 * Structural CSS of the plan cards, on the checkout page only (no script).
+	 */
+	public function enqueue_styles(): void {
+		if ( function_exists( 'is_checkout' ) && is_checkout() && Config::enabled() ) {
+			wp_enqueue_style( 'motored-checkout-plans', MOTORED_CORE_URL . 'assets/css/checkout-plans.css', array(), MOTORED_CORE_VERSION . '-plans1' );
+		}
+	}
+
+	/**
 	 * Hook before_payment: prints the selector.
 	 */
 	public function render_selector(): void {
@@ -159,20 +168,26 @@ final class CheckoutPlans {
 		$selected = $plans->resolve( CheckoutState::plan_id() );
 		$items    = '';
 		foreach ( $active as $plan ) {
-			$row    = Presenter::row( PlanCalculator::quote( $plan, $base ) );
-			$text   = $row[0] . ': ' . $row[1] . ( '' !== $row[2] ? ' (' . $row[2] . ')' : '' );
+			$part   = Presenter::option( PlanCalculator::quote( $plan, $base ) );
+			$is_sel = null !== $selected && $selected->id === $plan->id;
+			// Contract 1.12: one card per plan (radio + name/detail + main amount/badge).
 			$items .= sprintf(
-				'<li><label><input type="radio" name="%1$s" value="%2$s"%3$s> %4$s</label></li>',
+				'<li class="motored-plan-option%1$s%2$s"><label class="motored-plan-option__label"><input type="radio" class="motored-plan-option__input" name="%3$s" value="%4$s"%5$s> <span class="motored-plan-option__text"><span class="motored-plan-option__name">%6$s</span>%7$s</span> <span class="motored-plan-option__price"><span class="motored-plan-option__main">%8$s</span>%9$s</span></label></li>',
+				'' !== $part['badge'] ? ' is-discount' : '',
+				$is_sel ? ' is-selected' : '',
 				esc_attr( self::FIELD ),
 				esc_attr( $plan->id ),
-				null !== $selected && $selected->id === $plan->id ? ' checked' : '',
-				esc_html( $text )
+				$is_sel ? ' checked' : '',
+				esc_html( $part['name'] ),
+				'' !== $part['detail'] ? '<span class="motored-plan-option__detail">' . esc_html( $part['detail'] ) . '</span>' : '',
+				esc_html( $part['main'] ),
+				'' !== $part['badge'] ? '<span class="motored-plan-option__badge">' . esc_html( $part['badge'] ) . '</span>' : ''
 			);
 		}
 
 		return sprintf(
 			$wrapper,
-			'<p><strong>' . esc_html__( 'Choose your payment plan', 'motored-core' ) . '</strong></p><ul style="list-style:none;margin:0 0 1em;padding:0">' . $items . '</ul>'
+			'<p class="motored-plan-selector__title">' . esc_html__( 'Choose your payment plan', 'motored-core' ) . '</p><ul class="motored-plan-selector__list">' . $items . '</ul>'
 		);
 	}
 

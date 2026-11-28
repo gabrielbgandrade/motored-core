@@ -1,6 +1,6 @@
 # Theme contract (engine / skin)
 
-Contract version: **1.11** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
+Contract version: **1.12** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
 
 Motored is **one product in two packages**:
 
@@ -75,6 +75,12 @@ specificity), so a theme value always wins.
   product cards: list line, transfer price, "See payment methods" button; 1.8: the product page `.motored-plans`
   also prints `.motored-plans-line__amount` and `.motored-plans-cash` after the line, kept in sync on variations), `.motored-suggest__*`, `.motored-trending__*`. Renaming one
   is a breaking change.
+- **Cart and checkout payments (1.12):** the classic cart prints `.motored-plans.motored-plans--cart` (same children
+  as the product page block: `.motored-plans-line`, `__amount`, `.motored-plans-cash*`, `.motored-plans-link`) above
+  "Proceed to checkout" for the cart amount. The checkout plan selector `.motored-plan-selector` has `__title` and
+  `__list` > `li.motored-plan-option` (`.is-discount`, `.is-selected`) > `label.__label` > `input.__input` +
+  `__text` (`__name`, `__detail`) + `__price` (`__main`, `__badge` "10% OFF"); structural CSS
+  `assets/css/checkout-plans.css` (checkout only).
 - **Garage sizes on the product page (1.11):** with an active Mi Garage bike, the compatibility badge of the product
   page (`.motored-compat-badge--ok` / `--no`) adds `.motored-compat-badge__sizes`: `__sizes-label` ("Tu moto usa:")
   and one `a.motored-compat-badge__size[data-pos="front|rear"]` per factory size ("Delantera 120/70ZR17 (3)") linking

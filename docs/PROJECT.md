@@ -741,3 +741,9 @@ compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the g
 
 - `compat-garage.js` `sizeLinks()`: the product page badge (fits and does not fit) lists the factory sizes of the active Mi Garage bike, each linking to the catalog filtered by bike + axis with its count (`pf.oem`, `pf.counts` of the cached profile). Replaces the plain "Tu moto usa: …" text of the no-fit state (`oemText()` removed). Structural CSS in `compat.css` (`-compat19`), script `-garage13`.
 
+### 2026-11-28 — Contract 1.12: payment plans in the cart and as checkout cards
+
+- Cart: `Storefront::render_cart()` on `woocommerce_proceed_to_checkout` (5) prints `.motored-plans--cart` for the cart base (`CheckoutState::cart_base_cents()`, the same base the checkout fee uses). `html_for()` and the cart share `markup()`.
+- Checkout: the selector prints one card per plan from `Presenter::option()` (name, main amount, detail, "X% OFF" badge; surcharges still never show a percentage); no inline styles; `checkout-plans.css` (structural, tokens) only on the checkout (`CheckoutPlans::enqueue_styles()`).
+- Default plan names: the +10% / +20% plans are "9 cuotas fijas" / "12 cuotas fijas" (they are not interest-free). Stores that already saved the plans keep their names: rename them in Motored > Planes de pago.
+

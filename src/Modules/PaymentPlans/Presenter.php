@@ -85,6 +85,37 @@ final class Presenter {
 	}
 
 	/**
+	 * Parts of a plan for the checkout cards (contract 1.12): name, main amount, detail and the discount badge
+	 * ('' when none). Surcharges never show a percentage, like everywhere else.
+	 *
+	 * @param Quote $quote Quote.
+	 * @return array{name:string,main:string,detail:string,badge:string}
+	 */
+	public static function option( Quote $quote ): array {
+		$total        = self::money( $quote->total );
+		$installments = self::installments_text( $quote );
+		if ( $quote->plan->pct < 0 ) {
+			return array(
+				'name'   => $quote->plan->name,
+				'main'   => $total,
+				'detail' => $installments,
+				/* translators: %s: discount percentage. */
+				'badge'  => sprintf( __( '%s%% OFF', 'motored-core' ), self::percent( $quote->plan->pct ) ),
+			);
+		}
+		if ( '' === $installments ) {
+			return array( 'name' => $quote->plan->name, 'main' => $total, 'detail' => '', 'badge' => '' );
+		}
+		return array(
+			'name'   => $quote->plan->name,
+			'main'   => $installments,
+			/* translators: %s: total price */
+			'detail' => sprintf( __( 'Total %s', 'motored-core' ), $total ),
+			'badge'  => '',
+		);
+	}
+
+	/**
 	 * The one-line summary shown under the price, e.g. "6 cuotas sin interés de $ 1.000,00".
 	 *
 	 * @param Quote $quote Quote of the list plan.
