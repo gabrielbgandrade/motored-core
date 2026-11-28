@@ -140,3 +140,9 @@
 .motored-box__serp-desc { line-height: 1.45; opacity: 0.85; }
 .motored-box__counter { font-weight: 600; }
 .motored-box__counter--over { text-decoration: underline; }
+
+/* Single image picker (ProductBanner): hidden id, preview, Choose / Remove. */
+.motored-box__picker { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.motored-box__picker-preview:empty { display: none; }
+.motored-box__preview { display: block; max-width: 100%; height: auto; }
+

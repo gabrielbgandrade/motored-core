@@ -6002,3 +6002,95 @@ msgstr "Ver medios de pago"
 #: src/Modules/PaymentPlans/Storefront.php
 msgid "with transfer or account money"
 msgstr "con transferencia o dinero en cuenta"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Banners"
+msgstr "Banners"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Product page banner"
+msgstr "Banner de la página de producto"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "An image or animated GIF at the top of every product page (a sale, free installation, a launch). Each product can use this banner, its own or none (Product data > \"Product banner\" box)."
+msgstr "Una imagen o GIF animado arriba de cada página de producto (una oferta, colocación gratis, un lanzamiento). Cada producto puede usar este banner, uno propio o ninguno (caja \"Banner del producto\")."
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Show the general banner"
+msgstr "Mostrar el banner general"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Print it on every product that does not choose its own or none."
+msgstr "Se muestra en todos los productos que no elijan uno propio o ninguno."
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Image"
+msgstr "Imagen"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Link"
+msgstr "Enlace"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Optional. Where the banner goes when clicked (e.g. the sale category)."
+msgstr "Opcional. A dónde lleva el banner al hacer clic (por ejemplo, la categoría en oferta)."
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Ends on"
+msgstr "Termina el"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Optional, site time. After this moment the banner disappears by itself."
+msgstr "Opcional, hora del sitio. Después de ese momento el banner desaparece solo."
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Countdown"
+msgstr "Cuenta regresiva"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Show \"Ends in 01d : 10h : 41m : 15s\" under the banner when it has an end date."
+msgstr "Mostrar \"Termina en 01d : 10h : 41m : 15s\" debajo del banner cuando tiene fecha de fin."
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Product banner"
+msgstr "Banner del producto"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Use the general banner"
+msgstr "Usar el banner general"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Use this product's banner"
+msgstr "Usar el banner de este producto"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "No banner"
+msgstr "Sin banner"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Banner"
+msgstr "Banner"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Used only with \"Use this product's banner\". JPG, PNG, WebP or animated GIF."
+msgstr "Solo con \"Usar el banner de este producto\". JPG, PNG, WebP o GIF animado."
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Show it when there is an end date"
+msgstr "Mostrarla cuando hay fecha de fin"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Banner image"
+msgstr "Imagen del banner"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Use this image"
+msgstr "Usar esta imagen"
+
+#: src/Modules/ProductBanner/BannerAdmin.php
+msgid "Choose image"
+msgstr "Elegir imagen"
+
+#: src/Modules/ProductBanner/BannerDisplay.php
+msgid "Ends in"
+msgstr "Termina en"

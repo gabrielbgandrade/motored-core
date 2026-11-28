@@ -84,6 +84,7 @@ final class PluginTest extends TestCase {
 				\Motored\Core\Modules\CatalogFilters\CatalogFiltersModule::class,
 				\Motored\Core\Modules\Seo\SeoModule::class,
 				\Motored\Core\Modules\BikePages\BikePagesModule::class,
+				\Motored\Core\Modules\ProductBanner\ProductBannerModule::class,
 			),
 			Plugin::MODULES
 		);

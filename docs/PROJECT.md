@@ -730,3 +730,10 @@ compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the g
 
 - `TireCard::indexes()` turns the load index and speed rating attributes into `{code, kg}` / `{code, kmh}` (ETRTO tables in `TireSpecs`); `for_product()` returns them as `load` / `speed` for single tires. The store theme shows them as black code badges with "Índice de carga: 325 kg" / "Índice de velocidad: 210 km/h" on the product page. Test in `TireCardTest`.
 
+### 2026-11-28 — New module ProductBanner (contract 1.10)
+
+- Promo banner at the top of the product summary (motocard.com style): an image or animated GIF, optional link, optional end date with a live countdown ("Termina en 01d : 10h : 41m : 15s") that hides the banner at zero.
+- One general banner (WooCommerce > Settings > Motored > Banners, option `motored_product_banner`) and, per product, the side box "Banner del producto" (meta `_motored_banner`): use the general one, use its own, or none. Rules in `BannerResolver` (pure, `BannerResolverTest`).
+- Assets only when a banner prints: `product-banner.css` (structural) and, with a countdown, `product-banner.js` (< 1 KB, defer). Admin picker `assets/admin/motored-product-banner.js` (native `wp.media`) on the product screen and the Banners section only. Shared admin classes `.motored-box__picker`, `__picker-preview`, `__preview`.
+- New `ProductPageHooks::register_summary_top()` (priority 3 of `woocommerce_single_product_summary`).
+

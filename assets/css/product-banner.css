@@ -1,0 +1,45 @@
+/* Product banner (ProductBanner module, docs/THEME-CONTRACT.md 1.10). Structural only; visual values through tokens. */
+.motored-promo-banner {
+	--motored-pb-surface: var(--motored-soft-color, color-mix(in srgb, currentColor 4%, transparent));
+	margin: 0 0 1rem;
+}
+
+.motored-promo-banner[hidden] {
+	display: none;
+}
+
+.motored-promo-banner__link {
+	display: block;
+}
+
+.motored-promo-banner__img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.motored-promo-banner__countdown {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: center;
+	gap: 0.15rem 0.5rem;
+	margin: 0;
+	padding: 0.35rem 0.5rem;
+	background: var(--motored-pb-surface);
+	font-variant-numeric: tabular-nums;
+}
+
+.motored-promo-banner__unit {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.1rem;
+}
+
+.motored-promo-banner__num {
+	font-weight: 800;
+}
+
+.motored-promo-banner__lbl {
+	font-size: 0.75em;
+}

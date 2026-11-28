@@ -1,6 +1,6 @@
 # Theme contract (engine / skin)
 
-Contract version: **1.9** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
+Contract version: **1.10** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
 
 Motored is **one product in two packages**:
 
@@ -75,6 +75,11 @@ specificity), so a theme value always wins.
   product cards: list line, transfer price, "See payment methods" button; 1.8: the product page `.motored-plans`
   also prints `.motored-plans-line__amount` and `.motored-plans-cash` after the line, kept in sync on variations), `.motored-suggest__*`, `.motored-trending__*`. Renaming one
   is a breaking change.
+- **Product banner (1.10):** at the top of the product summary (priority 3), `.motored-promo-banner` holds
+  `__link` (only with a link) > `__img` (full-size image, animated GIFs keep moving) and, with an end date and the
+  countdown on, `__countdown[data-motored-countdown="<ms>"]` > `__ends` ("Termina en") + four `__unit` >
+  `__num[data-u="d|h|m|s"]` + `__lbl`. The banner gets `[hidden]` when the countdown reaches zero. Optional
+  token: none (the countdown band uses `--motored-soft-color`).
 - **Data attributes:** `[data-motored-garage-open]` on any link opens the garage drawer (its `href` is the
   no-JS fallback); `[data-motored-filters]` marks the filter sidebar; `[data-motored-swap="key"]` (1.4) on any
   element outside the grid that depends on the active filters (catalog title, sort form, the quick bar): after an

@@ -41,6 +41,7 @@ final class Plugin {
 		Modules\CatalogFilters\CatalogFiltersModule::class,
 		Modules\Seo\SeoModule::class,
 		Modules\BikePages\BikePagesModule::class,
+		Modules\ProductBanner\ProductBannerModule::class,
 	);
 
 	/**

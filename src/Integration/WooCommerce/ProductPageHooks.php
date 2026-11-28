@@ -25,6 +25,16 @@ final class ProductPageHooks {
 	}
 
 	/**
+	 * Hooks an action printed at the very top of the product summary, before the title (priority 3; the
+	 * classic title is priority 5).
+	 *
+	 * @param callable $callback fn(): void.
+	 */
+	public static function register_summary_top( callable $callback ): void {
+		add_action( 'woocommerce_single_product_summary', $callback, 3 );
+	}
+
+	/**
 	 * Hooks an action printed right below the Add to Cart button inside the product summary
 	 * (classic template: add-to-cart is priority 30, meta/SKU is priority 40). Also runs on out-of-stock products.
 	 *
