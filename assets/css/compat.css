@@ -929,6 +929,15 @@ button.motored-compat-badge__link {
 	background: var(--motored-bg);
 }
 
+.motored-compat-bar__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.25rem 0.4rem;
+	margin: 0 0 0.35rem;
+	font-size: 0.9em;
+}
+
 .motored-compat-bar__title {
 	margin: 0 0 0.35rem;
 	display: flex;

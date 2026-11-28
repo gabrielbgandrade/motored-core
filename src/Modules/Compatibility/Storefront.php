@@ -466,7 +466,15 @@ final class Storefront {
 		$base_url  = remove_query_arg( array( 'pos', 'paged', 'product-page', 'filter_' . TireSpecs::ATTR_POSITION, 'query_type_' . TireSpecs::ATTR_POSITION ) );
 		$total_cnt = (int) ( $counts['all'] ?? 0 );
 
-		$out  = '<div class="motored-compat-bar" data-moto="' . esc_attr( (string) $profile['slug'] ) . '">';
+		$out = '<div class="motored-compat-bar" data-moto="' . esc_attr( (string) $profile['slug'] ) . '">';
+		// Actions first (1.7): pick another motorcycle (opens Mi Garage) or drop the motorcycle filter.
+		$garage_url = GarageAssets::garage_url();
+		$out       .= '<p class="motored-compat-bar__actions">';
+		if ( '' !== $garage_url ) {
+			$out .= '<a class="motored-compat-bar__change" href="' . esc_url( $garage_url ) . '" data-motored-garage-open>' . esc_html__( 'Choose another motorcycle', 'motored-core' ) . '</a>'
+				. ' <span class="motored-compat-bar__sep" aria-hidden="true">/</span> ';
+		}
+		$out .= '<a class="motored-compat-bar__clear" href="' . esc_url( $clear ) . '">' . esc_html__( 'Remove motorcycle', 'motored-core' ) . '</a></p>';
 		$out .= '<p class="motored-compat-bar__title"><strong>' . esc_html__( 'Tires compatible with', 'motored-core' ) . ' ' . esc_html( (string) $profile['label'] ) . '</strong>';
 		$out .= ' <span class="motored-compat-bar__count">' . esc_html(
 			sprintf(
@@ -474,8 +482,7 @@ final class Storefront {
 				_n( '%d result', '%d results', $total_cnt, 'motored-core' ),
 				$total_cnt
 			)
-		) . '</span>';
-		$out .= ' <a class="motored-compat-bar__clear" href="' . esc_url( $clear ) . '">' . esc_html__( 'Clear filter', 'motored-core' ) . '</a></p>';
+		) . '</span></p>';
 
 		// Factory sizes as printed in the manual, so a shopper can double-check them at a glance.
 		$size_parts = array();

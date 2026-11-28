@@ -717,3 +717,8 @@ compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the g
 
 - `ProductView::build()` also returns `n` (list plan name) and `a` (amount of each installment) when the list plan has 2+ installments; `Storefront` prints the loop line as "6 cuotas sin interés de <strong class="motored-plans-line__amount">$X</strong>" (new string `%1$s of %2$s`, es_AR "%1$s de %2$s"). The theme styles `.motored-plans-line__amount`.
 
+### 2026-11-28 — Contract 1.7: catalog motorcycle bar for themes
+
+- `Api::active_bike_bar()` returns `Storefront::active_bike_bar_html()` (bar with `?moto=`, CTA mount otherwise). It is printed once per request, so a theme that prints it above the catalog moves it there; other themes keep it above the grid (`woocommerce_before_shop_loop`).
+- The bar opens with `.motored-compat-bar__actions`: "Elegir otra moto" (`__change`, `[data-motored-garage-open]`, link to Mi Garage) / "Quitar moto" (`__clear`), then the title and the count. "Clear filter" stays only for the "motorcycle not found" notice.
+
