@@ -126,7 +126,7 @@
 .motored-box__thumbs img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 3px; }
 .motored-box__cap { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; }
 .motored-box__cap--empty { opacity: 0.6; font-style: italic; }
-.motored-box__cap-input { display: block; width: 100%; min-width: 0; max-width: none; min-height: 26px; height: 26px; padding: 2px 6px; margin: 0; font-size: 12px; line-height: 1.3; box-sizing: border-box; }
+.motored-box__cap-input { display: block; width: 100%; min-width: 0; max-width: none; min-height: 26px; height: 26px; padding: 2px 6px; margin: 0; line-height: 1.3; box-sizing: border-box; }
 .motored-box__controls { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 .motored-box__meta { opacity: 0.8; }
 .motored-box__rv-photos { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
@@ -135,8 +135,8 @@
 
 /* Live Google SERP preview inside the Motored SEO meta box */
 .motored-box__serp { max-width: 640px; }
-.motored-box__serp-url { font-size: 12px; opacity: 0.72; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 2px; }
-.motored-box__serp-title { font-size: 16px; font-weight: 600; line-height: 1.3; margin-bottom: 3px; }
-.motored-box__serp-desc { font-size: 13px; line-height: 1.45; opacity: 0.85; }
+.motored-box__serp-url { opacity: 0.72; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 2px; }
+.motored-box__serp-title { font-weight: 600; line-height: 1.3; margin-bottom: 3px; }
+.motored-box__serp-desc { line-height: 1.45; opacity: 0.85; }
 .motored-box__counter { font-weight: 600; }
 .motored-box__counter--over { text-decoration: underline; }
