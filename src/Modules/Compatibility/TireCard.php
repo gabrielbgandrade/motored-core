@@ -18,9 +18,10 @@ final class TireCard {
 
 	/**
 	 * Card title parts for a tire, or an empty array when the product is not an indexed tire.
+	 * `load` / `speed` (1.9): `{code, kg}` / `{code, kmh}` of a single tire, empty for kits or missing data.
 	 *
 	 * @param \WC_Product $product Product.
-	 * @return array{size:string,model:string,kit:bool}|array{}
+	 * @return array{size:string,model:string,kit:bool,load:array{code?:string,kg?:int|float},speed:array{code?:string,kmh?:int}}|array{}
 	 */
 	public static function for_product( \WC_Product $product ): array {
 		if ( ! Config::enabled() ) {
@@ -32,9 +33,14 @@ final class TireCard {
 		}
 		$fit   = Storefront::fit_for_product( $product->get_id() );
 		$kit   = null !== $fit && TireSpecs::POS_KIT === ( $fit['position'] ?? '' );
-		$parts = array( $size );
+		$parts   = array( $size );
+		$indexes = array(
+			'load'  => array(),
+			'speed' => array(),
+		);
 		if ( ! $kit ) {
-			$code = self::load_speed_code( self::attribute( $product, TireSpecs::ATTR_LOAD_INDEX ), self::attribute( $product, TireSpecs::ATTR_SPEED_RATING ) );
+			$indexes = self::indexes( self::attribute( $product, TireSpecs::ATTR_LOAD_INDEX ), self::attribute( $product, TireSpecs::ATTR_SPEED_RATING ) );
+			$code    = self::load_speed_code( self::attribute( $product, TireSpecs::ATTR_LOAD_INDEX ), self::attribute( $product, TireSpecs::ATTR_SPEED_RATING ) );
 			if ( '' !== $code ) {
 				$parts[] = $code;
 			}
@@ -47,7 +53,44 @@ final class TireCard {
 			'size'  => implode( ' ', $parts ),
 			'model' => self::attribute( $product, TireSpecs::ATTR_LINE ),
 			'kit'   => $kit,
+			'load'  => $indexes['load'],
+			'speed' => $indexes['speed'],
 		);
+	}
+
+	/**
+	 * Load index with its kg and speed rating with its km/h, each empty when invalid or unknown.
+	 *
+	 * @param string $load  Load index value.
+	 * @param string $speed Speed rating value or slug.
+	 * @return array{load:array{code?:string,kg?:int|float},speed:array{code?:string,kmh?:int}}
+	 */
+	public static function indexes( string $load, string $speed ): array {
+		$out   = array(
+			'load'  => array(),
+			'speed' => array(),
+		);
+		$index = TireSpecs::parse_load_index( $load );
+		if ( null !== $index && $index >= 20 && $index <= 120 ) {
+			$kg = TireSpecs::load_kg( $index );
+			if ( null !== $kg ) {
+				$out['load'] = array(
+					'code' => (string) $index,
+					'kg'   => $kg,
+				);
+			}
+		}
+		$code = strtoupper( trim( $speed ) );
+		if ( 'W-PAR' === $code ) {
+			$code = '(W)';
+		}
+		if ( '' !== $code && null !== TireSpecs::speed_rank( $code ) && isset( TireSpecs::SPEED_KMH[ $code ] ) ) {
+			$out['speed'] = array(
+				'code' => $code,
+				'kmh'  => (int) TireSpecs::SPEED_KMH[ $code ],
+			);
+		}
+		return $out;
 	}
 
 	/**

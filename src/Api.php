@@ -22,7 +22,7 @@ final class Api {
 	 * Contract version. Bump the minor for additions, the major for breaking changes
 	 * (and update docs/THEME-CONTRACT.md plus the theme in the same change).
 	 */
-	public const CONTRACT = '1.8';
+	public const CONTRACT = '1.9';
 
 	/**
 	 * Whether the given contract major version is the one this plugin implements.
@@ -54,10 +54,11 @@ final class Api {
 	/**
 	 * Short technical title of a tire for product cards (1.5): `size` "160/60R17 69H TL" (kits: "120/70ZR17 +
 	 * 160/60ZR17"), `model` "MT60 RS" (may be ''), `kit`. Empty array when the product is not an indexed tire or
-	 * compatibility is off; the product name itself never changes.
+	 * compatibility is off; the product name itself never changes. 1.9: `load` {code "69", kg 325} and `speed`
+	 * {code "H", kmh 210} of a single tire (empty arrays for kits or missing data).
 	 *
 	 * @param \WC_Product|int $product Product or product ID.
-	 * @return array{size:string,model:string,kit:bool}|array{}
+	 * @return array{size:string,model:string,kit:bool,load:array{code?:string,kg?:int|float},speed:array{code?:string,kmh?:int}}|array{}
 	 */
 	public static function tire_card( $product ): array {
 		$product = is_numeric( $product ) && function_exists( 'wc_get_product' ) ? wc_get_product( (int) $product ) : $product;

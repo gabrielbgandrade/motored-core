@@ -2,6 +2,7 @@
 namespace Motored\Core\Tests\Unit\Modules\Compatibility;
 
 use Motored\Core\Modules\Compatibility\TireCard;
+use Motored\Core\Modules\Compatibility\TireSpecs;
 use Motored\Core\Tests\Unit\TestCase;
 
 final class TireCardTest extends TestCase {
@@ -20,5 +21,10 @@ final class TireCardTest extends TestCase {
 		$this->assertSame( 'TT', TireCard::tube_code( 'Con cámara (TT)' ) );
 		$this->assertSame( 'TL/TT', TireCard::tube_code( 'TL / TT' ) );
 		$this->assertSame( '', TireCard::tube_code( 'Sin cámara' ) );
+	}
+
+	public function test_indexes_give_kg_and_kmh_and_skip_unknown_values(): void {
+		$this->assertSame( array( 'load' => array( 'code' => '69', 'kg' => TireSpecs::load_kg( 69 ) ), 'speed' => array( 'code' => 'H', 'kmh' => 210 ) ), TireCard::indexes( '69', 'h' ) );
+		$this->assertSame( array( 'load' => array(), 'speed' => array() ), TireCard::indexes( '999', 'nonsense' ) );
 	}
 }

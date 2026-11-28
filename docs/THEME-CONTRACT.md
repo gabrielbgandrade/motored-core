@@ -1,6 +1,6 @@
 # Theme contract (engine / skin)
 
-Contract version: **1.8** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
+Contract version: **1.9** (`Motored\Core\Api::CONTRACT`; guarded by `tests/Unit/Support/ThemeContractTest.php`).
 
 Motored is **one product in two packages**:
 
@@ -93,7 +93,7 @@ specificity), so a theme value always wins.
 |---|---|
 | `\Motored\Core\Api::CONTRACT`, `Api::supports( '1' )` | Contract version check |
 | `\Motored\Core\Api::garage_url()` | Mi Garage URL for the current visitor |
-| `\Motored\Core\Api::tire_card( $product )` | Technical card title of a tire (1.5): `size` "160/60R17 69H TL" (kits "120/70ZR17 + 160/60ZR17"), `model` "MT60 RS", `kit`; empty array for non-tires. The product name never changes |
+| `\Motored\Core\Api::tire_card( $product )` | Technical card title of a tire (1.5): `size` "160/60R17 69H TL" (kits "120/70ZR17 + 160/60ZR17"), `model` "MT60 RS", `kit`; 1.9: `load` `{code:"69", kg:325}` and `speed` `{code:"H", kmh:210}` (empty arrays for kits or missing data); empty array for non-tires. The product name never changes |
 | `\Motored\Core\Api::active_bike_bar()` | Catalog motorcycle bar (1.7): with `?moto=` the `.motored-compat-bar` (`__actions` with `__change` "Elegir otra moto" opening the garage and `__clear` "Quitar moto", `__title`, `__count`, `__sizes`, `__positions` with `__tab`, `__switch`), otherwise the cache-safe `.motored-garage-cta` mount (`__lead`, `__link`); '' when it does not apply. Printed once per request: a theme that prints it above the catalog takes it from its default place above the grid. AJAX filters replace `.motored-compat-bar` wherever it sits, so do not wrap it in `[data-motored-swap]` |
 | `\Motored\Core\Api::active_filter_labels()` | Values of the active catalog filters for headings (1.4), e.g. `["Michelin", "Rodado 17", "En stock"]` |
 | `do_action( 'motored_garage_trigger' )` | The theme fires it where it renders a garage link; the plugin mounts the drawer once (not on checkout) |

@@ -726,3 +726,7 @@ compatibility tab, hubs and sitemap). `pageUrl` stays in the REST profile; the g
 
 - `Storefront::html_for()` builds the stressed installment line (`.motored-plans-line__amount`) and the transfer / account money price (`.motored-plans-cash`) for the product page too; `payment-plans.js` updates the cash price of the chosen variation (hidden when it has no discount) and restores both on reset (`-plans2`). `compat.css` hides `.motored-plans-cash[hidden]` (`-compat18`).
 
+### 2026-11-28 — Contract 1.9: load and speed indexes in Api::tire_card()
+
+- `TireCard::indexes()` turns the load index and speed rating attributes into `{code, kg}` / `{code, kmh}` (ETRTO tables in `TireSpecs`); `for_product()` returns them as `load` / `speed` for single tires. The store theme shows them as black code badges with "Índice de carga: 325 kg" / "Índice de velocidad: 210 km/h" on the product page. Test in `TireCardTest`.
+
